@@ -1331,7 +1331,7 @@
         <div style="font-size:.72rem;font-weight:700;color:var(--geo-green-600);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Sales Manager 2</div>
         <div style="font-weight:800;font-size:1rem;margin-bottom:8px">Adesina Faridat Adenike</div>
         <a href="tel:+2349131916831" style="font-size:.82rem;color:var(--text-muted);text-decoration:none;display:block;margin-bottom:4px">📞 +234 913 191 6831</a>
-        <a href="mailto:faridat3008@gmail.com" style="font-size:.78rem;color:var(--text-muted);text-decoration:none;display:block">✉️ faridat3008@gmail.comm</a>
+        <a href="mailto:faridat3008@gmail.com" style="font-size:.78rem;color:var(--text-muted);text-decoration:none;display:block">✉️ faridat3008@gmail.com</a>
       </div>
       
       <!-- Placeholder for more -->
@@ -2180,7 +2180,67 @@
      SCRIPTS
      ============================================================ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="theme.js"></script>
+<script>
+// =============================================================================
+// THEME TOGGLE
+// Supports: system preference, manual toggle, localStorage persistence
+// =============================================================================
+
+;(() => {
+  const STORAGE_KEY = 'obvious-theme'
+
+  // Get stored preference or system preference
+  function getPreferredTheme() {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) return stored
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+
+  // Apply theme to document
+  function setTheme(theme) {
+    const root = document.documentElement
+
+    if (theme === 'dark') {
+      root.classList.add('dark')
+      root.classList.remove('light')
+    } else {
+      root.classList.add('light')
+      root.classList.remove('dark')
+    }
+
+    localStorage.setItem(STORAGE_KEY, theme)
+  }
+
+  // Toggle between light and dark
+  function toggleTheme() {
+    const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+    const next = current === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+  }
+
+  // Initialize on load
+  setTheme(getPreferredTheme())
+
+  // Listen for system preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    // Only auto-switch if user hasn't manually set a preference
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      setTheme(e.matches ? 'dark' : 'light')
+    }
+  })
+
+  // Expose toggle function globally
+  window.toggleTheme = toggleTheme
+
+  // Auto-bind to .theme-toggle buttons
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.theme-toggle').forEach((btn) => {
+      btn.addEventListener('click', toggleTheme)
+    })
+  })
+})()
+</script>
 <script>
 
 // ---- SAMPLE DATA ----
@@ -2759,6 +2819,36 @@ window.addEventListener('load', function() {
   document.querySelectorAll('.hero-slide').forEach(s=>{const url=s.style.backgroundImage.replace(/url\(['"]?([^'"]+)['"]?\)/,'$1');if(url){const img=new Image();img.src=url;}});
   startSlideshow();
 });
+
+// ROUTE HANDLER — hash-based: #admin shows portal, else website
+// ══════════════════════════════════════════════════════════════
+function handleRoute() {
+  var isAdmin = window.location.hash === '#admin' ||
+                window.location.pathname.startsWith('/admin');
+  var adminRoot = document.getElementById('admin-root');
+  var siteNav   = document.querySelector('nav');
+  var mobileNav = document.getElementById('geo-mobile-nav');
+  if (isAdmin) {
+    if (adminRoot) { adminRoot.style.display = 'block'; }
+    if (siteNav)   { siteNav.style.display   = 'none'; }
+    if (mobileNav) { mobileNav.style.display = 'none'; }
+    document.body.style.overflow = 'hidden';
+    document.title = 'GeoEstate Admin';
+  } else {
+    if (adminRoot) { adminRoot.style.display = 'none'; }
+    if (siteNav)   { siteNav.style.display   = ''; }
+    document.body.style.overflow = '';
+    document.title = 'GeoEstate — Nigeria\'s Verified Property Marketplace';
+  }
+}
+function goToAdmin(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  window.location.hash = 'admin';
+  handleRoute();
+  return false;
+}
+window.addEventListener('hashchange', handleRoute);
+window.addEventListener('load', handleRoute);
 
 </script>
 
@@ -3458,7 +3548,67 @@ window.addEventListener('load', function() {
 </div>
 
 <div id="admin-toast"></div>
-<script src="theme.js"></script>
+<script>
+// =============================================================================
+// THEME TOGGLE
+// Supports: system preference, manual toggle, localStorage persistence
+// =============================================================================
+
+;(() => {
+  const STORAGE_KEY = 'obvious-theme'
+
+  // Get stored preference or system preference
+  function getPreferredTheme() {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) return stored
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+
+  // Apply theme to document
+  function setTheme(theme) {
+    const root = document.documentElement
+
+    if (theme === 'dark') {
+      root.classList.add('dark')
+      root.classList.remove('light')
+    } else {
+      root.classList.add('light')
+      root.classList.remove('dark')
+    }
+
+    localStorage.setItem(STORAGE_KEY, theme)
+  }
+
+  // Toggle between light and dark
+  function toggleTheme() {
+    const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+    const next = current === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+  }
+
+  // Initialize on load
+  setTheme(getPreferredTheme())
+
+  // Listen for system preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    // Only auto-switch if user hasn't manually set a preference
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      setTheme(e.matches ? 'dark' : 'light')
+    }
+  })
+
+  // Expose toggle function globally
+  window.toggleTheme = toggleTheme
+
+  // Auto-bind to .theme-toggle buttons
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.theme-toggle').forEach((btn) => {
+      btn.addEventListener('click', toggleTheme)
+    })
+  })
+})()
+</script>
 <script>
 // Clear any old localStorage dummy data from previous sessions
 ['pgs_submissions','pgs_properties','pgs_lawyers','pgs_team','pgs_tenancies','pgs_transactions'].forEach(k => {
@@ -5126,35 +5276,6 @@ function manualSync() {
 
 
 // ══════════════════════════════════════════════════════════════
-// ROUTE HANDLER — hash-based: #admin shows portal, else website
-// ══════════════════════════════════════════════════════════════
-function handleRoute() {
-  var isAdmin = window.location.hash === '#admin' ||
-                window.location.pathname.startsWith('/admin');
-  var adminRoot = document.getElementById('admin-root');
-  var siteNav   = document.querySelector('nav');
-  var mobileNav = document.getElementById('geo-mobile-nav');
-  if (isAdmin) {
-    if (adminRoot) { adminRoot.style.display = 'block'; }
-    if (siteNav)   { siteNav.style.display   = 'none'; }
-    if (mobileNav) { mobileNav.style.display = 'none'; }
-    document.body.style.overflow = 'hidden';
-    document.title = 'GeoEstate Admin';
-  } else {
-    if (adminRoot) { adminRoot.style.display = 'none'; }
-    if (siteNav)   { siteNav.style.display   = ''; }
-    document.body.style.overflow = '';
-    document.title = 'GeoEstate — Nigeria\'s Verified Property Marketplace';
-  }
-}
-function goToAdmin(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  window.location.hash = 'admin';
-  handleRoute();
-  return false;
-}
-window.addEventListener('hashchange', handleRoute);
-window.addEventListener('load', handleRoute);
 
 </script>
 
