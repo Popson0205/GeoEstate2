@@ -5728,5 +5728,48 @@ function manualSync() {
 
 </div>
 
+
+<script>
+// ── Mobile Navigation ───────────────────────────────────────────────────────
+function toggleMobileNav() {
+  var nav   = document.getElementById('geo-mobile-nav');
+  var btn   = document.getElementById('geo-hamburger');
+  if (!nav) return;
+  var isOpen = nav.classList.contains('open');
+  if (isOpen) {
+    nav.classList.remove('open');
+    btn && btn.classList.remove('open');
+    document.body.style.overflow = '';
+  } else {
+    nav.classList.add('open');
+    btn && btn.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function navTo(page) {
+  // Close mobile nav
+  var nav = document.getElementById('geo-mobile-nav');
+  var btn = document.getElementById('geo-hamburger');
+  if (nav) { nav.classList.remove('open'); }
+  if (btn) { btn.classList.remove('open'); }
+  document.body.style.overflow = '';
+  // Navigate
+  showPage(page);
+}
+
+// Close mobile nav on outside tap
+document.addEventListener('click', function(e) {
+  var nav = document.getElementById('geo-mobile-nav');
+  var btn = document.getElementById('geo-hamburger');
+  if (!nav || !nav.classList.contains('open')) return;
+  if (!nav.contains(e.target) && !btn.contains(e.target)) {
+    nav.classList.remove('open');
+    btn && btn.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+</script>
+
 </body>
 </html>
