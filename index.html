@@ -359,7 +359,7 @@ YPE html>
       <li><a href="#" onclick="showPage('buy')" id="nav-buy">Buy</a></li>
       <li><a href="#" onclick="showPage('lease')" id="nav-lease">Lease</a></li>
       <li><a href="#" onclick="showPage('list')" id="nav-list">List Property</a></li>
-      <li><a href="owner-dashboard.html" id="nav-owner">Owner Portal</a></li>
+      <li><a href="/owner-dashboard" id="nav-owner">Owner Portal</a></li>
       <li><a href="#" onclick="showPage('verify')" id="nav-verify">Verify Identity</a></li>
       <li><a href="#" onclick="showPage('about')" id="nav-about">How It Works</a></li>
       <li><a href="#" onclick="showPage('team')" id="nav-team">Our Team</a></li>
@@ -3189,6 +3189,7 @@ function adminDoLogin() {
     if (err) err.style.display = 'none';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
+    localStorage.setItem('geo_admin_token', window.GEO_ADMIN_TOKEN || 'geoestate-admin-2024');
     if (typeof initApp === 'function') initApp();
   } else {
     if (err) { err.style.display = 'block'; err.textContent = '❌ Invalid email or password'; }
@@ -4753,7 +4754,7 @@ function approveId(idx){
   saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
   adminToast(submissions[idx].name+' approved ✓','success');
   addSyncLog('Identity approved: '+submissions[idx].name);
-  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
+  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify({status:'approved',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
 function rejectId(idx){
   saveNotes(idx);
@@ -4761,7 +4762,7 @@ function rejectId(idx){
   saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
   adminToast(submissions[idx].name+' rejected','error');
   addSyncLog('Identity rejected: '+submissions[idx].name);
-  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
+  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
 function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Tom K.';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
 function approveProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='live';saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' is now live ✓','success');addSyncLog('Property approved: '+adminProperties[idx].title);}
@@ -5713,7 +5714,7 @@ function saveTeamMember(){
   renderTeam();
   closeModal('modal-add-team');
   addSyncLog('Team updated: ' + member.name);
-  fetch(GEO_API+'/admin/save-team',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(member)}).catch(()=>{});
+  fetch(GEO_API+'/admin/save-team',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify(member)}).catch(()=>{});
 }
 
 function removeTeamMember(idx){
@@ -5854,7 +5855,7 @@ function addTenancy(){
   closeModal('modal-add-tenancy');
   adminToast('Tenancy record added ✓','success');
   addSyncLog('Tenancy added: ' + t.ref + ' — ' + t.property);
-  fetch(GEO_API+'/admin/save-tenancy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)}).catch(()=>{});
+  fetch(GEO_API+'/admin/save-tenancy',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify(t)}).catch(()=>{});
 }
 
 function removeTenancy(idx){
@@ -6178,18 +6179,40 @@ function filterTypePage(type) {
   renderTypePage(type, props);
 }
 
-// Override showPage to load type pages on demand
-const _origShowPage = typeof showPage === 'function' ? showPage : null;
-function showPage(name) {
-  if (_origShowPage) _origShowPage(name);
-  if (name === 'rent' || name === 'buy' || name === 'lease') {
-    if (!typePageCache[name] || !typePageCache[name].length) {
-      loadTypePage(name).then(props => { typePageCache[name] = props; renderTypePage(name, props); });
-    } else {
-      renderTypePage(name, typePageCache[name].map(window.GeoAPI ? window.GeoAPI.mapProperty : p=>p));
-    }
+// Hook into type pages WITHOUT overriding showPage (safe for admin)
+// Call loadTypePageIfNeeded() after any showPage() call via MutationObserver
+function loadTypePageIfNeeded(name) {
+  if (name !== 'rent' && name !== 'buy' && name !== 'lease') return;
+  if (!typePageCache[name] || !typePageCache[name].length) {
+    loadTypePage(name).then(props => { typePageCache[name] = props; renderTypePage(name, props); });
+  } else {
+    const cached = typePageCache[name];
+    // Map if needed
+    const mapped = cached.length && cached[0].listing_type !== undefined
+      ? cached
+      : cached.map(window.GeoAPI ? window.GeoAPI.mapProperty : function(p){return p;});
+    renderTypePage(name, mapped);
   }
 }
+
+// Patch showPage safely — preserve original fully, just add side effect
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof window._geoShowPagePatched === 'undefined') {
+    window._geoShowPagePatched = true;
+    // Wait for original showPage to exist then wrap it
+    const waitForShowPage = setInterval(function() {
+      if (typeof showPage === 'function' && !showPage._geoPatched) {
+        const _orig = showPage;
+        window.showPage = function(name) {
+          _orig(name);
+          loadTypePageIfNeeded(name);
+        };
+        window.showPage._geoPatched = true;
+        clearInterval(waitForShowPage);
+      }
+    }, 50);
+  }
+});
 
 // ══ ENQUIRY SYSTEM ══════════════════════════════════════════════
 let enquiryPropId = null;
