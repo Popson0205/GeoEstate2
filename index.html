@@ -2775,7 +2775,7 @@ function confirmPayment() {
   document.body.style.overflow = 'hidden';
   // Persist payment to DB so admin sees it immediately
   fetch(GEO_API + '/admin/save-payment', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},
     body: JSON.stringify({
       ref: currentPayRef,
       prop: window._currentProp ? window._currentProp.title : '',
@@ -3765,6 +3765,8 @@ window.addEventListener('load', handleRoute);
 
       <!-- ══ SETTINGS ══ -->
       <div id="page-settings" class="page">
+<div id="admin-token-setting" style="padding:24px;max-width:480px"></div>
+
         <div class="two-col">
           <div class="section-card" style="padding:24px">
             <div class="section-title" style="margin-bottom:16px">Verification Settings</div>
@@ -4309,6 +4311,31 @@ const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'
   </div>
 </div>
 
+
+function renderAdminTokenSetting() {
+  const el = document.getElementById('admin-token-setting');
+  if (!el) return;
+  const current = localStorage.getItem('geo_admin_token') || '(not set)';
+  el.innerHTML = \`
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:.82rem;font-weight:600;color:var(--a-muted);margin-bottom:6px">Admin API Token</label>
+      <div style="display:flex;gap:8px">
+        <input id="admin-token-input" type="text" value="\${current}"
+          style="flex:1;padding:9px 12px;border:1.5px solid var(--a-border);border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.85rem;outline:none">
+        <button onclick="saveAdminToken()" style="padding:9px 16px;background:var(--a-green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--a-font)">Save</button>
+      </div>
+      <div style="font-size:.75rem;color:var(--a-subtle);margin-top:6px">This must match the ADMIN_SECRET environment variable on your Render API server.</div>
+    </div>
+  \`;
+}
+function saveAdminToken() {
+  const val = (document.getElementById('admin-token-input')||{}).value||'';
+  if (!val.trim()) return;
+  localStorage.setItem('geo_admin_token', val.trim());
+  if (window.GeoAPI) GeoAPI.setAdminToken(val.trim());
+  adminToast('✅ Token saved — refresh will use new token', 'success');
+}
+
 function nav(page,el){
   // Only touch pages INSIDE admin-root to avoid conflicting with website pages
   const adminRoot = document.getElementById('admin-root');
@@ -4337,6 +4364,23 @@ function nav(page,el){
   if(page==='sync') updateSyncPage();
   if(page==='team') renderTeam();
   if(page==='registrations') renderRegistrations();
+  if(page==='id-queue') { if(typeof renderIdQueue==='function') renderIdQueue(); }
+  if(page==='prop-queue') { if(typeof renderPropQueue==='function') renderPropQueue(); }
+  if(page==='users') { if(typeof renderUsers==='function') renderUsers(); }
+  if(page==='disputes') { if(typeof renderDisputes==='function') renderDisputes(); }
+  if(page==='transactions') { if(typeof renderTransactions==='function') renderTransactions(); }
+  if(page==='lawyers') { if(typeof renderLawyers==='function') renderLawyers(); }
+  if(page==='payments') { if(typeof renderPayments==='function') renderPayments(); }
+  if(page==='properties-mgmt') { if(typeof renderPropertiesMgmt==='function') renderPropertiesMgmt(); }
+  if(page==='tenancy') { if(typeof renderTenancy==='function') renderTenancy(); }
+  if(page==='overview') { if(typeof renderFeed==='function') renderFeed(); if(typeof renderChart==='function') renderChart(); if(typeof renderUrgent==='function') renderUrgent(); }
+  if(page==='settings') { renderAdminTokenSetting(); }
+  // If switching to data-heavy page and data seems empty, reload from DB
+  const dataDependentPages = ['registrations','id-queue','prop-queue','users','disputes','transactions','lawyers','payments','properties-mgmt','tenancy'];
+  if (dataDependentPages.includes(page)) {
+    const isEmpty = (submissions.length === 0 && adminProperties.length === 0);
+    if (isEmpty) { adminToast('Loading data...', 'info'); loadFromDB(); }
+  }
 }
 
 // ══ CLOCK ══
@@ -4816,7 +4860,7 @@ function addLawyer(){
   const dbPayload = {name, bar, spec, state, email, phone, bio, status:'active'};
   fetch(GEO_API + '/admin/save-lawyer', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},
     body: JSON.stringify(dbPayload)
   }).then(r => r.json()).then(d => {
     if(d.success){
@@ -5346,7 +5390,7 @@ function releasePayment(idx) {
   addSyncLog('Funds released: ' + manualPayments[idx].ref + ' → ' + manualPayments[idx].owner);
   // Persist to DB
   fetch(GEO_API + '/admin/save-payment', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},
     body: JSON.stringify({...manualPayments[idx], status: 'released'})
   }).catch(()=>{});
 }
