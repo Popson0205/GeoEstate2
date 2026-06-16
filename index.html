@@ -355,7 +355,11 @@ YPE html>
     <ul class="geo-nav-links">
       <li><a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
       <li><a href="#" onclick="showPage('map')" id="nav-map">Browse Map</a></li>
+      <li><a href="#" onclick="showPage('rent')" id="nav-rent">Rent</a></li>
+      <li><a href="#" onclick="showPage('buy')" id="nav-buy">Buy</a></li>
+      <li><a href="#" onclick="showPage('lease')" id="nav-lease">Lease</a></li>
       <li><a href="#" onclick="showPage('list')" id="nav-list">List Property</a></li>
+      <li><a href="owner-dashboard.html" id="nav-owner">Owner Portal</a></li>
       <li><a href="#" onclick="showPage('verify')" id="nav-verify">Verify Identity</a></li>
       <li><a href="#" onclick="showPage('about')" id="nav-about">How It Works</a></li>
       <li><a href="#" onclick="showPage('team')" id="nav-team">Our Team</a></li>
@@ -2436,7 +2440,7 @@ function renderProps(filter) {
           onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
         <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem;background:linear-gradient(135deg,#d9f2e3,#a8dfc0)">🏠</div>
-        <span class="geo-card-type-badge" style="position:absolute;top:12px;left:12px;z-index:1">${p.type.toUpperCase()}</span>
+        <span class="geo-card-type-badge" style="position:absolute;top:12px;left:12px;z-index:1">${(p.listing_type||p.type||"rent").toUpperCase()}</span>
         ${p.verified ? '<span style="position:absolute;top:12px;right:12px;z-index:1"><span class="verified-badge">✓ VERIFIED</span></span>' : ''}
         ${p.video ? '<span style="position:absolute;bottom:12px;right:12px;z-index:1;background:rgba(0,0,0,0.6);color:white;border-radius:999px;padding:3px 10px;font-size:0.72rem;font-weight:700">▶ VIDEO TOUR</span>' : ''}
         <div style="position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,rgba(0,0,0,0.35));pointer-events:none"></div>
@@ -3015,29 +3019,72 @@ function showAuthToast(msg,type){const el=document.getElementById('toast');if(!e
 const GEO_API_PUBLIC = GEO_API || 'https://geoestate.onrender.com';
 
 // ── Load live properties from DB on startup ──────────────────────────────────
+// ── Load live properties from API — Phase 1 fix ──
 (function loadLiveProperties() {
-  fetch(GEO_API_PUBLIC + '/admin/sync')
-    .then(r => r.json())
-    .then(d => {
-      if (d.liveProperties && d.liveProperties.length) {
-        // Map DB props to frontend format
-        const mapped = d.liveProperties.map(p => ({
-          id: p.id, type: p.type || 'rent',
-          title: p.title, price: p.price,
-          location: p.address || p.lga, state: p.state,
-          img: p.img || '', lat: 0, lng: 0,
-          verified: true, beds: '', baths: '', sqm: '',
-          tags: [], video: false,
-          owner: p.owner || ''
-        }));
-        // Merge with any existing demo properties
-        mapped.forEach(p => {
-          if (!properties.find(ep => ep.id === p.id)) properties.unshift(p);
-        });
-        if (typeof renderProps === 'function') renderProps(currentFilter || 'all');
+  // Use new /properties endpoint with listing_type support
+  Promise.all([
+    fetch(GEO_API_PUBLIC + '/properties?type=rent').then(r=>r.json()).catch(()=>({properties:[]})),
+    fetch(GEO_API_PUBLIC + '/properties?type=buy').then(r=>r.json()).catch(()=>({properties:[]})),
+    fetch(GEO_API_PUBLIC + '/properties?type=lease').then(r=>r.json()).catch(()=>({properties:[]}))
+  ]).then(([rentData, buyData, leaseData]) => {
+    const allProps = [
+      ...(rentData.properties||[]),
+      ...(buyData.properties||[]),
+      ...(leaseData.properties||[])
+    ];
+    if (!allProps.length) return;
+    // Map to frontend format using GeoAPI helper (if loaded), else inline
+    const mapper = (window.GeoAPI && window.GeoAPI.mapProperty) ? window.GeoAPI.mapProperty : function(p) {
+      const lt = p.listing_type || p.type || 'rent';
+      let price = p.price || '';
+      if (!price) {
+        if (lt==='rent' && p.monthly_rent) price = '₦'+Number(p.monthly_rent).toLocaleString()+'/mo';
+        else if (lt==='buy' && p.sale_price) price = '₦'+Number(p.sale_price).toLocaleString();
+        else if (lt==='lease' && p.lease_price) price = '₦'+Number(p.lease_price).toLocaleString()+' lease';
       }
-    }).catch(() => {}); // Silent fail — site still works without DB
+      return { id: p.id, type: lt, listing_type: lt, title: p.title, price: price,
+        location: p.address||p.lga||p.state||'—', state: p.state||'', lga: p.lga||'',
+        img: p.img||'', lat: 0, lng: 0, verified: true,
+        beds: p.bedrooms||0, baths: p.bathrooms||0, sqm: p.size_sqm||0,
+        description: p.description||'', tags: [], video: false, owner: p.owner||'' };
+    };
+    const mapped = allProps.map(mapper);
+    mapped.forEach(p => {
+      if (!properties.find(ep => ep.id === p.id)) properties.unshift(p);
+    });
+    if (typeof renderProps === 'function') renderProps(currentFilter || 'all');
+    // Update Rent/Buy/Lease page counts
+    updateTypePageCounts(rentData.properties||[], buyData.properties||[], leaseData.properties||[]);
+  }).catch(() => {});
 })();
+
+function updateTypePageCounts(rent, buy, lease) {
+  const rc = document.getElementById('rent-count'); if(rc) rc.textContent = rent.length + ' properties';
+  const bc = document.getElementById('buy-count');  if(bc) bc.textContent = buy.length + ' properties';
+  const lc = document.getElementById('lease-count'); if(lc) lc.textContent = lease.length + ' properties';
+}
+
+// ── SSE Real-time: refresh properties when admin updates ──
+if (window.GeoAPI && window.GeoAPI.onSSE) {
+  GeoAPI.onSSE('property_created', function() {
+    setTimeout(function() { location.reload && window.__sseRefresh && window.__sseRefresh(); }, 500);
+  });
+  GeoAPI.onSSE('property_updated', function() {
+    setTimeout(function() { if(window.__sseRefresh) window.__sseRefresh(); }, 500);
+  });
+}
+window.__sseRefresh = function() {
+  // Re-fetch and re-render without full reload
+  fetch(GEO_API_PUBLIC + '/properties').then(r=>r.json()).then(d => {
+    if (!d.properties || !d.properties.length) return;
+    const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p) { return {id:p.id,type:p.listing_type||p.type||'rent',listing_type:p.listing_type||p.type||'rent',title:p.title,price:p.price||'—',location:p.address||p.lga||'—',state:p.state||'',img:p.img||'',lat:0,lng:0,verified:true,beds:p.bedrooms||0,baths:p.bathrooms||0,sqm:p.size_sqm||0,tags:[],video:false,owner:p.owner||''}; };
+    // Replace live properties (keep demo ones)
+    const dbIds = d.properties.map(p=>p.id);
+    properties = properties.filter(p => !dbIds.includes(p.id));
+    d.properties.map(mapper).forEach(p => properties.unshift(p));
+    if (typeof renderProps === 'function') renderProps(currentFilter || 'all');
+  }).catch(()=>{});
+};
 
 window.addEventListener('load', function() {
   initAuth();
@@ -3196,6 +3243,75 @@ window.addEventListener('load', handleRoute);
 </script>
 
 <!-- ═══════════════════════ ADMIN PORTAL ═══════════════════════ -->
+
+<!-- ============================================================
+  RENT PAGE
+============================================================ -->
+<div id="page-rent" class="page page-padded">
+  <div style="max-width:1100px;margin:0 auto;padding:var(--space-8) var(--space-6)">
+    <div class="section-label">Rental Properties</div>
+    <h1 class="section-title" style="margin-bottom:8px">Properties for Rent</h1>
+    <p class="section-subtitle" style="margin:0 0 28px" id="rent-count">Loading...</p>
+    <!-- Filters -->
+    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      <input type="text" id="rent-search" placeholder="Search location, area..." style="flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem" oninput="filterTypePage('rent')">
+      <select id="rent-state" style="padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans)" onchange="filterTypePage('rent')">
+        <option value="">All States</option>
+        <option>Lagos</option><option>Abuja</option><option>Rivers</option><option>Kano</option>
+        <option>Oyo</option><option>Anambra</option><option>Delta</option><option>Enugu</option>
+        <option>Kaduna</option><option>Ogun</option>
+      </select>
+    </div>
+    <div class="geo-card-grid" id="rent-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted)"><div style="font-size:2rem;margin-bottom:12px">🔑</div>Loading rental properties...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+  BUY PAGE
+============================================================ -->
+<div id="page-buy" class="page page-padded">
+  <div style="max-width:1100px;margin:0 auto;padding:var(--space-8) var(--space-6)">
+    <div class="section-label">Properties for Sale</div>
+    <h1 class="section-title" style="margin-bottom:8px">Buy a Property</h1>
+    <p class="section-subtitle" style="margin:0 0 28px" id="buy-count">Loading...</p>
+    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      <input type="text" id="buy-search" placeholder="Search location, area..." style="flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem" oninput="filterTypePage('buy')">
+      <select id="buy-state" style="padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans)" onchange="filterTypePage('buy')">
+        <option value="">All States</option>
+        <option>Lagos</option><option>Abuja</option><option>Rivers</option><option>Kano</option>
+        <option>Oyo</option><option>Anambra</option><option>Delta</option><option>Enugu</option>
+      </select>
+    </div>
+    <div class="geo-card-grid" id="buy-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted)"><div style="font-size:2rem;margin-bottom:12px">🏠</div>Loading properties for sale...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+  LEASE PAGE
+============================================================ -->
+<div id="page-lease" class="page page-padded">
+  <div style="max-width:1100px;margin:0 auto;padding:var(--space-8) var(--space-6)">
+    <div class="section-label">Lease Properties</div>
+    <h1 class="section-title" style="margin-bottom:8px">Properties for Lease</h1>
+    <p class="section-subtitle" style="margin:0 0 28px" id="lease-count">Loading...</p>
+    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      <input type="text" id="lease-search" placeholder="Search location, area..." style="flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem" oninput="filterTypePage('lease')">
+      <select id="lease-state" style="padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans)" onchange="filterTypePage('lease')">
+        <option value="">All States</option>
+        <option>Lagos</option><option>Abuja</option><option>Rivers</option><option>Kano</option>
+        <option>Oyo</option><option>Anambra</option><option>Delta</option><option>Enugu</option>
+      </select>
+    </div>
+    <div class="geo-card-grid" id="lease-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted)"><div style="font-size:2rem;margin-bottom:12px">📋</div>Loading lease properties...</div>
+    </div>
+  </div>
+</div>
+
 <div id="admin-root" style="display:none;position:fixed;inset:0;z-index:99999;overflow:auto;background:var(--adm-bg);pointer-events:none">
 
 
@@ -3239,6 +3355,7 @@ window.addEventListener('load', handleRoute);
     <div class="sidebar-section">System</div>
     <div class="nav-item" onclick="nav('payments',this)"><span class="nav-icon">💳</span>Manual Payments<span class="nav-badge" id="badge-payments">0</span></div>
     <div class="nav-item" onclick="nav('properties-mgmt',this)"><span class="nav-icon">🏠</span>Manage Properties</div>
+    <div class="nav-item" onclick="nav('enquiries-mgmt',this)"><span class="nav-icon">📬</span>Enquiries<span class="nav-badge" id="badge-enquiries" style="display:none">0</span></div>
     <div class="nav-item" onclick="nav('tenancy',this)"><span class="nav-icon">📅</span>Tenancy Tracker<span class="nav-badge amber" id="badge-tenancy">0</span></div>
     <div class="nav-item" onclick="nav('team',this)"><span class="nav-icon">👥</span>Our Team</div>
     <div class="nav-item" onclick="nav('sync',this)"><span class="nav-icon">🔗</span>Website Sync</div>
@@ -4086,15 +4203,15 @@ async function loadFromDB() {
   try {
     adminToast('🔄 Loading data from database...', 'info');
     const [regsRes, propsRes, lawyersRes, teamRes, tenanciesRes, txnRes, disputesRes, paymentsRes, actRes] = await Promise.all([
-      fetch(GEO_API + '/admin/registrations').then(r=>r.json()).catch(()=>({registrations:[]})),
-      fetch(GEO_API + '/admin/properties').then(r=>r.json()).catch(()=>({properties:[]})),
-      fetch(GEO_API + '/admin/lawyers').then(r=>r.json()).catch(()=>({lawyers:[]})),
-      fetch(GEO_API + '/admin/team').then(r=>r.json()).catch(()=>({team:[]})),
-      fetch(GEO_API + '/admin/tenancies').then(r=>r.json()).catch(()=>({tenancies:[]})),
-      fetch(GEO_API + '/admin/transactions').then(r=>r.json()).catch(()=>({transactions:[]})),
-      fetch(GEO_API + '/admin/disputes').then(r=>r.json()).catch(()=>({disputes:[]})),
-      fetch(GEO_API + '/admin/payments').then(r=>r.json()).catch(()=>({payments:[]})),
-      fetch(GEO_API + '/admin/activity').then(r=>r.json()).catch(()=>({log:[]})),
+      fetch(GEO_API + '/admin/registrations', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({registrations:[]})),
+      fetch(GEO_API + '/admin/properties', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({properties:[]})),
+      fetch(GEO_API + '/admin/lawyers', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({lawyers:[]})),
+      fetch(GEO_API + '/admin/team', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({team:[]})),
+      fetch(GEO_API + '/admin/tenancies', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({tenancies:[]})),
+      fetch(GEO_API + '/admin/transactions', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({transactions:[]})),
+      fetch(GEO_API + '/admin/disputes', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({disputes:[]})),
+      fetch(GEO_API + '/admin/payments', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({payments:[]})),
+      fetch(GEO_API + '/admin/activity', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({log:[]})),
     ]);
 
     if (regsRes.registrations)   submissions     = regsRes.registrations;
@@ -4162,6 +4279,10 @@ function adminDoLogin(){
     document.getElementById('login-error').style.display='none';
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='flex';
+    // Store admin token from env or use hardcoded fallback
+    const adminToken = window.GEO_ADMIN_TOKEN || (typeof process !== 'undefined' && process.env && process.env.ADMIN_SECRET) || 'geoestate-admin-2024';
+    localStorage.setItem('geo_admin_token', adminToken);
+    if (window.GeoAPI) GeoAPI.setAdminToken(adminToken);
     initApp();
   } else {
     document.getElementById('login-error').style.display='block';
@@ -4176,9 +4297,34 @@ function adminDoLogout(){
 
 // ══ NAV ══
 const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
+
+<!-- Admin Enquiries Page (injected) -->
+<div id="adm-page-enquiries-mgmt" class="page" style="display:none;height:100%;overflow-y:auto;padding:24px">
+  <div style="max-width:900px">
+    <h2 style="font-size:1rem;font-weight:700;margin-bottom:20px">Enquiries</h2>
+    <div id="admin-enq-list" style="display:flex;flex-direction:column;gap:12px">
+      <div style="text-align:center;padding:48px;color:var(--a-muted)">Loading enquiries...</div>
+    </div>
+  </div>
+</div>
+
 function nav(page,el){
   // Only touch pages INSIDE admin-root to avoid conflicting with website pages
   const adminRoot = document.getElementById('admin-root');
+  // Load enquiries on demand
+  if (page === 'enquiries-mgmt') {
+    const apiBase = window.GEO_API || 'https://geoestate.onrender.com';
+    fetch(apiBase + '/admin/enquiries', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}})
+      .then(r=>r.json()).then(d => {
+        const el2 = document.getElementById('admin-enq-list');
+        if (!el2) return;
+        const enqs = d.enquiries || [];
+        if (!enqs.length) { el2.innerHTML = '<div style="text-align:center;padding:48px;color:var(--a-muted)">No enquiries yet</div>'; return; }
+        const badge = document.getElementById('badge-enquiries');
+        if (badge) { badge.textContent = enqs.filter(e=>e.status==='new').length; badge.style.display = enqs.filter(e=>e.status==='new').length ? 'inline-flex' : 'none'; }
+        el2.innerHTML = enqs.map(e => '<div style="background:var(--a-card);border-radius:10px;padding:16px;box-shadow:var(--a-shadow);display:flex;gap:14px;align-items:flex-start"><div style="width:36px;height:36px;border-radius:50%;background:var(--a-green-light);color:var(--a-green-dark);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">' + (e.name[0]||'?').toUpperCase() + '</div><div style="flex:1"><div style="font-weight:700;font-size:.88rem">' + e.name + '</div><div style="font-size:.75rem;color:var(--a-muted)">📍 ' + (e.property_title||'Property') + ' · ' + e.email + ' · ' + (e.phone||'—') + '</div>' + (e.message ? '<div style="font-size:.82rem;color:var(--a-muted);margin-top:4px">"' + e.message + '"</div>' : '') + '</div><div style="font-size:.72rem;color:var(--a-subtle);white-space:nowrap">' + new Date(e.created_at).toLocaleDateString('en-NG') + '</div></div>').join('');
+      }).catch(() => {});
+  }
   adminRoot.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   adminRoot.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pageEl = document.getElementById('adm-page-'+page) || document.getElementById('page-'+page);
@@ -5814,7 +5960,7 @@ async function syncFromAPI() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000); // 45s for Render cold start
-    const res = await fetch(GEO_API + '/admin/registrations', { signal: controller.signal });
+    const res = await fetch(GEO_API + '/admin/registrations', { signal: controller.signal, headers: {'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')} });
     clearTimeout(timeout);
     const data = await res.json();
     if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
@@ -5924,5 +6070,169 @@ document.addEventListener('click', function(e) {
 });
 </script>
 
+
+<!-- Enquiry Modal -->
+<div id="enquiry-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface-primary);border-radius:16px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:700">Express Interest</div>
+        <div style="font-size:.78rem;color:var(--text-muted)" id="enq-modal-prop">—</div>
+      </div>
+      <button onclick="closeEnquiryModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-muted)">✕</button>
+    </div>
+    <div style="padding:24px">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px">Your Name *</label>
+        <input id="enq-name" type="text" placeholder="Full name" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px">Email Address *</label>
+        <input id="enq-email" type="email" placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px">Phone Number</label>
+        <input id="enq-phone" type="tel" placeholder="+234..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px">Message (optional)</label>
+        <textarea id="enq-message" rows="3" placeholder="Any questions or specific requirements..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;resize:vertical"></textarea>
+      </div>
+      <div id="enq-error" style="display:none;color:#ef4444;font-size:.82rem;margin-bottom:12px"></div>
+      <button onclick="submitEnquiry()" style="width:100%;padding:12px;background:var(--geo-green-600);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;font-family:var(--font-sans)">Send Enquiry →</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ══ RENT / BUY / LEASE TYPE PAGES ══════════════════════════════
+let typePageCache = { rent: [], buy: [], lease: [] };
+
+async function loadTypePage(type) {
+  try {
+    const baseUrl = (window.GEO_API_PUBLIC || 'https://geoestate.onrender.com');
+    const r = await fetch(baseUrl + '/properties?type=' + type);
+    const d = await r.json();
+    const props = d.properties || [];
+    typePageCache[type] = props;
+    const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p) {
+      return { id:p.id, type:p.listing_type||p.type||type, listing_type:p.listing_type||type, title:p.title,
+        price: p.price || (type==='rent'&&p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':type==='buy'&&p.sale_price?'₦'+Number(p.sale_price).toLocaleString():type==='lease'&&p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—'),
+        location:p.address||p.lga||p.state||'—', state:p.state||'', img:p.img||'',
+        beds:p.bedrooms||0, baths:p.bathrooms||0, sqm:p.size_sqm||0, verified:true, lat:0, lng:0, tags:[], video:false };
+    };
+    return props.map(mapper);
+  } catch(e) { return []; }
+}
+
+function renderTypePage(type, props) {
+  const gridId = type + '-grid';
+  const countId = type + '-count';
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  const countEl = document.getElementById(countId);
+  if (countEl) countEl.textContent = props.length + ' propert' + (props.length===1?'y':'ies');
+  if (!props.length) {
+    const labels = {rent:'🔑 No rental properties available yet.',buy:'🏠 No properties for sale yet.',lease:'📋 No lease properties available yet.'};
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">' + (type==='rent'?'🔑':type==='buy'?'🏠':'📋') + '</div><div style="font-size:1rem;font-weight:700;margin-bottom:8px">' + labels[type] + '</div><div style="font-size:.85rem">Check back soon or <button class="btn btn-primary btn-sm" onclick="showPage('list')">list your own</button></div></div>';
+    return;
+  }
+  const typeLabels = {rent:'🔑 RENT',buy:'🏠 BUY',lease:'📋 LEASE'};
+  const typeBg = {rent:'#0d3d22',buy:'#1e40af',lease:'#92400e'};
+  grid.innerHTML = props.map(p => `
+    <div class="geo-card" style="cursor:pointer" onclick="showDetail(${JSON.stringify(p.id)})">
+      <div style="position:relative;height:210px;overflow:hidden;background:#e8f0e9">
+        <img src="${p.img||''}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem;background:linear-gradient(135deg,#d9f2e3,#a8dfc0)">🏠</div>
+        <span style="position:absolute;top:12px;left:12px;z-index:1;background:${typeBg[p.listing_type||type]||'#0d3d22'};color:#fff;border-radius:999px;padding:2px 10px;font-size:.68rem;font-weight:700">${typeLabels[p.listing_type||type]||type.toUpperCase()}</span>
+        <span style="position:absolute;top:12px;right:12px;z-index:1"><span class="verified-badge" style="font-size:.65rem">✓ VERIFIED</span></span>
+      </div>
+      <div class="geo-card-body">
+        <div class="geo-card-price">${p.price}</div>
+        <div class="geo-card-title">${p.title}</div>
+        <div class="geo-card-location">📍 ${p.location}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+          ${p.beds > 0 ? '<span class="chip">🛏 '+p.beds+' Bed</span>' : ''}
+          ${p.baths > 0 ? '<span class="chip">🚿 '+p.baths+' Bath</span>' : ''}
+          ${p.sqm > 0 ? '<span class="chip">📐 '+p.sqm+'sqm</span>' : ''}
+        </div>
+        <div class="geo-card-footer">
+          <span class="verified-badge" style="font-size:.72rem">NIN Verified</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEnquiryModal(${JSON.stringify(p.id)},${JSON.stringify(p.title)})">Enquire</button>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${JSON.stringify(p.id)})">View →</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterTypePage(type) {
+  const search = (document.getElementById(type+'-search')||{}).value||'';
+  const state  = (document.getElementById(type+'-state')||{}).value||'';
+  const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p){return p;};
+  let props = typePageCache[type].map ? typePageCache[type].map(p => window.GeoAPI ? window.GeoAPI.mapProperty(p) : p) : typePageCache[type];
+  if (search) props = props.filter(p => (p.title+p.location+p.address||'').toLowerCase().includes(search.toLowerCase()));
+  if (state) props = props.filter(p => p.state && p.state.toLowerCase() === state.toLowerCase());
+  renderTypePage(type, props);
+}
+
+// Override showPage to load type pages on demand
+const _origShowPage = typeof showPage === 'function' ? showPage : null;
+function showPage(name) {
+  if (_origShowPage) _origShowPage(name);
+  if (name === 'rent' || name === 'buy' || name === 'lease') {
+    if (!typePageCache[name] || !typePageCache[name].length) {
+      loadTypePage(name).then(props => { typePageCache[name] = props; renderTypePage(name, props); });
+    } else {
+      renderTypePage(name, typePageCache[name].map(window.GeoAPI ? window.GeoAPI.mapProperty : p=>p));
+    }
+  }
+}
+
+// ══ ENQUIRY SYSTEM ══════════════════════════════════════════════
+let enquiryPropId = null;
+function openEnquiryModal(propId, propTitle) {
+  enquiryPropId = propId;
+  const modal = document.getElementById('enquiry-modal');
+  const titleEl = document.getElementById('enq-modal-prop');
+  if (titleEl) titleEl.textContent = propTitle || 'Property';
+  if (modal) modal.style.display = 'flex';
+  // Pre-fill if user is logged in
+  const session = JSON.parse(localStorage.getItem('geo_session')||'null');
+  if (session) {
+    const nm = document.getElementById('enq-name'); if(nm) nm.value = session.name||'';
+    const em = document.getElementById('enq-email'); if(em) em.value = session.email||'';
+  }
+}
+
+function closeEnquiryModal() {
+  const modal = document.getElementById('enquiry-modal');
+  if (modal) modal.style.display = 'none';
+  enquiryPropId = null;
+}
+
+async function submitEnquiry() {
+  const name    = (document.getElementById('enq-name')||{}).value||'';
+  const email   = (document.getElementById('enq-email')||{}).value||'';
+  const phone   = (document.getElementById('enq-phone')||{}).value||'';
+  const message = (document.getElementById('enq-message')||{}).value||'';
+  const errEl   = document.getElementById('enq-error');
+  if (!name || !email) { if(errEl){errEl.textContent='Name and email are required';errEl.style.display='block';} return; }
+  if (errEl) errEl.style.display = 'none';
+  try {
+    const api = window.GeoAPI || { API_BASE: 'https://geoestate.onrender.com', submitEnquiry: async function(d) { const r = await fetch(this.API_BASE+'/enquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); } };
+    const d = await api.submitEnquiry({ property_id: enquiryPropId, name, email, phone, message });
+    if (d.error) { if(errEl){errEl.textContent=d.error;errEl.style.display='block';} return; }
+    closeEnquiryModal();
+    // Show success toast if available
+    if (typeof showAuthToast === 'function') showAuthToast('✅ Enquiry sent! The owner will contact you shortly.');
+    else alert('✅ Enquiry sent! The owner will be in touch.');
+  } catch(e) { if(errEl){errEl.textContent='Could not send enquiry. Please try again.';errEl.style.display='block';} }
+}
+</script>
+
+<script src="geo-api.js"></script>
 </body>
 </html>

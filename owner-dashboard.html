@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a6b3c">
+  <title>Owner Dashboard — GeoEstate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #1a6b3c; --green-d: #0d3d22; --green-l: #d9f2e3; --green-bg: #f0faf4;
+      --bg: #f0f2f5; --card: #ffffff; --card2: #f3f4f6; --text: #111827;
+      --muted: #6b7280; --subtle: #9ca3af; --border: #e5e7eb;
+      --amber: #d97706; --amber-bg: #fffbeb; --red: #b91c1c; --red-bg: #fef2f2;
+      --blue: #1e40af; --blue-bg: #eff6ff; --sidebar: #0d1f15;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05);
+      --font: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      /* Unit status colors */
+      --vacant: #15803d; --occupied: #b91c1c; --reserved: #d97706; --maintenance: #6b7280;
+    }
+    html.dark { --bg:#111827;--card:#1f2937;--card2:#374151;--text:#f9fafb;--muted:#9ca3af;--subtle:#6b7280;--border:#374151;--green:#34d399;--green-d:#059669;--green-l:#064e3b;--green-bg:#052e16;--sidebar:#0d1f15; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); font-family: var(--font); color: var(--text); min-height: 100vh; }
+
+    /* ── Layout ── */
+    .layout { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
+    .content { padding: 24px; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+    /* ── Sidebar ── */
+    .sb-logo { padding: 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sb-logo-text { color: #fff; font-size: 1.1rem; font-weight: 900; }
+    .sb-logo-sub { color: rgba(255,255,255,.4); font-size: .7rem; margin-top: 2px; }
+    .sb-section { padding: 16px 12px 4px; font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.3); letter-spacing: .08em; text-transform: uppercase; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 1px 8px; border-radius: 8px; color: rgba(255,255,255,.7); font-size: .85rem; font-weight: 500; cursor: pointer; transition: all .15s; }
+    .sb-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .sb-item.active { background: var(--green); color: #fff; font-weight: 600; }
+    .sb-icon { width: 18px; text-align: center; }
+    .sb-badge { margin-left: auto; background: #ef4444; color: #fff; border-radius: 999px; font-size: .65rem; font-weight: 700; padding: 1px 7px; min-width: 18px; text-align: center; }
+
+    /* ── Cards ── */
+    .card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: .92rem; font-weight: 700; }
+    .card-sub { font-size: .78rem; color: var(--subtle); margin-top: 2px; }
+    .card-body { padding: 20px; }
+
+    /* ── Stat row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+    .stat-value { font-size: 1.8rem; font-weight: 900; color: var(--green); }
+    .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; font-weight: 600; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font); }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: var(--green-d); }
+    .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-outline:hover { background: var(--card2); }
+    .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+    .btn-sm { padding: 5px 11px; font-size: .78rem; }
+    .btn-xs { padding: 3px 8px; font-size: .72rem; }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--text); font-family: var(--font); font-size: .88rem;
+      outline: none; transition: border-color .15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--green); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: .7rem; font-weight: 700; }
+    .badge-green { background: var(--green-l); color: var(--green-d); }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-red { background: #fee2e2; color: var(--red); }
+    .badge-gray { background: #f3f4f6; color: var(--muted); }
+    .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+    /* ── Unit Grid ── */
+    .unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .unit-cell { border-radius: 10px; padding: 14px; cursor: pointer; transition: transform .15s, box-shadow .15s; border: 2px solid transparent; }
+    .unit-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+    .unit-cell.vacant { background: #f0fdf4; border-color: #86efac; }
+    .unit-cell.occupied { background: #fef2f2; border-color: #fca5a5; }
+    .unit-cell.reserved { background: #fffbeb; border-color: #fde68a; }
+    .unit-cell.maintenance { background: #f3f4f6; border-color: #d1d5db; }
+    .unit-label { font-size: .88rem; font-weight: 700; margin-bottom: 4px; }
+    .unit-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .dot-vacant { background: #15803d; }
+    .dot-occupied { background: #b91c1c; }
+    .dot-reserved { background: #d97706; }
+    .dot-maintenance { background: #6b7280; }
+    .unit-price { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+    .unit-tenant { font-size: .72rem; color: var(--subtle); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Property card ── */
+    .prop-card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+    .prop-img { height: 160px; overflow: hidden; background: var(--green-bg); position: relative; }
+    .prop-img img { width: 100%; height: 100%; object-fit: cover; }
+    .prop-type-badge { position: absolute; top: 10px; left: 10px; background: var(--green-d); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+    .prop-body { padding: 14px; flex: 1; }
+    .prop-title { font-size: .88rem; font-weight: 700; margin-bottom: 4px; }
+    .prop-price { font-size: .92rem; font-weight: 900; color: var(--green); margin-bottom: 4px; }
+    .prop-loc { font-size: .75rem; color: var(--muted); }
+    .prop-footer { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+    .props-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+    /* ── Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--card); border-radius: 16px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,.35); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--muted); padding: 4px; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Login screen ── */
+    #login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #0d1f15, #1a3d25); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .login-box { background: #fff; border-radius: 16px; padding: 48px 40px; width: 400px; max-width: 95vw; box-shadow: 0 24px 64px rgba(0,0,0,.35); }
+    .login-logo { font-size: 1.3rem; font-weight: 900; color: var(--green); margin-bottom: 4px; }
+    .login-sub { font-size: .85rem; color: var(--muted); margin-bottom: 28px; }
+    .login-step { display: none; }
+    .login-step.active { display: block; }
+
+    /* ── Verification ── */
+    .verify-status { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 10px; }
+    .verify-status.verified { background: var(--green-bg); border: 1px solid #86efac; }
+    .verify-status.pending { background: var(--amber-bg); border: 1px solid #fde68a; }
+    .verify-icon { font-size: 1.8rem; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast-item { background: var(--sidebar); color: #fff; border-radius: 10px; padding: 12px 20px; font-size: .85rem; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,.3); opacity: 0; transform: translateY(10px); transition: all .25s; }
+    .toast-item.show { opacity: 1; transform: translateY(0); }
+    .toast-item.success { border-left: 4px solid #34d399; }
+    .toast-item.error { border-left: 4px solid #ef4444; }
+    .toast-item.info { border-left: 4px solid #60a5fa; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    th { padding: 10px 12px; background: var(--card2); color: var(--muted); font-weight: 700; text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Enquiry list ── */
+    .enq-item { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+    .enq-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--green-l); color: var(--green-d); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .85rem; flex-shrink: 0; }
+    .enq-name { font-weight: 700; font-size: .85rem; }
+    .enq-prop { font-size: .75rem; color: var(--muted); }
+    .enq-msg { font-size: .82rem; margin-top: 4px; color: var(--subtle); }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 48px 24px; }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-title { font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { font-size: .85rem; color: var(--muted); }
+
+    /* ── Legend ── */
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+      .sb-section { display: none; }
+      .sb-item { flex-direction: column; gap: 3px; padding: 8px; margin: 4px; font-size: .62rem; min-width: 60px; }
+      .sb-icon { width: auto; }
+      .main { flex: 1; }
+      .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Screen ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📍 GeoEstate</div>
+    <div class="login-sub">Owner Portal — Manage your properties</div>
+
+    <div class="login-step active" id="ls-email">
+      <label class="form-label" style="color:#374151">Email Address</label>
+      <input class="form-input" type="email" id="login-email" placeholder="your@email.com" style="margin-bottom:14px"
+        onkeydown="if(event.key==='Enter')ownerRequestCode()">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="ownerRequestCode()">Send Login Code →</button>
+      <p style="font-size:.78rem;color:#9ca3af;margin-top:12px;text-align:center">We'll send a 6-digit code to your email.</p>
+      <div id="ls-error-email" style="display:none;color:#ef4444;font-size:.8rem;margin-top:10px"></div>
+    </div>
+
+    <div class="login-step" id="ls-code">
+      <div style="font-size:.88rem;margin-bottom:16px;color:#374151">Enter the code sent to <strong id="ls-code-email"></strong></div>
+      <input class="form-input" type="text" id="login-code" placeholder="000000" maxlength="6" inputmode="numeric"
+        style="text-align:center;font-size:1.4rem;letter-spacing:.2em;margin-bottom:14px"
+        onkeydown="if(event.key==='Enter')ownerVerifyCode()">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="ownerVerifyCode()">Sign In →</button>
+      <button onclick="showLoginStep('ls-email')" style="background:none;border:none;cursor:pointer;font-size:.82rem;color:#6b7280;margin-top:12px;display:block;width:100%;text-align:center">← Use a different email</button>
+      <div id="ls-error-code" style="display:none;color:#ef4444;font-size:.8rem;margin-top:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div class="layout" id="app" style="display:none">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-text">📍 GeoEstate</div>
+      <div class="sb-logo-sub">Owner Portal</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding-bottom:20px">
+      <div class="sb-section">Dashboard</div>
+      <div class="sb-item active" onclick="navTo('overview',this)"><span class="sb-icon">📊</span>Overview</div>
+      <div class="sb-section">Properties</div>
+      <div class="sb-item" onclick="navTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="badge-props" style="display:none">0</span></div>
+      <div class="sb-item" onclick="navTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
+      <div class="sb-section">Tenants</div>
+      <div class="sb-item" onclick="navTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="badge-enq" style="display:none">0</span></div>
+      <div class="sb-section">Account</div>
+      <div class="sb-item" onclick="navTo('profile',this)"><span class="sb-icon">👤</span>My Profile</div>
+      <div class="sb-item" onclick="navTo('verification',this)"><span class="sb-icon">🪪</span>Verification</div>
+      <div class="sb-item" style="margin-top:auto;color:#ef4444" onclick="ownerLogout()"><span class="sb-icon">🚪</span>Sign Out</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <span style="font-weight:700;font-size:.95rem" id="topbar-title">Overview</span>
+        <span style="font-size:.78rem;color:var(--muted);margin-left:12px" id="topbar-sub"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="owner-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--green-l);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem">?</div>
+        <span style="font-size:.85rem;font-weight:600" id="owner-name">—</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Overview -->
+      <div id="page-overview" class="page-section">
+        <div class="stats-row" id="overview-stats">
+          <div class="stat-card"><div class="stat-value" id="ov-total">0</div><div class="stat-label">Total Properties</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-live">0</div><div class="stat-label">Live Listings</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-units">0</div><div class="stat-label">Total Units</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-vacant">0</div><div class="stat-label">Vacant Units</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-enq">0</div><div class="stat-label">New Enquiries</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">My Properties</div><div class="card-sub">Quick view</div></div><button class="btn btn-primary btn-sm" onclick="navTo('add-property',null)">+ Add Property</button></div>
+          <div class="card-body" id="ov-props-list"><div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties yet</div><div class="empty-sub">Add your first listing to get started.</div></div></div>
+        </div>
+      </div>
+
+      <!-- My Properties -->
+      <div id="page-my-properties" class="page-section" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.1rem;font-weight:700">My Properties</h2>
+            <p style="font-size:.82rem;color:var(--muted)" id="props-subtitle">—</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select class="form-select" style="width:130px" onchange="filterOwnerProps(this.value)">
+              <option value="">All Types</option>
+              <option value="rent">Rent</option>
+              <option value="buy">Buy</option>
+              <option value="lease">Lease</option>
+            </select>
+            <button class="btn btn-primary" onclick="navTo('add-property',null)">+ Add Property</button>
+          </div>
+        </div>
+        <div class="props-grid" id="props-grid">
+          <div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties yet</div></div>
+        </div>
+      </div>
+
+      <!-- Add Property -->
+      <div id="page-add-property" class="page-section" style="display:none">
+        <div style="max-width:680px">
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Add New Property</h2>
+          <div id="add-verify-warning" style="display:none;background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:20px">
+            <strong>⚠️ Identity Verification Required</strong><br>
+            <span style="font-size:.85rem;color:#92400e">You need to complete identity verification before listing properties. This only needs to be done once.</span><br>
+            <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="navTo('verification',null)">Go to Verification →</button>
+          </div>
+          <div class="card" id="add-prop-form-wrap">
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Property Title *</label>
+                <input class="form-input" id="fp-title" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Listing Type *</label>
+                  <select class="form-select" id="fp-listing-type" onchange="updatePriceFields()">
+                    <option value="rent">🔑 Rent</option>
+                    <option value="buy">🏠 Buy / Sale</option>
+                    <option value="lease">📋 Lease</option>
+                  </select>
+                </div>
+                <div class="form-group" id="fp-price-rent">
+                  <label class="form-label">Monthly Rent (₦)</label>
+                  <input class="form-input" id="fp-monthly-rent" type="number" placeholder="e.g. 250000">
+                </div>
+                <div class="form-group" id="fp-price-buy" style="display:none">
+                  <label class="form-label">Sale Price (₦)</label>
+                  <input class="form-input" id="fp-sale-price" type="number" placeholder="e.g. 45000000">
+                </div>
+                <div class="form-group" id="fp-price-lease" style="display:none">
+                  <label class="form-label">Lease Fee (₦)</label>
+                  <input class="form-input" id="fp-lease-price" type="number" placeholder="e.g. 1500000">
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">State</label>
+                  <select class="form-select" id="fp-state">
+                    <option value="">Select state</option>
+                    <option>Lagos</option><option>Abuja</option><option>Rivers</option><option>Kano</option>
+                    <option>Oyo</option><option>Anambra</option><option>Delta</option><option>Enugu</option>
+                    <option>Kaduna</option><option>Ogun</option><option>Ondo</option><option>Kwara</option>
+                    <option>Edo</option><option>Cross River</option><option>Akwa Ibom</option><option>Plateau</option>
+                    <option>Borno</option><option>Katsina</option><option>Niger</option><option>Benue</option>
+                    <option>Imo</option><option>Bayelsa</option><option>Ebonyi</option><option>Ekiti</option>
+                    <option>Gombe</option><option>Jigawa</option><option>Kebbi</option><option>Kogi</option>
+                    <option>Nasarawa</option><option>Sokoto</option><option>Taraba</option><option>Yobe</option>
+                    <option>Zamfara</option><option>Adamawa</option><option>Bauchi</option><option>FCT</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">LGA / Area</label>
+                  <input class="form-input" id="fp-lga" placeholder="e.g. Lekki, Surulere">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Address</label>
+                <input class="form-input" id="fp-address" placeholder="e.g. 12 Akin Adesola Street, Lekki Phase 1">
+              </div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label">Bedrooms</label>
+                  <input class="form-input" id="fp-beds" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bathrooms</label>
+                  <input class="form-input" id="fp-baths" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Size (sqm)</label>
+                  <input class="form-input" id="fp-sqm" type="number" min="0" placeholder="0">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-textarea" id="fp-desc" placeholder="Describe the property — features, neighbourhood, access..." rows="4"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Main Image URL</label>
+                <input class="form-input" id="fp-img" placeholder="https://... (paste image link)">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amenities (comma-separated)</label>
+                <input class="form-input" id="fp-amenities" placeholder="e.g. Parking, Security, Generator, Swimming Pool">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes for Admin (optional)</label>
+                <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know..." rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Property →</button>
+                <button class="btn btn-outline" onclick="navTo('my-properties',null)">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enquiries -->
+      <div id="page-enquiries" class="page-section" style="display:none">
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Enquiries</h2>
+        <div class="card">
+          <div class="card-body" id="enq-list">
+            <div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it shows here.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div id="page-profile" class="page-section" style="display:none">
+        <div style="max-width:480px">
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">My Profile</h2>
+          <div class="card">
+            <div class="card-body" id="profile-content">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verification -->
+      <div id="page-verification" class="page-section" style="display:none">
+        <div style="max-width:520px">
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Identity Verification</h2>
+          <p style="font-size:.85rem;color:var(--muted);margin-bottom:24px">Complete once to unlock property listing. After verification, you'll never need to do it again.</p>
+          <div id="verification-content"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Unit Management Modal -->
+<div class="modal-overlay" id="units-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="units-modal-title">Manage Units</div><div style="font-size:.78rem;color:var(--muted)" id="units-modal-sub">—</div></div>
+      <button class="modal-close" onclick="closeUnitsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="legend">
+        <div class="legend-item"><span class="unit-status-dot dot-vacant"></span>Vacant</div>
+        <div class="legend-item"><span class="unit-status-dot dot-occupied"></span>Occupied</div>
+        <div class="legend-item"><span class="unit-status-dot dot-reserved"></span>Reserved</div>
+        <div class="legend-item"><span class="unit-status-dot dot-maintenance"></span>Maintenance</div>
+      </div>
+      <div class="unit-grid" id="units-grid"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <span style="font-size:.82rem;color:var(--muted)" id="units-stats-text">—</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddUnitModal()">+ Add Unit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Unit Edit Modal -->
+<div class="modal-overlay" id="unit-edit-modal" style="display:none">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title" id="unit-edit-title">Edit Unit</div>
+      <button class="modal-close" onclick="closeUnitEditModal()">✕</button>
+    </div>
+    <div class="modal-body" id="unit-edit-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUnitEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUnitEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Unit Modal -->
+<div class="modal-overlay" id="add-unit-modal" style="display:none">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Add New Unit</div>
+      <button class="modal-close" onclick="document.getElementById('add-unit-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Unit Label *</label><input class="form-input" id="au-label" placeholder="e.g. Room 4B, Flat 2, Shop 3"></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Unit Type</label><select class="form-select" id="au-type"><option value="room">Room</option><option value="flat">Flat</option><option value="shop">Shop</option><option value="office">Office</option><option value="floor">Floor</option></select></div>
+        <div class="form-group"><label class="form-label">Floor Level</label><input class="form-input" id="au-floor" placeholder="e.g. Ground, 1st"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Capacity (persons)</label><input class="form-input" id="au-capacity" type="number" min="1" value="1"></div>
+        <div class="form-group"><label class="form-label">Monthly Price (₦)</label><input class="form-input" id="au-price" type="number" placeholder="e.g. 45000"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="au-notes" placeholder="Optional notes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('add-unit-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddUnit()">Add Unit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast"></div>
+
+<script src="geo-api.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// OWNER DASHBOARD — Main Script
+// ══════════════════════════════════════════════════════════════
+let ownerSession = null;
+let ownerProperties = [];
+let ownerEnquiries = [];
+let currentUnitsPropId = null;
+let editingUnitId = null;
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'success';
+  const el = document.createElement('div');
+  el.className = 'toast-item ' + type;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// ── Login Flow ────────────────────────────────────────────────
+function showLoginStep(step) {
+  document.querySelectorAll('.login-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(step).classList.add('active');
+}
+
+async function ownerRequestCode() {
+  const email = document.getElementById('login-email').value.trim();
+  const errEl = document.getElementById('ls-error-email');
+  if (!email.includes('@')) { errEl.textContent = 'Enter a valid email address'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  const d = await GeoAPI.ownerRequestOTP(email);
+  if (d.error) { errEl.textContent = d.error; errEl.style.display = 'block'; return; }
+  document.getElementById('ls-code-email').textContent = email;
+  showLoginStep('ls-code');
+}
+
+async function ownerVerifyCode() {
+  const email = document.getElementById('login-email').value.trim();
+  const code  = document.getElementById('login-code').value.trim();
+  const errEl = document.getElementById('ls-error-code');
+  errEl.style.display = 'none';
+  const d = await GeoAPI.ownerVerifyOTP(email, code);
+  if (d.error) { errEl.textContent = d.error; errEl.style.display = 'block'; return; }
+  ownerSession = GeoAPI.getOwnerSession();
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initDashboard();
+}
+
+function ownerLogout() {
+  GeoAPI.clearOwnerSession();
+  ownerSession = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-code').value = '';
+  showLoginStep('ls-email');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+async function initDashboard() {
+  ownerSession = GeoAPI.getOwnerSession();
+  const o = ownerSession.owner;
+  document.getElementById('owner-name').textContent = o.fname + ' ' + o.lname;
+  document.getElementById('owner-avatar').textContent = (o.fname[0] + o.lname[0]).toUpperCase();
+  await loadAll();
+  renderOverview();
+}
+
+async function loadAll() {
+  const [propsD, enqD] = await Promise.all([
+    GeoAPI.ownerFetch('/owner/properties').catch(() => ({})),
+    GeoAPI.ownerFetch('/owner/enquiries').catch(() => ({}))
+  ]);
+  if (propsD.properties) ownerProperties = propsD.properties;
+  if (enqD.enquiries) ownerEnquiries = enqD.enquiries;
+
+  // Update badges
+  const newEnq = ownerEnquiries.filter(e => e.status === 'new').length;
+  const b = document.getElementById('badge-enq');
+  if (newEnq > 0) { b.textContent = newEnq; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+  const pb = document.getElementById('badge-props');
+  if (ownerProperties.length) { pb.textContent = ownerProperties.length; pb.style.display = 'inline-flex'; }
+}
+
+// ── Nav ───────────────────────────────────────────────────────
+const pageTitles = { overview: 'Overview', 'my-properties': 'My Properties', 'add-property': 'Add New Property', enquiries: 'Enquiries', profile: 'My Profile', verification: 'Verification' };
+function navTo(page, el) {
+  document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.style.display = 'block';
+  if (el) el.classList.add('active');
+  document.getElementById('topbar-title').textContent = pageTitles[page] || page;
+  if (page === 'overview') renderOverview();
+  if (page === 'my-properties') renderProperties();
+  if (page === 'profile') renderProfile();
+  if (page === 'verification') renderVerification();
+  if (page === 'enquiries') renderEnquiries();
+  if (page === 'add-property') checkVerificationForAdd();
+}
+
+// ── Overview ──────────────────────────────────────────────────
+function renderOverview() {
+  const totalUnits = ownerProperties.reduce((s, p) => s + (parseInt(p.unit_count) || 0), 0);
+  const vacantUnits = ownerProperties.reduce((s, p) => s + (parseInt(p.vacant_units) || 0), 0);
+  const liveProps = ownerProperties.filter(p => p.status === 'live').length;
+  const newEnq = ownerEnquiries.filter(e => e.status === 'new').length;
+  document.getElementById('ov-total').textContent = ownerProperties.length;
+  document.getElementById('ov-live').textContent = liveProps;
+  document.getElementById('ov-units').textContent = totalUnits;
+  document.getElementById('ov-vacant').textContent = vacantUnits;
+  document.getElementById('ov-enq').textContent = newEnq;
+
+  const list = document.getElementById('ov-props-list');
+  if (!ownerProperties.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties yet</div><div class="empty-sub">Add your first listing to get started.</div><button class="btn btn-primary" style="margin-top:12px" onclick="navTo(\'add-property\',null)">+ Add Property</button></div>';
+    return;
+  }
+  list.innerHTML = '<div class="props-grid">' + ownerProperties.slice(0, 3).map(propCard).join('') + '</div>';
+}
+
+// ── Properties ────────────────────────────────────────────────
+function propCard(p) {
+  const lt = p.listing_type || p.type || 'rent';
+  const ltColors = { rent: '#0d3d22', buy: '#1e40af', lease: '#92400e' };
+  const ltLabels = { rent: '🔑 RENT', buy: '🏠 BUY', lease: '📋 LEASE' };
+  const statusBadge = {
+    live: '<span class="badge badge-green">● Live</span>',
+    pending: '<span class="badge badge-amber">⏳ Pending</span>',
+    review: '<span class="badge badge-blue">🔍 Review</span>',
+    rejected: '<span class="badge badge-red">✕ Rejected</span>',
+    inactive: '<span class="badge badge-gray">— Inactive</span>'
+  }[p.status] || '<span class="badge badge-gray">' + (p.status || '—') + '</span>';
+
+  const unitCount = parseInt(p.unit_count) || 0;
+  const vacantCount = parseInt(p.vacant_units) || 0;
+
+  return `<div class="prop-card">
+    <div class="prop-img">
+      <img src="${p.img || ''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:cover">
+      <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:#d9f2e3;font-size:2.5rem">🏠</div>
+      <div class="prop-type-badge" style="background:${ltColors[lt]||'#0d3d22'}">${ltLabels[lt]||lt.toUpperCase()}</div>
+    </div>
+    <div class="prop-body">
+      <div class="prop-title">${p.title}</div>
+      <div class="prop-price">${p.price || (p.monthly_rent ? '₦'+Number(p.monthly_rent).toLocaleString()+'/mo' : p.sale_price ? '₦'+Number(p.sale_price).toLocaleString() : '—')}</div>
+      <div class="prop-loc">📍 ${p.lga || p.state || p.address || '—'}</div>
+      ${unitCount > 0 ? `<div style="margin-top:8px"><span class="badge badge-blue">${unitCount} units</span> <span class="badge badge-green">${vacantCount} vacant</span></div>` : ''}
+    </div>
+    <div class="prop-footer">
+      ${statusBadge}
+      <div style="margin-left:auto;display:flex;gap:6px">
+        ${unitCount > 0 || true ? `<button class="btn btn-outline btn-xs" onclick="openUnitsModal('${p.id}','${p.title.replace(/'/g,"\\'")}')">Manage Units</button>` : ''}
+        <button class="btn btn-outline btn-xs" onclick="editProperty('${p.id}')">Edit</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderProperties(filter) {
+  const list = filter ? ownerProperties.filter(p => (p.listing_type||p.type) === filter) : ownerProperties;
+  document.getElementById('props-subtitle').textContent = list.length + ' propert' + (list.length === 1 ? 'y' : 'ies');
+  const grid = document.getElementById('props-grid');
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties found</div><button class="btn btn-primary" style="margin-top:12px" onclick="navTo(\'add-property\',null)">+ Add Property</button></div>';
+    return;
+  }
+  grid.innerHTML = list.map(propCard).join('');
+}
+
+function filterOwnerProps(type) { renderProperties(type || null); }
+
+// ── Add Property ──────────────────────────────────────────────
+function updatePriceFields() {
+  const lt = document.getElementById('fp-listing-type').value;
+  document.getElementById('fp-price-rent').style.display = lt === 'rent' ? 'block' : 'none';
+  document.getElementById('fp-price-buy').style.display = lt === 'buy' ? 'block' : 'none';
+  document.getElementById('fp-price-lease').style.display = lt === 'lease' ? 'block' : 'none';
+}
+
+async function checkVerificationForAdd() {
+  const profile = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  const warning = document.getElementById('add-verify-warning');
+  const form = document.getElementById('add-prop-form-wrap');
+  if (!profile.profile?.is_verified) {
+    warning.style.display = 'block';
+    form.style.opacity = '.4';
+    form.style.pointerEvents = 'none';
+  } else {
+    warning.style.display = 'none';
+    form.style.opacity = '1';
+    form.style.pointerEvents = 'auto';
+  }
+}
+
+async function submitAddProperty() {
+  const lt = document.getElementById('fp-listing-type').value;
+  const title = document.getElementById('fp-title').value.trim();
+  if (!title) { toast('Property title is required', 'error'); return; }
+  const payload = {
+    title, listing_type: lt,
+    monthly_rent: lt === 'rent' ? (parseFloat(document.getElementById('fp-monthly-rent').value)||null) : null,
+    sale_price: lt === 'buy' ? (parseFloat(document.getElementById('fp-sale-price').value)||null) : null,
+    lease_price: lt === 'lease' ? (parseFloat(document.getElementById('fp-lease-price').value)||null) : null,
+    price: lt === 'rent' ? '₦'+(document.getElementById('fp-monthly-rent').value||'0')+'/mo' : lt === 'buy' ? '₦'+(document.getElementById('fp-sale-price').value||'0') : '₦'+(document.getElementById('fp-lease-price').value||'0'),
+    state: document.getElementById('fp-state').value,
+    lga: document.getElementById('fp-lga').value,
+    address: document.getElementById('fp-address').value,
+    bedrooms: parseInt(document.getElementById('fp-beds').value)||null,
+    bathrooms: parseInt(document.getElementById('fp-baths').value)||null,
+    size_sqm: parseFloat(document.getElementById('fp-sqm').value)||null,
+    description: document.getElementById('fp-desc').value,
+    img: document.getElementById('fp-img').value,
+    amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
+    notes: document.getElementById('fp-notes').value
+  };
+  const d = await GeoAPI.ownerFetch('/owner/add-property', { method: 'POST', body: payload });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('✅ Property submitted! It will go live once admin approves.', 'success');
+  // Clear form
+  ['fp-title','fp-lga','fp-address','fp-desc','fp-img','fp-amenities','fp-notes'].forEach(id => document.getElementById(id).value = '');
+  ['fp-beds','fp-baths','fp-sqm','fp-monthly-rent','fp-sale-price','fp-lease-price'].forEach(id => document.getElementById(id).value = '');
+  await loadAll();
+  navTo('my-properties', null);
+}
+
+// ── Unit Management ───────────────────────────────────────────
+async function openUnitsModal(propId, propTitle) {
+  currentUnitsPropId = propId;
+  document.getElementById('units-modal-title').textContent = 'Manage Units';
+  document.getElementById('units-modal-sub').textContent = propTitle;
+  document.getElementById('units-modal').style.display = 'flex';
+  await loadAndRenderUnits(propId);
+}
+
+function closeUnitsModal() {
+  document.getElementById('units-modal').style.display = 'none';
+  currentUnitsPropId = null;
+}
+
+async function loadAndRenderUnits(propId) {
+  const d = await GeoAPI.ownerFetch('/owner/property/' + propId + '/units').catch(() => ({}));
+  const units = d.units || [];
+  const stats = d.stats || {};
+
+  document.getElementById('units-stats-text').textContent =
+    `${stats.total||0} total · ${stats.vacant||0} vacant · ${stats.occupied||0} occupied · ${stats.reserved||0} reserved`;
+
+  const grid = document.getElementById('units-grid');
+  if (!units.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🚪</div><div class="empty-title">No units yet</div><div class="empty-sub">Add units below — rooms, flats, shops, etc.</div></div>';
+    return;
+  }
+  grid.innerHTML = units.map(u => `
+    <div class="unit-cell ${u.status}" onclick="openUnitEditModal(${u.id},'${u.unit_label.replace(/'/g,"\\'")}','${u.status}','${u.current_tenant_id||''}','${u.monthly_price||0}','${u.occupied_since||''}','${u.lease_end||''}')">
+      <div class="unit-label">${u.unit_label}</div>
+      <div style="font-size:.72rem;color:var(--muted)"><span class="unit-status-dot dot-${u.status}"></span>${u.status.charAt(0).toUpperCase()+u.status.slice(1)}</div>
+      ${u.monthly_price ? `<div class="unit-price">₦${Number(u.monthly_price).toLocaleString()}/mo</div>` : ''}
+      ${u.status === 'occupied' ? `<div class="unit-tenant">Tenant ID: ${u.current_tenant_id||'—'}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function openUnitEditModal(id, label, status, tenantId, price, since, leaseEnd) {
+  editingUnitId = id;
+  document.getElementById('unit-edit-title').textContent = 'Unit: ' + label;
+  document.getElementById('unit-edit-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="ue-status">
+        <option value="vacant" ${status==='vacant'?'selected':''}>Vacant</option>
+        <option value="occupied" ${status==='occupied'?'selected':''}>Occupied</option>
+        <option value="reserved" ${status==='reserved'?'selected':''}>Reserved</option>
+        <option value="maintenance" ${status==='maintenance'?'selected':''}>Maintenance</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tenant ID (if occupied)</label>
+      <input class="form-input" id="ue-tenant" value="${tenantId||''}" placeholder="USR-...">
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Monthly Price (₦)</label>
+        <input class="form-input" id="ue-price" type="number" value="${price||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Occupied Since</label>
+        <input class="form-input" id="ue-since" type="date" value="${since||''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lease End Date</label>
+      <input class="form-input" id="ue-end" type="date" value="${leaseEnd||''}">
+    </div>
+  `;
+  document.getElementById('unit-edit-modal').style.display = 'flex';
+}
+
+function closeUnitEditModal() {
+  document.getElementById('unit-edit-modal').style.display = 'none';
+  editingUnitId = null;
+}
+
+async function saveUnitEdit() {
+  if (!editingUnitId || !currentUnitsPropId) return;
+  const payload = {
+    status: document.getElementById('ue-status').value,
+    current_tenant_id: document.getElementById('ue-tenant').value || null,
+    monthly_price: parseFloat(document.getElementById('ue-price').value) || null,
+    occupied_since: document.getElementById('ue-since').value || null,
+    lease_end: document.getElementById('ue-end').value || null
+  };
+  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units/' + editingUnitId, { method: 'PATCH', body: payload });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Unit updated', 'success');
+  closeUnitEditModal();
+  await loadAndRenderUnits(currentUnitsPropId);
+  await loadAll();
+}
+
+function openAddUnitModal() {
+  document.getElementById('add-unit-modal').style.display = 'flex';
+}
+
+async function submitAddUnit() {
+  if (!currentUnitsPropId) return;
+  const payload = {
+    unit_label: document.getElementById('au-label').value.trim(),
+    unit_type: document.getElementById('au-type').value,
+    floor_level: document.getElementById('au-floor').value,
+    capacity: parseInt(document.getElementById('au-capacity').value)||1,
+    monthly_price: parseFloat(document.getElementById('au-price').value)||null,
+    notes: document.getElementById('au-notes').value
+  };
+  if (!payload.unit_label) { toast('Unit label is required', 'error'); return; }
+  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units', { method: 'POST', body: payload });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Unit added', 'success');
+  document.getElementById('add-unit-modal').style.display = 'none';
+  ['au-label','au-floor','au-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('au-capacity').value = '1';
+  document.getElementById('au-price').value = '';
+  await loadAndRenderUnits(currentUnitsPropId);
+}
+
+// ── Edit Property ─────────────────────────────────────────────
+function editProperty(propId) {
+  toast('Property editing — coming in next update. Contact admin for urgent changes.', 'info');
+}
+
+// ── Enquiries ─────────────────────────────────────────────────
+function renderEnquiries() {
+  const list = document.getElementById('enq-list');
+  if (!ownerEnquiries.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it appears here.</div></div>';
+    return;
+  }
+  list.innerHTML = ownerEnquiries.map(e => `
+    <div class="enq-item">
+      <div class="enq-avatar">${(e.name[0]||'?').toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="enq-name">${e.name}</div>
+        <div class="enq-prop">📍 ${e.property_title||'Property'} · ${e.email} · ${e.phone||'—'}</div>
+        ${e.message ? `<div class="enq-msg">"${e.message}"</div>` : ''}
+      </div>
+      <div style="font-size:.72rem;color:var(--subtle);white-space:nowrap">${new Date(e.created_at).toLocaleDateString('en-NG')}</div>
+    </div>
+  `).join('');
+}
+
+// ── Profile ───────────────────────────────────────────────────
+async function renderProfile() {
+  const d = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  const p = d.profile || (ownerSession ? ownerSession.owner : {});
+  document.getElementById('profile-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div style="width:60px;height:60px;border-radius:50%;background:var(--green-l);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800">${((p.fname||'?')[0]+(p.lname||'?')[0]).toUpperCase()}</div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:700">${p.fname||'—'} ${p.lname||''}</div>
+        <div style="font-size:.82rem;color:var(--muted)">${p.email||'—'}</div>
+        ${p.is_verified ? '<span class="badge badge-green" style="margin-top:6px">✓ Identity Verified</span>' : '<span class="badge badge-amber" style="margin-top:6px">⏳ Verification Pending</span>'}
+      </div>
+    </div>
+    <table><tbody>
+      <tr><td style="color:var(--muted);width:40%;padding:8px 0">Phone</td><td style="padding:8px 0">${p.phone||'—'}</td></tr>
+      <tr><td style="color:var(--muted);padding:8px 0">Role</td><td style="padding:8px 0">Property Owner</td></tr>
+      <tr><td style="color:var(--muted);padding:8px 0">Account Status</td><td style="padding:8px 0">${p.status||'—'}</td></tr>
+      <tr><td style="color:var(--muted);padding:8px 0">Properties</td><td style="padding:8px 0">${p.propertyCount||0}</td></tr>
+    </tbody></table>
+  `;
+}
+
+// ── Verification ──────────────────────────────────────────────
+async function renderVerification() {
+  const d = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  const p = d.profile || {};
+  const el = document.getElementById('verification-content');
+
+  if (p.is_verified) {
+    el.innerHTML = `
+      <div class="verify-status verified">
+        <div class="verify-icon">✅</div>
+        <div>
+          <div style="font-weight:700;color:var(--green-d)">Identity Verified</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">Your identity has been verified. You can list properties freely — no further verification needed.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (p.status === 'review') {
+    el.innerHTML = `
+      <div class="verify-status pending">
+        <div class="verify-icon">⏳</div>
+        <div>
+          <div style="font-weight:700;color:#92400e">Verification Under Review</div>
+          <div style="font-size:.82rem;color:#92400e;margin-top:2px">Your documents have been submitted and are being reviewed. Usually takes 24-48 hours. We'll email you when done.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="background:var(--amber-bg);border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid #fde68a">
+      <strong style="color:#92400e">⚠️ Verification required</strong>
+      <p style="font-size:.82rem;color:#92400e;margin-top:4px">Submit your identity documents once. After verification, you can list unlimited properties without repeating this step.</p>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">NIN (National Identification Number)</label>
+          <input class="form-input" id="vf-nin" placeholder="12345678901" maxlength="11">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Document Type</label>
+          <select class="form-select" id="vf-doc-type">
+            <option value="NIN">NIN Slip</option>
+            <option value="IntlPassport">International Passport</option>
+            <option value="DriversLicence">Driver's Licence</option>
+            <option value="VotersCard">Voter's Card</option>
+            <option value="CAC">CAC Certificate (for companies)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Document URL / Link</label>
+          <input class="form-input" id="vf-doc-url" placeholder="Paste a link to your scanned document (Google Drive, Dropbox, etc.)">
+          <div style="font-size:.75rem;color:var(--subtle);margin-top:4px">Upload to Google Drive and paste the share link here. Ensure sharing is set to "Anyone with link can view".</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Selfie with Document URL</label>
+          <input class="form-input" id="vf-selfie-url" placeholder="Paste link to selfie holding your ID document">
+        </div>
+        <button class="btn btn-primary" onclick="submitVerification()">Submit for Verification →</button>
+      </div>
+    </div>`;
+}
+
+async function submitVerification() {
+  const nin = document.getElementById('vf-nin').value.trim();
+  const docType = document.getElementById('vf-doc-type').value;
+  const docUrl = document.getElementById('vf-doc-url').value.trim();
+  const selfieUrl = document.getElementById('vf-selfie-url').value.trim();
+  if (!nin || !docUrl) { toast('NIN and document URL are required', 'error'); return; }
+  const d = await GeoAPI.ownerFetch('/owner/verify-identity', { method: 'POST', body: { nin, doc_type: docType, doc_url: docUrl, selfie_url: selfieUrl } });
+  if (d.error) { toast(d.error, 'error'); return; }
+  if (d.alreadyVerified) { toast('Already verified ✅', 'success'); renderVerification(); return; }
+  toast('✅ Documents submitted. You will be notified once verified (usually within 24 hours).', 'success');
+  renderVerification();
+}
+
+// ── Auto-login if session exists ──────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  const session = GeoAPI.getOwnerSession();
+  if (session && session.token) {
+    ownerSession = session;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initDashboard();
+  }
+
+  // SSE: refresh on property updates
+  GeoAPI.onSSE('property_updated', function() { loadAll(); });
+  GeoAPI.onSSE('new_enquiry', async function() {
+    await loadAll();
+    const b = document.getElementById('badge-enq');
+    b.textContent = ownerEnquiries.filter(e => e.status === 'new').length;
+    b.style.display = 'inline-flex';
+  });
+});
+</script>
+</body>
+</html>

@@ -1,2 +1,8 @@
 /admin /index.html 200
 /admin/ /index.html 200
+/rent /index.html 200
+/buy /index.html 200
+/lease /index.html 200
+/owner /owner-dashboard.html 200
+/owner-dashboard /owner-dashboard.html 200
+/property/:id /index.html 200
