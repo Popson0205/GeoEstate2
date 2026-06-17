@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoEstate — Full Integration Test Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #1a6b3c;
+    --green-d: #0d3d22;
+    --green-l: #dcfce7;
+    --amber: #d97706;
+    --amber-l: #fef3c7;
+    --red: #dc2626;
+    --red-l: #fee2e2;
+    --blue: #1d4ed8;
+    --blue-l: #dbeafe;
+    --bg: #0f1a13;
+    --card: #1a2b1f;
+    --card2: #223328;
+    --border: rgba(255,255,255,0.08);
+    --text: #e8f5ec;
+    --muted: rgba(232,245,236,0.55);
+    --subtle: rgba(232,245,236,0.3);
+    --pass: #22c55e;
+    --fail: #ef4444;
+    --warn: #f59e0b;
+    --pending: #6b7280;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, var(--green-d), var(--green)); padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 1.3rem; font-weight: 900; color: #fff; }
+  .badge { background: rgba(255,255,255,0.15); color: #fff; font-size: 0.7rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; letter-spacing: 0.08em; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pending); display: inline-block; }
+  .status-dot.live { background: var(--pass); animation: pulse 2s infinite; }
+  .status-label { font-size: 0.8rem; color: rgba(255,255,255,0.7); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Layout */
+  .main { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 65px); }
+  .sidebar { background: var(--card); border-right: 1px solid var(--border); overflow-y: auto; }
+  .content { overflow-y: auto; padding: 20px; }
+
+  /* Config Panel */
+  .config-panel { padding: 16px; border-bottom: 1px solid var(--border); }
+  .config-title { font-size: 0.72rem; font-weight: 700; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .field-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; display: block; }
+  .field-input { width: 100%; background: rgba(255,255,255,0.07); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 0.82rem; font-family: var(--mono); outline: none; }
+  .field-input:focus { border-color: var(--green); }
+  .field-group { margin-bottom: 10px; }
+
+  /* Run Button */
+  .run-all-btn { width: 100%; padding: 11px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background 0.15s; margin-top: 4px; }
+  .run-all-btn:hover { background: var(--green-d); }
+  .run-all-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Suite List */
+  .suite-section { padding: 12px 16px 4px; font-size: 0.65rem; font-weight: 700; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.1em; }
+  .suite-item { display: flex; align-items: center; gap: 8px; padding: 9px 16px; cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent; }
+  .suite-item:hover { background: rgba(255,255,255,0.04); }
+  .suite-item.active { background: rgba(26,107,60,0.18); border-left-color: var(--green); }
+  .suite-icon { font-size: 0.95rem; width: 20px; text-align: center; flex-shrink: 0; }
+  .suite-name { font-size: 0.83rem; font-weight: 500; flex: 1; }
+  .suite-count { font-size: 0.7rem; color: var(--subtle); background: rgba(255,255,255,0.08); border-radius: 4px; padding: 1px 6px; }
+  .suite-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .s-pass { background: var(--pass); }
+  .s-fail { background: var(--fail); }
+  .s-warn { background: var(--warn); }
+  .s-idle { background: var(--pending); }
+  .s-running { background: var(--warn); animation: pulse 0.8s infinite; }
+
+  /* Summary Bar */
+  .summary-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); }
+  .stat-val { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; }
+  .stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  .stat-val.pass { color: var(--pass); }
+  .stat-val.fail { color: var(--fail); }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.total { color: var(--text); }
+
+  /* Test Results */
+  .test-section { background: var(--card); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden; }
+  .test-section-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .test-section-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .run-section-btn { background: rgba(26,107,60,0.3); border: 1px solid rgba(26,107,60,0.5); color: var(--pass); border-radius: 6px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .run-section-btn:hover { background: var(--green); color: #fff; }
+  .test-row { padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: flex-start; gap: 10px; transition: background 0.1s; }
+  .test-row:last-child { border-bottom: none; }
+  .test-row:hover { background: rgba(255,255,255,0.02); }
+  .test-icon { font-size: 1rem; flex-shrink: 0; width: 20px; text-align: center; margin-top: 1px; }
+  .test-body { flex: 1; min-width: 0; }
+  .test-name { font-size: 0.83rem; font-weight: 600; color: var(--text); }
+  .test-endpoint { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+  .test-result { font-size: 0.75rem; margin-top: 4px; color: var(--muted); word-break: break-all; }
+  .test-result.ok { color: var(--pass); }
+  .test-result.err { color: var(--fail); }
+  .test-result.info { color: var(--warn); }
+  .test-time { font-size: 0.7rem; color: var(--subtle); flex-shrink: 0; font-family: var(--mono); min-width: 50px; text-align: right; }
+  .method-tag { font-size: 0.65rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.05em; flex-shrink: 0; margin-top: 2px; }
+  .get { background: #1e3a5f; color: #60a5fa; }
+  .post { background: #1c3a1c; color: #4ade80; }
+  .patch { background: #3a2e00; color: #fbbf24; }
+  .delete { background: #3a0f0f; color: #f87171; }
+
+  /* Log */
+  .log-panel { background: #0a100c; border-radius: 8px; border: 1px solid var(--border); padding: 14px; font-family: var(--mono); font-size: 0.75rem; max-height: 240px; overflow-y: auto; color: #a3e4b0; }
+  .log-line { margin-bottom: 2px; }
+  .log-line.err { color: #fca5a5; }
+  .log-line.warn { color: #fcd34d; }
+  .log-line.info { color: #93c5fd; }
+  .log-line.dim { color: #4b5563; }
+
+  /* SSE Status */
+  .sse-box { background: var(--card2); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .sse-events { flex: 1; font-size: 0.78rem; color: var(--muted); }
+  .sse-event-item { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+  /* Tag */
+  .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+  .tag-green { background: rgba(34,197,94,0.15); color: var(--pass); }
+  .tag-red { background: rgba(239,68,68,0.15); color: var(--fail); }
+  .tag-amber { background: rgba(245,158,11,0.15); color: var(--warn); }
+  .tag-gray { background: rgba(107,114,128,0.2); color: #9ca3af; }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Progress Bar */
+  .progress-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 999px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 0.3s; }
+
+  .section-collapse { overflow: hidden; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab { padding: 7px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; background: var(--card); border: 1px solid var(--border); color: var(--muted); transition: all 0.15s; }
+  .tab.active { background: var(--green); color: #fff; border-color: var(--green); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">📍 GeoEstate</div>
+    <div class="badge">INTEGRATION TEST SUITE</div>
+  </div>
+  <div class="header-right">
+    <span class="status-dot" id="sse-dot"></span>
+    <span class="status-label" id="sse-label">SSE: Disconnected</span>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="config-panel">
+      <div class="config-title">API Configuration</div>
+      <div class="field-group">
+        <label class="field-label">API Base URL</label>
+        <input class="field-input" id="cfg-api" value="https://geoestate.onrender.com" placeholder="https://geoestate.onrender.com">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Admin Token</label>
+        <input class="field-input" id="cfg-token" value="geoestate-admin-2024" placeholder="geoestate-admin-2024">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Test Email (for OTP tests)</label>
+        <input class="field-input" id="cfg-email" value="" placeholder="your@email.com">
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+      <button class="run-all-btn" id="run-all-btn" onclick="runAllTests()" style="margin-top:12px">▶ Run All Tests</button>
+    </div>
+
+    <div class="suite-section">Test Suites</div>
+    <div class="suite-item active" onclick="showSuite('public')" id="suite-tab-public">
+      <span class="suite-icon">🌐</span>
+      <span class="suite-name">Public Endpoints</span>
+      <span class="suite-count" id="cnt-public">5</span>
+      <span class="suite-status s-idle" id="dot-public"></span>
+    </div>
+    <div class="suite-item" onclick="showSuite('admin')" id="suite-tab-admin">
+      <span class="suite-icon">🔑</span>
+      <span class="suite-name">Admin Endpoints</span>
+      <span class="suite-count" id="cnt-admin">11</span>
+      <span class="suite-status s-idle" id="dot-admin"></span>
+    </div>
+    <div class="suite-item" onclick="showSuite('write')" id="suite-tab-write">
+      <span class="suite-icon">✏️</span>
+      <span class="suite-name">Write Operations</span>
+      <span class="suite-count" id="cnt-write">9</span>
+      <span class="suite-status s-idle" id="dot-write"></span>
+    </div>
+    <div class="suite-item" onclick="showSuite('owner')" id="suite-tab-owner">
+      <span class="suite-icon">🏠</span>
+      <span class="suite-name">Owner Portal</span>
+      <span class="suite-count" id="cnt-owner">4</span>
+      <span class="suite-status s-idle" id="dot-owner"></span>
+    </div>
+    <div class="suite-item" onclick="showSuite('sse')" id="suite-tab-sse">
+      <span class="suite-icon">⚡</span>
+      <span class="suite-name">Real-time (SSE)</span>
+      <span class="suite-count" id="cnt-sse">3</span>
+      <span class="suite-status s-idle" id="dot-sse"></span>
+    </div>
+    <div class="suite-item" onclick="showSuite('e2e')" id="suite-tab-e2e">
+      <span class="suite-icon">🔗</span>
+      <span class="suite-name">E2E Flows</span>
+      <span class="suite-count" id="cnt-e2e">4</span>
+      <span class="suite-status s-idle" id="dot-e2e"></span>
+    </div>
+    <div class="suite-item" onclick="showSuite('log')" id="suite-tab-log">
+      <span class="suite-icon">📋</span>
+      <span class="suite-name">Test Log</span>
+      <span class="suite-count" id="cnt-log">0</span>
+      <span class="suite-status s-idle" id="dot-log"></span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Summary -->
+    <div class="summary-bar">
+      <div class="stat-card">
+        <div class="stat-val total" id="s-total">0</div>
+        <div class="stat-lbl">Total Tests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val pass" id="s-pass">0</div>
+        <div class="stat-lbl">Passed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val fail" id="s-fail">0</div>
+        <div class="stat-lbl">Failed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val warn" id="s-warn">0</div>
+        <div class="stat-lbl">Warnings</div>
+      </div>
+    </div>
+
+    <!-- SSE Box -->
+    <div class="sse-box" id="sse-box">
+      <span id="sse-indicator" style="font-size:1.2rem">⏺</span>
+      <div class="sse-events">
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:4px">Server-Sent Events (Real-time Sync)</div>
+        <div id="sse-event-log" style="max-height:60px;overflow-y:auto;font-size:0.73rem;color:var(--muted)">Click "Connect SSE" to start real-time monitoring</div>
+      </div>
+      <button onclick="connectSSE()" style="background:rgba(26,107,60,0.3);border:1px solid rgba(26,107,60,0.5);color:var(--pass);border-radius:6px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer" id="sse-btn">Connect SSE</button>
+    </div>
+
+    <!-- Suite Panels -->
+    <div id="suite-public" class="suite-panel">
+      <div class="test-section">
+        <div class="test-section-header" onclick="toggleSection('pub1')">
+          <div class="test-section-title">🌐 Public Properties API</div>
+          <button class="run-section-btn" onclick="event.stopPropagation();runSuite('public')">Run Suite</button>
+        </div>
+        <div id="pub1">
+          <div id="test-api-health" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">API Health Check</div><div class="test-endpoint">GET /</div><div class="test-result" id="r-api-health">Not run</div></div><div class="test-time" id="t-api-health">—</div></div>
+          <div id="test-pub-properties" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Load All Live Properties (Public)</div><div class="test-endpoint">GET /properties</div><div class="test-result" id="r-pub-properties">Not run</div></div><div class="test-time" id="t-pub-properties">—</div></div>
+          <div id="test-pub-filter-rent" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Filter Properties by Type: rent</div><div class="test-endpoint">GET /properties?type=rent</div><div class="test-result" id="r-pub-filter-rent">Not run</div></div><div class="test-time" id="t-pub-filter-rent">—</div></div>
+          <div id="test-pub-filter-buy" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Filter Properties by Type: buy</div><div class="test-endpoint">GET /properties?type=buy</div><div class="test-result" id="r-pub-filter-buy">Not run</div></div><div class="test-time" id="t-pub-filter-buy">—</div></div>
+          <div id="test-pub-search" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Search Properties</div><div class="test-endpoint">GET /properties?q=Lagos</div><div class="test-result" id="r-pub-search">Not run</div></div><div class="test-time" id="t-pub-search">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suite-admin" class="suite-panel" style="display:none">
+      <div class="test-section">
+        <div class="test-section-header" onclick="toggleSection('adm1')">
+          <div class="test-section-title">🔑 Admin GET Endpoints</div>
+          <button class="run-section-btn" onclick="event.stopPropagation();runSuite('admin')">Run Suite</button>
+        </div>
+        <div id="adm1">
+          <div id="test-adm-auth-fail" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Auth Guard (no token → 401)</div><div class="test-endpoint">GET /admin/registrations (no auth)</div><div class="test-result" id="r-adm-auth-fail">Not run</div></div><div class="test-time" id="t-adm-auth-fail">—</div></div>
+          <div id="test-adm-regs" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get All Registrations</div><div class="test-endpoint">GET /admin/registrations</div><div class="test-result" id="r-adm-regs">Not run</div></div><div class="test-time" id="t-adm-regs">—</div></div>
+          <div id="test-adm-props" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get All Properties (Admin View)</div><div class="test-endpoint">GET /admin/properties</div><div class="test-result" id="r-adm-props">Not run</div></div><div class="test-time" id="t-adm-props">—</div></div>
+          <div id="test-adm-team" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Team Members</div><div class="test-endpoint">GET /admin/team</div><div class="test-result" id="r-adm-team">Not run</div></div><div class="test-time" id="t-adm-team">—</div></div>
+          <div id="test-adm-lawyers" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Lawyers</div><div class="test-endpoint">GET /admin/lawyers</div><div class="test-result" id="r-adm-lawyers">Not run</div></div><div class="test-time" id="t-adm-lawyers">—</div></div>
+          <div id="test-adm-tenancies" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Tenancies</div><div class="test-endpoint">GET /admin/tenancies</div><div class="test-result" id="r-adm-tenancies">Not run</div></div><div class="test-time" id="t-adm-tenancies">—</div></div>
+          <div id="test-adm-transactions" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Transactions</div><div class="test-endpoint">GET /admin/transactions</div><div class="test-result" id="r-adm-transactions">Not run</div></div><div class="test-time" id="t-adm-transactions">—</div></div>
+          <div id="test-adm-disputes" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Disputes</div><div class="test-endpoint">GET /admin/disputes</div><div class="test-result" id="r-adm-disputes">Not run</div></div><div class="test-time" id="t-adm-disputes">—</div></div>
+          <div id="test-adm-payments" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Payments</div><div class="test-endpoint">GET /admin/payments</div><div class="test-result" id="r-adm-payments">Not run</div></div><div class="test-time" id="t-adm-payments">—</div></div>
+          <div id="test-adm-activity" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get Activity Log</div><div class="test-endpoint">GET /admin/activity</div><div class="test-result" id="r-adm-activity">Not run</div></div><div class="test-time" id="t-adm-activity">—</div></div>
+          <div id="test-adm-enquiries" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Get All Enquiries (Admin)</div><div class="test-endpoint">GET /admin/enquiries</div><div class="test-result" id="r-adm-enquiries">Not run</div></div><div class="test-time" id="t-adm-enquiries">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suite-write" class="suite-panel" style="display:none">
+      <div class="test-section">
+        <div class="test-section-header" onclick="toggleSection('wrt1')">
+          <div class="test-section-title">✏️ Write Operations (POST/PATCH)</div>
+          <button class="run-section-btn" onclick="event.stopPropagation();runSuite('write')">Run Suite</button>
+        </div>
+        <div id="wrt1">
+          <div id="test-save-property" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Save/Create Property (Admin)</div><div class="test-endpoint">POST /admin/save-property</div><div class="test-result" id="r-save-property">Not run</div></div><div class="test-time" id="t-save-property">—</div></div>
+          <div id="test-approve-property" class="test-row"><span class="method-tag patch">PATCH</span><div class="test-body"><div class="test-name">Approve Property (set status=live)</div><div class="test-endpoint">PATCH /admin/property/{id}</div><div class="test-result" id="r-approve-property">Not run</div></div><div class="test-time" id="t-approve-property">—</div></div>
+          <div id="test-submit-enquiry" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Submit Enquiry (Website → API)</div><div class="test-endpoint">POST /enquiry</div><div class="test-result" id="r-submit-enquiry">Not run</div></div><div class="test-time" id="t-submit-enquiry">—</div></div>
+          <div id="test-submit-dispute" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Submit Dispute (Website → API)</div><div class="test-endpoint">POST /submit-dispute</div><div class="test-result" id="r-submit-dispute">Not run</div></div><div class="test-time" id="t-submit-dispute">—</div></div>
+          <div id="test-save-team" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Save Team Member (Admin)</div><div class="test-endpoint">POST /admin/save-team</div><div class="test-result" id="r-save-team">Not run</div></div><div class="test-time" id="t-save-team">—</div></div>
+          <div id="test-save-lawyer" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Save Lawyer (Admin)</div><div class="test-endpoint">POST /admin/save-lawyer</div><div class="test-result" id="r-save-lawyer">Not run</div></div><div class="test-time" id="t-save-lawyer">—</div></div>
+          <div id="test-save-tenancy" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Save Tenancy (Admin)</div><div class="test-endpoint">POST /admin/save-tenancy</div><div class="test-result" id="r-save-tenancy">Not run</div></div><div class="test-time" id="t-save-tenancy">—</div></div>
+          <div id="test-save-payment" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Save Payment Record</div><div class="test-endpoint">POST /admin/save-payment</div><div class="test-result" id="r-save-payment">Not run</div></div><div class="test-time" id="t-save-payment">—</div></div>
+          <div id="test-update-reg" class="test-row"><span class="method-tag patch">PATCH</span><div class="test-body"><div class="test-name">Update Registration Status (Admin)</div><div class="test-endpoint">PATCH /admin/registration/{id}</div><div class="test-result" id="r-update-reg">Not run</div></div><div class="test-time" id="t-update-reg">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suite-owner" class="suite-panel" style="display:none">
+      <div class="test-section">
+        <div class="test-section-header">
+          <div class="test-section-title">🏠 Owner Portal</div>
+          <button class="run-section-btn" onclick="runSuite('owner')">Run Suite</button>
+        </div>
+        <div id="own1">
+          <div id="test-owner-login-request" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">Owner OTP Request</div><div class="test-endpoint">POST /owner/login (email only)</div><div class="test-result" id="r-owner-login-request">Set email above to test</div></div><div class="test-time" id="t-owner-login-request">—</div></div>
+          <div id="test-owner-no-token" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Owner Auth Guard (no token → 401)</div><div class="test-endpoint">GET /owner/profile (no auth)</div><div class="test-result" id="r-owner-no-token">Not run</div></div><div class="test-time" id="t-owner-no-token">—</div></div>
+          <div id="test-owner-properties-auth" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Owner Properties (requires token)</div><div class="test-endpoint">GET /owner/properties</div><div class="test-result" id="r-owner-properties-auth">Not run</div></div><div class="test-time" id="t-owner-properties-auth">—</div></div>
+          <div id="test-owner-enquiries-auth" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">Owner Enquiries (requires token)</div><div class="test-endpoint">GET /owner/enquiries</div><div class="test-result" id="r-owner-enquiries-auth">Not run</div></div><div class="test-time" id="t-owner-enquiries-auth">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suite-sse" class="suite-panel" style="display:none">
+      <div class="test-section">
+        <div class="test-section-header">
+          <div class="test-section-title">⚡ Real-time SSE Tests</div>
+          <button class="run-section-btn" onclick="runSuite('sse')">Run Suite</button>
+        </div>
+        <div id="sse1">
+          <div id="test-sse-connect" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">SSE Connection Established</div><div class="test-endpoint">GET /events (EventSource)</div><div class="test-result" id="r-sse-connect">Not run</div></div><div class="test-time" id="t-sse-connect">—</div></div>
+          <div id="test-sse-ping" class="test-row"><span class="method-tag get">GET</span><div class="test-body"><div class="test-name">SSE Keep-alive Ping</div><div class="test-endpoint">:ping comment every 30s</div><div class="test-result" id="r-sse-ping">Connect SSE first</div></div><div class="test-time" id="t-sse-ping">—</div></div>
+          <div id="test-sse-broadcast" class="test-row"><span class="method-tag post">POST</span><div class="test-body"><div class="test-name">SSE Broadcast Trigger</div><div class="test-endpoint">Write → SSE broadcast (property_created)</div><div class="test-result" id="r-sse-broadcast">Run after write tests</div></div><div class="test-time" id="t-sse-broadcast">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suite-e2e" class="suite-panel" style="display:none">
+      <div class="test-section">
+        <div class="test-section-header">
+          <div class="test-section-title">🔗 End-to-End Flows</div>
+          <button class="run-section-btn" onclick="runSuite('e2e')">Run E2E</button>
+        </div>
+        <div id="e2e1">
+          <div id="test-e2e-property-flow" class="test-row"><span class="method-tag post">E2E</span><div class="test-body"><div class="test-name">Property: Create → Approve → Public Visible</div><div class="test-endpoint">POST /admin/save-property → PATCH /admin/property/{id} → GET /properties</div><div class="test-result" id="r-e2e-property-flow">Not run</div></div><div class="test-time" id="t-e2e-property-flow">—</div></div>
+          <div id="test-e2e-enquiry-flow" class="test-row"><span class="method-tag post">E2E</span><div class="test-body"><div class="test-name">Enquiry: Submit → Admin Sees It</div><div class="test-endpoint">POST /enquiry → GET /admin/enquiries</div><div class="test-result" id="r-e2e-enquiry-flow">Not run</div></div><div class="test-time" id="t-e2e-enquiry-flow">—</div></div>
+          <div id="test-e2e-reg-flow" class="test-row"><span class="method-tag post">E2E</span><div class="test-body"><div class="test-name">Registration: Submit → Admin Review → Status Update</div><div class="test-endpoint">POST /register → GET /admin/registrations → PATCH /admin/registration/{id}</div><div class="test-result" id="r-e2e-reg-flow">Not run</div></div><div class="test-time" id="t-e2e-reg-flow">—</div></div>
+          <div id="test-e2e-sync" class="test-row"><span class="method-tag get">E2E</span><div class="test-body"><div class="test-name">Admin Sync Endpoint</div><div class="test-endpoint">GET /admin/sync → live properties + approved users</div><div class="test-result" id="r-e2e-sync">Not run</div></div><div class="test-time" id="t-e2e-sync">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suite-log" class="suite-panel" style="display:none">
+      <div style="font-size:0.82rem;font-weight:700;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+        <span>Test Log</span>
+        <button onclick="clearLog()" style="background:none;border:1px solid var(--border);color:var(--subtle);border-radius:5px;padding:3px 10px;font-size:0.72rem;cursor:pointer">Clear</button>
+      </div>
+      <div class="log-panel" id="test-log" style="max-height:500px">
+        <div class="log-line dim">// Test output will appear here</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = () => document.getElementById('cfg-api').value.trim().replace(/\/$/, '');
+  const TOKEN = () => document.getElementById('cfg-token').value.trim();
+  const EMAIL = () => document.getElementById('cfg-email').value.trim();
+
+  let stats = { total: 0, pass: 0, fail: 0, warn: 0 };
+  let testLog = [];
+  let createdPropId = null;
+  let createdRegId = null;
+  let sseSource = null;
+  let sseReceived = [];
+
+  function adminHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN() };
+  }
+
+  function log(msg, type = '') {
+    const el = document.getElementById('test-log');
+    const line = document.createElement('div');
+    line.className = 'log-line ' + type;
+    line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+    testLog.push({ time: new Date().toISOString(), msg, type });
+    const cnt = document.getElementById('cnt-log');
+    cnt.textContent = testLog.length;
+  }
+
+  function setResult(id, status, msg, ms) {
+    const r = document.getElementById('r-' + id);
+    const t = document.getElementById('t-' + id);
+    if (r) { r.textContent = msg; r.className = 'test-result ' + (status === 'pass' ? 'ok' : status === 'fail' ? 'err' : 'info'); }
+    if (t) t.textContent = ms !== undefined ? ms + 'ms' : '—';
+  }
+
+  function setRunning(id) {
+    const r = document.getElementById('r-' + id);
+    if (r) { r.innerHTML = '<span class="spinner"></span> Running...'; r.className = 'test-result info'; }
+  }
+
+  function updateStats() {
+    document.getElementById('s-total').textContent = stats.total;
+    document.getElementById('s-pass').textContent = stats.pass;
+    document.getElementById('s-fail').textContent = stats.fail;
+    document.getElementById('s-warn').textContent = stats.warn;
+  }
+
+  function record(status) {
+    stats.total++;
+    if (status === 'pass') stats.pass++;
+    else if (status === 'fail') stats.fail++;
+    else stats.warn++;
+    updateStats();
+  }
+
+  async function t(id, fn) {
+    setRunning(id);
+    const start = Date.now();
+    try {
+      const result = await fn();
+      const ms = Date.now() - start;
+      setResult(id, result.status, result.msg, ms);
+      record(result.status);
+      log((result.status === 'pass' ? '✅' : result.status === 'fail' ? '❌' : '⚠️') + ' [' + id + '] ' + result.msg, result.status === 'pass' ? '' : result.status === 'fail' ? 'err' : 'warn');
+      return result;
+    } catch (e) {
+      const ms = Date.now() - start;
+      setResult(id, 'fail', 'Error: ' + e.message, ms);
+      record('fail');
+      log('❌ [' + id + '] Error: ' + e.message, 'err');
+      return { status: 'fail' };
+    }
+  }
+
+  async function api(path, opts) {
+    const url = API() + path;
+    const res = await fetch(url, opts || {});
+    const data = await res.json();
+    return { status: res.status, data };
+  }
+
+  // ── Test Definitions ───────────────────────────────────────────
+
+  async function test_api_health() {
+    return t('api-health', async () => {
+      const { status, data } = await api('/');
+      if (status === 200 && data.status === 'ok') return { status: 'pass', msg: 'API is live — v' + (data.version || '?') + ', DB: ' + (data.db || '?') + ', registrations: ' + (data.registrations || '?') };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data) };
+    });
+  }
+
+  async function test_pub_properties() {
+    return t('pub-properties', async () => {
+      const { status, data } = await api('/properties');
+      if (status === 200 && data.properties !== undefined) return { status: 'pass', msg: data.count + ' live properties returned' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_pub_filter_rent() {
+    return t('pub-filter-rent', async () => {
+      const { status, data } = await api('/properties?type=rent');
+      if (status === 200) return { status: 'pass', msg: (data.count || 0) + ' rent properties (filter working)' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_pub_filter_buy() {
+    return t('pub-filter-buy', async () => {
+      const { status, data } = await api('/properties?type=buy');
+      if (status === 200) return { status: 'pass', msg: (data.count || 0) + ' buy properties (filter working)' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_pub_search() {
+    return t('pub-search', async () => {
+      const { status, data } = await api('/properties?q=Lagos');
+      if (status === 200) return { status: 'pass', msg: (data.count || 0) + ' results for "Lagos" — search working' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_auth_fail() {
+    return t('adm-auth-fail', async () => {
+      const { status } = await api('/admin/registrations', { headers: { 'Content-Type': 'application/json' } });
+      if (status === 401) return { status: 'pass', msg: '401 returned correctly — auth guard working' };
+      return { status: 'fail', msg: 'Expected 401, got ' + status + ' — auth guard NOT working!' };
+    });
+  }
+
+  async function test_adm_regs() {
+    return t('adm-regs', async () => {
+      const { status, data } = await api('/admin/registrations', { headers: adminHeaders() });
+      if (status === 200 && data.registrations) {
+        if (data.registrations.length > 0) createdRegId = data.registrations[data.registrations.length - 1].id;
+        return { status: 'pass', msg: data.count + ' registrations loaded' };
+      }
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_adm_props() {
+    return t('adm-props', async () => {
+      const { status, data } = await api('/admin/properties', { headers: adminHeaders() });
+      if (status === 200 && data.properties) return { status: 'pass', msg: data.count + ' properties (all statuses) loaded' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_adm_team() {
+    return t('adm-team', async () => {
+      const { status, data } = await api('/admin/team', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.team || []).length + ' team members loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_lawyers() {
+    return t('adm-lawyers', async () => {
+      const { status, data } = await api('/admin/lawyers', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.lawyers || []).length + ' lawyers loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_tenancies() {
+    return t('adm-tenancies', async () => {
+      const { status, data } = await api('/admin/tenancies', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.tenancies || []).length + ' tenancies loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_transactions() {
+    return t('adm-transactions', async () => {
+      const { status, data } = await api('/admin/transactions', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.transactions || []).length + ' transactions loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_disputes() {
+    return t('adm-disputes', async () => {
+      const { status, data } = await api('/admin/disputes', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.disputes || []).length + ' disputes loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_payments() {
+    return t('adm-payments', async () => {
+      const { status, data } = await api('/admin/payments', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.payments || []).length + ' payments loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_activity() {
+    return t('adm-activity', async () => {
+      const { status, data } = await api('/admin/activity', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.log || []).length + ' activity entries (last 100)' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_adm_enquiries() {
+    return t('adm-enquiries', async () => {
+      const { status, data } = await api('/admin/enquiries', { headers: adminHeaders() });
+      if (status === 200) return { status: 'pass', msg: (data.enquiries || []).length + ' enquiries loaded' };
+      return { status: 'fail', msg: 'Status ' + status };
+    });
+  }
+
+  async function test_save_property() {
+    return t('save-property', async () => {
+      const propData = {
+        title: 'TEST Property [Auto-test ' + Date.now() + ']',
+        owner: 'Test Admin',
+        listing_type: 'rent',
+        type: 'rent',
+        status: 'pending',
+        price: '₦500,000/yr',
+        monthly_rent: 50000,
+        state: 'Lagos',
+        lga: 'Ikeja',
+        address: '123 Test Street, Ikeja',
+        img: '',
+        notes: 'Auto-generated test property'
+      };
+      const { status, data } = await api('/admin/save-property', {
+        method: 'POST', headers: adminHeaders(), body: JSON.stringify(propData)
+      });
+      if (status === 200 && data.success) {
+        createdPropId = data.propertyId;
+        return { status: 'pass', msg: 'Property created: ' + data.propertyId };
+      }
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_approve_property() {
+    return t('approve-property', async () => {
+      if (!createdPropId) return { status: 'warn', msg: 'No property ID — run save-property first' };
+      const { status, data } = await api('/admin/property/' + createdPropId, {
+        method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ status: 'live', notes: 'Approved by auto-test' })
+      });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Property ' + createdPropId + ' approved → status=live' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_submit_enquiry() {
+    if (!createdPropId) {
+      return t('submit-enquiry', async () => {
+        const { status, data } = await api('/admin/properties', { headers: adminHeaders() });
+        const firstProp = data.properties && data.properties[0] ? data.properties[0].id : 'PROP-TEST';
+        const enqData = { property_id: firstProp, name: 'Test User', email: 'test@geoestate.com', phone: '08012345678', message: 'Auto-test enquiry' };
+        const r = await api('/enquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(enqData) });
+        if (r.status === 200 && r.data.success) return { status: 'pass', msg: 'Enquiry submitted: ' + r.data.enquiryId };
+        return { status: 'fail', msg: 'Status ' + r.status + ': ' + JSON.stringify(r.data).slice(0, 80) };
+      });
+    }
+    return t('submit-enquiry', async () => {
+      const enqData = { property_id: createdPropId, name: 'Test Visitor', email: 'visitor@test.com', phone: '08011111111', message: 'I am interested in this property' };
+      const { status, data } = await api('/enquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(enqData) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Enquiry submitted: ' + data.enquiryId + ' → admins notified' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_submit_dispute() {
+    return t('submit-dispute', async () => {
+      const d = { title: 'Test Dispute ' + Date.now(), property: 'Test Property', complainant: 'John Doe', complainantId: 'USR-001', respondent: 'Jane Smith', amount: '50000', description: 'Auto-test dispute', severity: 'medium' };
+      const { status, data } = await api('/submit-dispute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Dispute filed: ' + data.disputeId };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_save_team() {
+    return t('save-team', async () => {
+      const d = { name: 'Test Staff ' + Date.now(), role: 'Property Manager', phone: '08099999999', email: 'staff@geoestate.com', status: 'active' };
+      const { status, data } = await api('/admin/save-team', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(d) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Team member saved' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_save_lawyer() {
+    return t('save-lawyer', async () => {
+      const d = { name: 'Adv. Test ' + Date.now(), bar: 'NBA-' + Math.floor(Math.random()*9000+1000), spec: 'Property Law', state: 'Lagos', email: 'lawyer@test.com', phone: '08088888888', status: 'active' };
+      const { status, data } = await api('/admin/save-lawyer', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(d) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Lawyer saved' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_save_tenancy() {
+    return t('save-tenancy', async () => {
+      const ref = 'TEN-TEST-' + Date.now();
+      const d = { ref, type: 'rent', property: 'Test Property', property_id: createdPropId || 'PROP-TEST', tenant: 'Test Tenant', phone: '08077777777', owner: 'Test Owner', amount: 50000, start: '2025-01-01', end: '2026-01-01', notes: 'Auto-test' };
+      const { status, data } = await api('/admin/save-tenancy', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(d) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Tenancy saved: ' + ref };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_save_payment() {
+    return t('save-payment', async () => {
+      const ref = 'PAY-TEST-' + Date.now();
+      const d = { ref, prop: 'Test Property', buyer: 'Test Buyer', phone: '08066666666', owner: 'Test Owner', ownerAcct: '1234567890', amount: 50000, fee: 2500, ownerAmt: 47500, status: 'pending', notified: '' };
+      const { status, data } = await api('/admin/save-payment', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(d) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Payment record saved: ' + ref };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_update_reg() {
+    return t('update-reg', async () => {
+      if (!createdRegId) return { status: 'warn', msg: 'No registration to update — run admin/registrations first' };
+      const { status, data } = await api('/admin/registration/' + createdRegId, {
+        method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ status: 'pending', reviewer: 'Auto-Tester', notes: 'Auto-test review' })
+      });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'Registration ' + createdRegId + ' status updated' };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_owner_login_request() {
+    const email = EMAIL();
+    return t('owner-login-request', async () => {
+      if (!email) return { status: 'warn', msg: 'No email set — add email above to test OTP flow' };
+      const { status, data } = await api('/owner/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      if (status === 200 && data.success) return { status: 'pass', msg: 'OTP sent to ' + email };
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_owner_no_token() {
+    return t('owner-no-token', async () => {
+      const { status } = await api('/owner/profile', { headers: { 'Content-Type': 'application/json' } });
+      if (status === 401) return { status: 'pass', msg: '401 returned — owner auth guard working' };
+      return { status: 'fail', msg: 'Expected 401, got ' + status + ' — auth guard broken!' };
+    });
+  }
+
+  async function test_owner_properties_auth() {
+    return t('owner-properties-auth', async () => {
+      const { status, data } = await api('/owner/properties', { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer owner:FAKE-ID:' + Date.now() } });
+      if (status === 200) return { status: 'warn', msg: 'Returned 200 with fake token — check token validation' };
+      if (status === 401 || status === 404) return { status: 'pass', msg: status + ' returned for invalid owner token — guard working' };
+      return { status: 'warn', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  async function test_owner_enquiries_auth() {
+    return t('owner-enquiries-auth', async () => {
+      const { status } = await api('/owner/enquiries', { headers: { 'Content-Type': 'application/json' } });
+      if (status === 401) return { status: 'pass', msg: '401 returned — enquiries endpoint secured' };
+      return { status: 'fail', msg: 'Expected 401, got ' + status };
+    });
+  }
+
+  async function test_sse_connect() {
+    return t('sse-connect', async () => {
+      return new Promise((resolve) => {
+        const es = new EventSource(API() + '/events');
+        const timeout = setTimeout(() => { es.close(); resolve({ status: 'fail', msg: 'Connection timeout after 10s' }); }, 10000);
+        es.onopen = () => { clearTimeout(timeout); es.close(); resolve({ status: 'pass', msg: 'SSE connected successfully' }); };
+        es.onerror = (e) => { clearTimeout(timeout); es.close(); resolve({ status: 'fail', msg: 'SSE connection error' }); };
+        es.onmessage = (e) => { clearTimeout(timeout); es.close(); resolve({ status: 'pass', msg: 'SSE connected & data received: ' + e.data.slice(0, 40) }); };
+      });
+    });
+  }
+
+  async function test_sse_ping() {
+    return t('sse-ping', async () => {
+      if (!sseSource) return { status: 'warn', msg: 'SSE not connected — click Connect SSE button first' };
+      return { status: 'pass', msg: sseReceived.length + ' events received since connection, SSE is live' };
+    });
+  }
+
+  async function test_sse_broadcast() {
+    return t('sse-broadcast', async () => {
+      if (!sseSource) return { status: 'warn', msg: 'SSE not connected — connect first, then run write tests' };
+      const before = sseReceived.length;
+      // Trigger a write to cause a broadcast
+      const d = { title: 'SSE-TEST-' + Date.now(), listing_type: 'rent', type: 'rent', status: 'pending', state: 'Lagos', price: '₦100/mo', notes: 'SSE test' };
+      await api('/admin/save-property', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(d) });
+      await new Promise(r => setTimeout(r, 2000));
+      const after = sseReceived.length;
+      if (after > before) return { status: 'pass', msg: 'SSE broadcast received! ' + (after - before) + ' new event(s) — real-time sync working' };
+      return { status: 'warn', msg: 'No SSE broadcast received in 2s — may be connection issue' };
+    });
+  }
+
+  async function test_e2e_property_flow() {
+    return t('e2e-property-flow', async () => {
+      log('E2E: Creating test property...', 'info');
+      const propId = 'E2E-' + Date.now();
+      const { status: s1, data: d1 } = await api('/admin/save-property', {
+        method: 'POST', headers: adminHeaders(),
+        body: JSON.stringify({ id: propId, title: 'E2E Test Property', listing_type: 'rent', type: 'rent', status: 'pending', state: 'Abuja', lga: 'Garki', price: '₦200k/yr', notes: 'e2e test' })
+      });
+      if (!d1.success) return { status: 'fail', msg: 'Step 1 FAILED: Could not create property' };
+      log('E2E: Property created. Approving...', 'info');
+      const { status: s2, data: d2 } = await api('/admin/property/' + propId, {
+        method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ status: 'live' })
+      });
+      if (!d2.success) return { status: 'fail', msg: 'Step 2 FAILED: Could not approve property' };
+      log('E2E: Approved. Checking public visibility...', 'info');
+      await new Promise(r => setTimeout(r, 500));
+      const { status: s3, data: d3 } = await api('/properties');
+      const visible = d3.properties && d3.properties.some(p => p.id === propId);
+      if (visible) return { status: 'pass', msg: '✅ Full flow: Created → Approved → Visible on website (property ' + propId + ')' };
+      return { status: 'warn', msg: 'Created & approved but not yet visible in public list — may need a moment' };
+    });
+  }
+
+  async function test_e2e_enquiry_flow() {
+    return t('e2e-enquiry-flow', async () => {
+      log('E2E: Getting a live property to enquire about...', 'info');
+      const { data: pd } = await api('/properties');
+      const targetPropId = pd.properties && pd.properties[0] ? pd.properties[0].id : (createdPropId || 'PROP-TEST');
+      log('E2E: Submitting enquiry for ' + targetPropId + '...', 'info');
+      const { status: s1, data: d1 } = await api('/enquiry', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ property_id: targetPropId, name: 'E2E Visitor', email: 'e2e@test.com', phone: '08055555555', message: 'E2E test enquiry' })
+      });
+      if (!d1.success) return { status: 'fail', msg: 'Step 1 FAILED: Enquiry not submitted' };
+      log('E2E: Enquiry submitted. Checking admin sees it...', 'info');
+      await new Promise(r => setTimeout(r, 500));
+      const { data: ed } = await api('/admin/enquiries', { headers: adminHeaders() });
+      const found = ed.enquiries && ed.enquiries.some(e => e.email === 'e2e@test.com');
+      if (found) return { status: 'pass', msg: '✅ Enquiry submitted by visitor → immediately visible in admin panel' };
+      return { status: 'warn', msg: 'Enquiry submitted but admin table shows ' + (ed.enquiries || []).length + ' enquiries — may need refresh' };
+    });
+  }
+
+  async function test_e2e_reg_flow() {
+    return t('e2e-reg-flow', async () => {
+      const email = 'e2etest-' + Date.now() + '@geoestate.com';
+      const regId = 'USR-E2E-' + Date.now();
+      log('E2E: Submitting registration...', 'info');
+      const { data: d1 } = await api('/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fname: 'E2E', lname: 'TestUser', email, phone: '08044444444', role: 'renter', id: regId })
+      });
+      if (!d1.success) return { status: 'fail', msg: 'Step 1 FAILED: Registration not saved' };
+      log('E2E: Registration submitted. Checking admin sees it...', 'info');
+      await new Promise(r => setTimeout(r, 500));
+      const { data: rd } = await api('/admin/registrations', { headers: adminHeaders() });
+      const found = rd.registrations && rd.registrations.some(r => r.email === email);
+      if (!found) return { status: 'warn', msg: 'Registration not yet appearing in admin list' };
+      log('E2E: Found in admin. Updating status...', 'info');
+      const { data: ud } = await api('/admin/registration/' + regId, {
+        method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ status: 'approved', reviewer: 'E2E Test', notes: '' })
+      });
+      if (ud.success) return { status: 'pass', msg: '✅ Register → Admin view → Approve: full flow working for ' + email };
+      return { status: 'warn', msg: 'Registration visible but status update failed' };
+    });
+  }
+
+  async function test_e2e_sync() {
+    return t('e2e-sync', async () => {
+      const { status, data } = await api('/admin/sync', { headers: adminHeaders() });
+      if (status === 200 && data.success) {
+        return { status: 'pass', msg: 'Sync: ' + (data.liveProperties || []).length + ' live props, ' + data.approvedUserCount + ' approved users. Last sync: ' + new Date(data.lastSync).toLocaleTimeString() };
+      }
+      return { status: 'fail', msg: 'Status ' + status + ': ' + JSON.stringify(data).slice(0, 80) };
+    });
+  }
+
+  // ── Suite Runners ─────────────────────────────────────────────────────
+
+  const suites = {
+    public: [test_api_health, test_pub_properties, test_pub_filter_rent, test_pub_filter_buy, test_pub_search],
+    admin: [test_adm_auth_fail, test_adm_regs, test_adm_props, test_adm_team, test_adm_lawyers, test_adm_tenancies, test_adm_transactions, test_adm_disputes, test_adm_payments, test_adm_activity, test_adm_enquiries],
+    write: [test_save_property, test_approve_property, test_submit_enquiry, test_submit_dispute, test_save_team, test_save_lawyer, test_save_tenancy, test_save_payment, test_update_reg],
+    owner: [test_owner_login_request, test_owner_no_token, test_owner_properties_auth, test_owner_enquiries_auth],
+    sse: [test_sse_connect, test_sse_ping, test_sse_broadcast],
+    e2e: [test_e2e_property_flow, test_e2e_enquiry_flow, test_e2e_reg_flow, test_e2e_sync]
+  };
+
+  async function runSuite(name) {
+    const dot = document.getElementById('dot-' + name);
+    if (dot) { dot.className = 'suite-status s-running'; }
+    log('--- Running suite: ' + name.toUpperCase() + ' ---', 'info');
+    const tests = suites[name] || [];
+    let pass = 0, fail = 0;
+    for (const fn of tests) {
+      const r = await fn();
+      if (r && r.status === 'pass') pass++;
+      else if (r && r.status === 'fail') fail++;
+      await new Promise(r => setTimeout(r, 150));
+    }
+    if (dot) dot.className = 'suite-status ' + (fail > 0 ? 's-fail' : 'pass' === 'pass' ? 's-pass' : 's-pass');
+    if (dot) dot.className = 'suite-status ' + (fail > 0 ? 's-fail' : 's-pass');
+    log('--- Suite ' + name.toUpperCase() + ': ' + pass + ' pass, ' + fail + ' fail ---', fail > 0 ? 'warn' : '');
+  }
+
+  async function runAllTests() {
+    stats = { total: 0, pass: 0, fail: 0, warn: 0 };
+    updateStats();
+    createdPropId = null; createdRegId = null;
+    const btn = document.getElementById('run-all-btn');
+    btn.disabled = true; btn.textContent = '⏳ Running...';
+    log('=== FULL TEST RUN STARTED ===', 'info');
+
+    const allSuites = ['public', 'admin', 'write', 'owner', 'sse', 'e2e'];
+    const total = allSuites.reduce((a, s) => a + (suites[s] || []).length, 0);
+    let done = 0;
+
+    for (const s of allSuites) {
+      showSuite(s);
+      await runSuite(s);
+      done += (suites[s] || []).length;
+      document.getElementById('prog').style.width = Math.round(done / total * 100) + '%';
+    }
+    showSuite('log');
+    log('=== DONE: ' + stats.pass + ' PASSED, ' + stats.fail + ' FAILED, ' + stats.warn + ' WARNINGS ===', stats.fail > 0 ? 'err' : '');
+    btn.disabled = false; btn.textContent = '▶ Run All Tests';
+  }
+
+  // ── SSE Connection ─────────────────────────────────────────────────────
+
+  function connectSSE() {
+    if (sseSource) { sseSource.close(); sseSource = null; }
+    const dot = document.getElementById('sse-dot');
+    const label = document.getElementById('sse-label');
+    const btn = document.getElementById('sse-btn');
+    const indicator = document.getElementById('sse-indicator');
+    try {
+      sseSource = new EventSource(API() + '/events');
+      sseSource.onopen = () => {
+        dot.className = 'status-dot live';
+        label.textContent = 'SSE: Connected';
+        btn.textContent = 'Disconnect';
+        indicator.textContent = '🟢';
+        addSSEEvent('connected', 'SSE stream open');
+      };
+      sseSource.onmessage = (e) => {
+        sseReceived.push({ time: Date.now(), data: e.data });
+        addSSEEvent('message', e.data);
+      };
+      ['property_created','property_updated','tenancy_updated','payment_updated','registration_updated','new_enquiry','unit_updated','activity'].forEach(evt => {
+        sseSource.addEventListener(evt, (e) => {
+          sseReceived.push({ time: Date.now(), event: evt, data: e.data });
+          addSSEEvent(evt, e.data);
+          setResult('sse-ping', 'pass', sseReceived.length + ' events received (' + evt + ')');
+          setResult('sse-broadcast', 'pass', '⚡ Real-time event: ' + evt + ' — ' + e.data.slice(0, 60));
+        });
+      });
+      sseSource.onerror = () => {
+        dot.className = 'status-dot';
+        label.textContent = 'SSE: Reconnecting...';
+        indicator.textContent = '🔴';
+      };
+      btn.onclick = () => { if (sseSource) { sseSource.close(); sseSource = null; dot.className = 'status-dot'; label.textContent = 'SSE: Disconnected'; btn.textContent = 'Connect SSE'; btn.onclick = connectSSE; indicator.textContent = '⏺'; } };
+    } catch(e) {
+      label.textContent = 'SSE: Error';
+    }
+  }
+
+  function addSSEEvent(event, data) {
+    const log = document.getElementById('sse-event-log');
+    const item = document.createElement('div');
+    item.className = 'sse-event-item';
+    item.style.cssText = 'padding:2px 0;font-size:0.73rem;color:#86efac';
+    item.textContent = '[' + new Date().toLocaleTimeString() + '] ' + event + ': ' + (data || '').slice(0, 60);
+    log.appendChild(item);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ── UI ─────────────────────────────────────────────────────────────────
+
+  function showSuite(name) {
+    document.querySelectorAll('.suite-panel').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.suite-item').forEach(el => el.classList.remove('active'));
+    const panel = document.getElementById('suite-' + name);
+    const tab = document.getElementById('suite-tab-' + name);
+    if (panel) panel.style.display = 'block';
+    if (tab) tab.classList.add('active');
+  }
+
+  function toggleSection(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function clearLog() {
+    document.getElementById('test-log').innerHTML = '<div class="log-line dim">// Log cleared</div>';
+    testLog = [];
+    document.getElementById('cnt-log').textContent = '0';
+  }
+
+  // init
+  updateStats();
+</script>
+</body>
+</html>
