@@ -802,10 +802,12 @@
     openModal('enq-modal');
   }
 
-  function saveEnquiryStatus() {
-    const id     = document.getElementById('em-id').value;
-    const status = document.getElementById('em-status').value;
-    const notes  = document.getElementById('em-notes').value;
+  async function saveEnquiryStatus() {
+    const id          = document.getElementById('em-id').value;
+    const status      = document.getElementById('em-status').value;
+    const notes       = document.getElementById('em-notes').value;
+    const assigned_to = salesName;
+    // Optimistic local update
     enquiryStatuses[id] = { status, notes };
     closeModal('enq-modal');
     renderEnquiries();
@@ -813,7 +815,17 @@
     updateStats();
     updateBadges();
     updateDashEnquiries();
-    toast('✅ Enquiry updated');
+    // Persist to DB
+    try {
+      await fetch(API + '/admin/enquiry/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, notes, assigned_to })
+      });
+      toast('✅ Enquiry saved to database');
+    } catch(e) {
+      toast('⚠️ Saved locally — sync to DB failed (check connection)');
+    }
   }
 
   // ── Pipeline ──────────────────────────────────────────────
