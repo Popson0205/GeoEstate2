@@ -2434,7 +2434,7 @@ function renderProps(filter) {
     return;
   }
   grid.innerHTML = filtered.map(p => `
-    <div class="geo-card" style="cursor:pointer" onclick="showDetail(${p.id})">
+    <div class="geo-card" style="cursor:pointer" onclick="showDetail(${JSON.stringify(p.id)})">
       <div style="position:relative;height:210px;overflow:hidden;background:#e8f0e9;">
         <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.4s ease;display:block;"
           onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
@@ -2456,7 +2456,7 @@ function renderProps(filter) {
         </div>
         <div class="geo-card-footer">
           <span class="verified-badge" style="font-size:0.72rem">NIN Verified</span>
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${p.id})">View →</button>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${JSON.stringify(p.id)})">View →</button>
         </div>
       </div>
     </div>
@@ -2485,7 +2485,7 @@ function initMap() {
     properties.forEach(p => {
       const greenIcon = L.divIcon({ className: '', html: `<div style="background:#1a6b3c;color:white;border-radius:999px;padding:4px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid white">✓ VERIFIED</div>`, iconAnchor: [40, 20] });
       const marker = L.marker([p.lat, p.lng], { icon: greenIcon }).addTo(mapInstance)
-        .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail(${p.id})" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
+        .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail(${JSON.stringify(p.id)})" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
       marker._propData = p;
       markers.push(marker);
     });
@@ -2507,7 +2507,7 @@ function renderMapList(list) {
   const el = document.getElementById('map-listing-list');
   if (!el) return;
   el.innerHTML = list.map(p => `
-    <div onclick="showDetail(${p.id})" style="background:var(--surface-primary);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-lifted-card);transition:transform 0.15s ease" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+    <div onclick="showDetail(${JSON.stringify(p.id)})" style="background:var(--surface-primary);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-lifted-card);transition:transform 0.15s ease" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
       <div style="display:flex;align-items:stretch">
         <div style="width:72px;flex-shrink:0;overflow:hidden"><img src="${p.img}" alt="${p.title}" style="width:100%;height:72px;object-fit:cover" onerror="this.style.display='none'"></div>
         <div style="padding:8px 10px;min-width:0;flex:1">
@@ -2544,24 +2544,59 @@ const ownerNames = ['Chukwuemeka Obi','Ngozi Adeyemi','Emeka Eze','Fatima Bello'
 const sideImages = ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80','https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80','https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80'];
 
 function showDetail(id) { showPage('detail'); renderDetail(id); }
-function renderDetail(id) {
-  const p = properties.find(x => x.id === id);
-  if (!p) return;
-  const owner = ownerNames[(id - 1) % ownerNames.length];
-  const desc  = propDescriptions[id] || 'A verified property listed on GeoEstate. All documents reviewed and owner identity confirmed.';
+async function renderDetail(id) {
+  // ── Try local array first, then fall back to API fetch ──
+  let p = properties.find(x => x.id === id);
+  if (!p) {
+    const contentEl = document.getElementById('detail-content');
+    if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><div style="font-weight:700">Loading property…</div></div>';
+    try {
+      const apiBase = window.GEO_API_PUBLIC || 'https://geoestate.onrender.com';
+      const r = await fetch(apiBase + '/properties/' + encodeURIComponent(id));
+      const d = await r.json();
+      if (d.property) {
+        const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(prop) {
+          const lt = prop.listing_type || prop.type || 'rent';
+          let price = prop.price || '';
+          if (!price) {
+            if (lt==='rent' && prop.monthly_rent) price = '₦'+Number(prop.monthly_rent).toLocaleString()+'/mo';
+            else if (lt==='buy' && prop.sale_price) price = '₦'+Number(prop.sale_price).toLocaleString();
+            else if (lt==='lease' && prop.lease_price) price = '₦'+Number(prop.lease_price).toLocaleString()+' lease';
+          }
+          return { id: prop.id, type: lt, listing_type: lt, title: prop.title, price: price||'—',
+            location: prop.address||prop.lga||prop.state||'—', state: prop.state||'', lga: prop.lga||'',
+            img: prop.img||'', lat: 0, lng: 0, verified: true,
+            beds: prop.bedrooms||0, baths: prop.bathrooms||0, sqm: prop.size_sqm||0,
+            description: prop.description||'', amenities: prop.amenities||[], units: prop.units||[],
+            tags: [], video: false, owner: prop.owner||'' };
+        };
+        p = mapper(d.property);
+        // Cache into local array for subsequent uses
+        if (!properties.find(x => x.id === p.id)) properties.push(p);
+      }
+    } catch(e) {}
+    if (!p) {
+      if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">❌</div><div style="font-weight:700;margin-bottom:8px">Property not found</div><button class="btn btn-ghost btn-sm" onclick="showPage('map')">← Browse all properties</button></div>';
+      return;
+    }
+  }
+  const ownerIdx = Math.abs(String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % ownerNames.length;
+  const owner = p.owner || ownerNames[ownerIdx];
+  const desc  = p.description || propDescriptions[id] || 'A verified property listed on GeoEstate. All documents reviewed and owner identity confirmed.';
   const typeLabel = { rent:'For Rent', buy:'For Sale', lease:'For Lease', sell:'For Sale' }[p.type] || p.type;
   const feeNum = parseInt((p.price||'0').replace(/[^0-9]/g,'')) || 0;
   const platformFee = Math.round(feeNum * 0.1).toLocaleString('en-NG');
   const total = Math.round(feeNum * 1.1).toLocaleString('en-NG');
-  const img2 = sideImages[(id - 1) % sideImages.length];
-  const img3 = sideImages[id % sideImages.length];
+  const imgIdx = Math.abs(String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0));
+  const img2 = sideImages[imgIdx % sideImages.length];
+  const img3 = sideImages[(imgIdx + 1) % sideImages.length];
   const verifyDate = `${Math.floor(Math.random()*28)+1} ${['Jan','Feb','Mar','Apr','May','Jun'][Math.floor(Math.random()*6)]} 2026`;
   window._currentProp = p;
   document.getElementById('detail-content').innerHTML = `
     <button class="btn btn-ghost btn-sm mb-4" onclick="showPage('map')">← Back to Map</button>
     <div class="property-gallery">
       <div style="padding:0;overflow:hidden;position:relative;border-radius:var(--radius-xl) 0 0 var(--radius-xl)">
-        <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover">
+        <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.background='linear-gradient(135deg,#d9f2e3,#a8dfc0)'">
         <div style="position:absolute;bottom:16px;left:16px;display:flex;gap:8px;z-index:2">
           <span style="background:rgba(0,0,0,0.6);color:white;border-radius:999px;padding:4px 12px;font-size:0.75rem;font-weight:700">📸 Photos</span>
           ${p.video ? `<span onclick="toggleVideoTour('${p.video}','${p.title}')" style="background:rgba(26,107,60,0.88);color:white;border-radius:999px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer">▶ Video Tour</span>` : ''}
@@ -2585,12 +2620,19 @@ function renderDetail(id) {
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
           ${p.beds > 0 ? `<div class="chip">🛏 ${p.beds} Bedroom${p.beds>1?'s':''}</div>` : ''}
           ${p.baths > 0 ? `<div class="chip">🚿 ${p.baths} Bathroom${p.baths>1?'s':''}</div>` : ''}
-          <div class="chip">📐 ${p.sqm}sqm</div>
+          ${p.sqm > 0 ? `<div class="chip">📐 ${p.sqm}sqm</div>` : ''}
           ${(p.tags||[]).map(t => `<div class="chip">${t}</div>`).join('')}
+          ${(p.amenities||[]).slice(0,4).map(a => `<div class="chip">${a}</div>`).join('')}
         </div>
         <div class="divider"></div>
         <h3 style="font-weight:800;margin-bottom:12px">About this Property</h3>
         <p style="color:var(--text-secondary);line-height:1.75;font-size:0.92rem;margin-bottom:24px">${desc}</p>
+        ${(p.units && p.units.length > 0) ? `
+        <div class="divider"></div>
+        <h3 style="font-weight:800;margin-bottom:16px">Available Units (${p.units.length})</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+          ${p.units.map(u => `<div style="background:var(--surface-secondary);border-radius:var(--radius-lg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div style="font-weight:700;font-size:.9rem">${u.unit_label}</div><div style="font-size:.78rem;color:var(--text-muted)">${u.unit_type||'Room'} · ${u.floor_level||''}</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--geo-green-600);font-size:.9rem">${u.monthly_price ? '₦'+Number(u.monthly_price).toLocaleString()+'/mo' : '—'}</div><div style="font-size:.72rem;padding:2px 8px;border-radius:999px;font-weight:700;display:inline-block;background:${u.status==='vacant'?'#d1fae5':'#fee2e2'};color:${u.status==='vacant'?'#065f46':'#991b1b'}">${u.status||'vacant'}</div></div></div>`).join('')}
+        </div>` : ''}
         <div class="divider"></div>
         <h3 style="font-weight:800;margin-bottom:16px">Verification Status</h3>
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -2612,7 +2654,11 @@ function renderDetail(id) {
           <div class="divider"></div>
           <div style="font-size:0.82rem;color:var(--text-tertiary);margin-top:12px">⚠️ Contact details revealed only after your identity is verified.</div>
         </div>
-        <div class="escrow-cta">
+        <div style="margin-top:16px;background:var(--surface-primary);border-radius:var(--radius-xl);padding:16px;box-shadow:var(--shadow-lifted-card)">
+          <button onclick="openEnquiryModal(${JSON.stringify(p.id)}, ${JSON.stringify(p.title)})" style="width:100%;padding:12px;background:var(--surface-secondary);color:var(--text-primary);border:1.5px solid var(--border-light);border-radius:10px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:var(--font-sans);margin-bottom:10px;transition:background .15s">📬 Express Interest / Enquire</button>
+          <p style="font-size:.75rem;color:var(--text-muted);text-align:center;margin:0 0 12px">Our sales team responds within 24 hours.</p>
+        </div>
+        <div class="escrow-cta" style="margin-top:0">
           <h3>Start Transaction</h3>
           <p>Transfer funds to our verified GTBank account. Team confirms within 2 hours.</p>
           <button class="btn btn-lg" id="start-txn-btn" onclick="startTransaction()">Start Transaction →</button>

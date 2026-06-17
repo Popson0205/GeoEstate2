@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoEstate — Sales Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin-styles.css">
+  <style>
+    :root {
+      --geo-green-50:  #f0faf4;
+      --geo-green-100: #d9f2e3;
+      --geo-green-200: #a8dfc0;
+      --geo-green-300: #6ec99a;
+      --geo-green-400: #3db374;
+      --geo-green-500: #1a9c55;
+      --geo-green-600: #1a6b3c;
+      --geo-green-700: #145430;
+      --geo-green-800: #0d3d22;
+      --sp-brand: var(--geo-green-600);
+      --sp-brand-light: var(--geo-green-50);
+    }
+    html.dark {
+      --geo-green-50:  #071f12;
+      --geo-green-100: #0d3d22;
+      --geo-green-600: #6ec99a;
+      --sp-brand: #6ec99a;
+      --sp-brand-light: #071f12;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans, 'Inter', sans-serif); background: var(--surface-base, #f5f5f5); color: var(--text-primary, #080808); min-height: 100vh; }
+
+    /* ── Login Screen ── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0d3d22 0%, #1a6b3c 60%, #3db374 100%);
+      padding: 20px;
+    }
+    #login-screen.hidden { display: none; }
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+    }
+    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .login-logo-icon { width: 44px; height: 44px; background: #1a6b3c; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.4rem; }
+    .login-logo-text { font-size: 1.3rem; font-weight: 800; color: #1a6b3c; }
+    .login-logo-sub { font-size: 0.78rem; color: #6b7280; font-weight: 500; }
+    .login-title { font-size: 1.4rem; font-weight: 800; color: #111827; margin-bottom: 6px; }
+    .login-subtitle { font-size: 0.88rem; color: #6b7280; margin-bottom: 28px; }
+    .login-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 0.92rem; font-family: inherit; outline: none; transition: border-color .15s; background: white; }
+    .login-input:focus { border-color: #1a6b3c; }
+    .login-label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .login-btn { width: 100%; padding: 13px; background: #1a6b3c; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; font-family: inherit; margin-top: 20px; transition: background .15s; }
+    .login-btn:hover { background: #145430; }
+    .login-err { display: none; color: #ef4444; font-size: .82rem; margin-top: 10px; }
+
+    /* ── App Shell ── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    #app.visible { display: flex; }
+
+    /* ── Top Bar ── */
+    .sp-topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 60px;
+      background: #0d3d22;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .sp-topbar-left { display: flex; align-items: center; gap: 14px; }
+    .sp-topbar-logo { font-size: 1.1rem; font-weight: 800; color: white; display: flex; align-items: center; gap: 8px; }
+    .sp-topbar-badge { background: #1a9c55; color: white; font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .05em; }
+    .sp-topbar-right { display: flex; align-items: center; gap: 12px; }
+    .sp-user-pill { background: rgba(255,255,255,.1); border-radius: 999px; padding: 5px 12px 5px 6px; display: flex; align-items: center; gap: 8px; color: white; font-size: .82rem; font-weight: 600; }
+    .sp-user-avatar { width: 26px; height: 26px; background: #3db374; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 800; color: white; }
+    .sp-logout { background: none; border: 1px solid rgba(255,255,255,.3); color: rgba(255,255,255,.7); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: .78rem; font-family: inherit; transition: .15s; }
+    .sp-logout:hover { background: rgba(255,255,255,.1); color: white; }
+
+    /* ── Sidebar ── */
+    .sp-layout { display: flex; padding-top: 60px; min-height: 100vh; }
+    .sp-sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--surface-primary, #fff);
+      border-right: 1px solid var(--border-default, rgba(0,0,0,.08));
+      padding: 20px 12px;
+      position: fixed; top: 60px; bottom: 0; left: 0;
+      overflow-y: auto;
+    }
+    .sp-nav-section { font-size: .7rem; font-weight: 700; color: var(--text-muted, #808080); text-transform: uppercase; letter-spacing: .08em; padding: 12px 8px 6px; }
+    .sp-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 8px;
+      font-size: .88rem; font-weight: 500; cursor: pointer;
+      color: var(--text-secondary, #3d3d3d);
+      transition: background .12s, color .12s;
+      margin-bottom: 2px;
+      user-select: none;
+    }
+    .sp-nav-item:hover { background: var(--surface-secondary, #f5f5f5); }
+    .sp-nav-item.active { background: var(--geo-green-50, #f0faf4); color: var(--geo-green-600, #1a6b3c); font-weight: 700; }
+    .sp-nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .sp-nav-badge { margin-left: auto; background: #ef4444; color: white; border-radius: 999px; font-size: .65rem; font-weight: 700; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+
+    /* ── Main Content ── */
+    .sp-main { margin-left: 220px; padding: 28px; flex: 1; min-width: 0; }
+
+    /* ── Cards ── */
+    .sp-card { background: var(--surface-primary, #fff); border-radius: 14px; border: 1px solid var(--border-default, rgba(0,0,0,.08)); padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+    .sp-card + .sp-card { margin-top: 16px; }
+    .sp-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .sp-card-title { font-size: .95rem; font-weight: 700; }
+    .sp-card-subtitle { font-size: .78rem; color: var(--text-muted, #808080); margin-top: 2px; }
+
+    /* ── Stat strip ── */
+    .sp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .sp-stats { grid-template-columns: repeat(2,1fr); } }
+    .sp-stat { background: var(--surface-primary, #fff); border-radius: 14px; padding: 18px 20px; border: 1px solid var(--border-default, rgba(0,0,0,.08)); }
+    .sp-stat-val { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+    .sp-stat-label { font-size: .78rem; color: var(--text-muted, #808080); margin-top: 4px; }
+    .sp-stat-trend { font-size: .75rem; font-weight: 600; margin-top: 8px; }
+    .sp-stat-trend.up { color: #16a34a; }
+    .sp-stat-trend.amber { color: #d97706; }
+
+    /* ── Table ── */
+    .sp-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .sp-table th { text-align: left; font-size: .72rem; font-weight: 700; color: var(--text-muted, #808080); text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; border-bottom: 1px solid var(--border-default, rgba(0,0,0,.08)); }
+    .sp-table td { padding: 11px 12px; border-bottom: 1px solid var(--border-subtle, rgba(0,0,0,.04)); vertical-align: middle; }
+    .sp-table tr:last-child td { border-bottom: none; }
+    .sp-table tr:hover td { background: var(--surface-secondary, #f5f5f5); }
+    .sp-table .clickable-row { cursor: pointer; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700; }
+    .badge-new      { background: #eff6ff; color: #1e40af; }
+    .badge-contacted{ background: #fefce8; color: #92400e; }
+    .badge-closed   { background: #f0fdf4; color: #166534; }
+    .badge-pending  { background: #fff7ed; color: #9a3412; }
+    .badge-confirmed{ background: #f0fdf4; color: #166534; }
+    .badge-escrow   { background: #eff6ff; color: #1e40af; }
+    .badge-active   { background: #f0fdf4; color: #166534; }
+    .badge-live     { background: #d1fae5; color: #065f46; }
+    .badge-draft    { background: #f3f4f6; color: #374151; }
+    .badge-pending  { background: #fff7ed; color: #9a3412; }
+
+    /* ── Pipeline (Kanban) ── */
+    .sp-pipeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 860px) { .sp-pipeline { grid-template-columns: 1fr; } }
+    .pipeline-col { background: var(--surface-secondary, #f5f5f5); border-radius: 12px; padding: 14px; min-height: 200px; }
+    .pipeline-col-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted, #808080); margin-bottom: 10px; }
+    .pipeline-card {
+      background: var(--surface-primary, #fff);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      cursor: pointer;
+      transition: transform .12s;
+    }
+    .pipeline-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+    .pipeline-card-title { font-weight: 700; font-size: .85rem; margin-bottom: 3px; }
+    .pipeline-card-prop { font-size: .75rem; color: var(--text-muted, #808080); margin-bottom: 6px; }
+    .pipeline-card-footer { display: flex; justify-content: space-between; align-items: center; }
+
+    /* ── Property grid ── */
+    .sp-prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .sp-prop-card { background: var(--surface-primary, #fff); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-default, rgba(0,0,0,.08)); cursor: pointer; transition: transform .12s; }
+    .sp-prop-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+    .sp-prop-img { height: 150px; overflow: hidden; background: #d9f2e3; position: relative; }
+    .sp-prop-img img { width: 100%; height: 100%; object-fit: cover; }
+    .sp-prop-body { padding: 14px; }
+    .sp-prop-price { font-weight: 800; font-size: 1rem; color: #1a6b3c; margin-bottom: 3px; }
+    .sp-prop-title { font-weight: 700; font-size: .88rem; margin-bottom: 4px; }
+    .sp-prop-loc { font-size: .75rem; color: var(--text-muted, #808080); margin-bottom: 10px; }
+    .sp-prop-footer { display: flex; justify-content: space-between; align-items: center; }
+
+    /* ── Modal ── */
+    .sp-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
+    .sp-modal-overlay.open { display: flex; }
+    .sp-modal { background: var(--surface-primary, #fff); border-radius: 16px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,.25); }
+    .sp-modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border-default, rgba(0,0,0,.08)); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface-primary, #fff); border-radius: 16px 16px 0 0; z-index: 1; }
+    .sp-modal-title { font-weight: 800; font-size: .95rem; }
+    .sp-modal-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted, #808080); }
+    .sp-modal-body { padding: 22px; }
+    .sp-modal-row { margin-bottom: 14px; }
+    .sp-modal-label { font-size: .78rem; font-weight: 600; color: var(--text-muted, #808080); margin-bottom: 4px; }
+    .sp-modal-val { font-size: .88rem; font-weight: 500; }
+    .sp-modal-textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border-default, rgba(0,0,0,.08)); border-radius: 8px; font-size: .88rem; font-family: inherit; resize: vertical; outline: none; min-height: 80px; background: var(--surface-primary, #fff); color: var(--text-primary, #080808); }
+    .sp-modal-textarea:focus { border-color: #1a6b3c; }
+    .sp-modal-select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border-default, rgba(0,0,0,.08)); border-radius: 8px; font-size: .88rem; font-family: inherit; outline: none; background: var(--surface-primary, #fff); color: var(--text-primary, #080808); }
+    .sp-modal-select:focus { border-color: #1a6b3c; }
+    .sp-modal-footer { padding: 14px 22px; border-top: 1px solid var(--border-default, rgba(0,0,0,.08)); display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ── Buttons ── */
+    .sp-btn { padding: 8px 16px; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: background .12s, opacity .12s; }
+    .sp-btn-primary { background: #1a6b3c; color: white; }
+    .sp-btn-primary:hover { background: #145430; }
+    .sp-btn-secondary { background: var(--surface-secondary, #f5f5f5); color: var(--text-primary, #080808); }
+    .sp-btn-secondary:hover { background: var(--surface-elevated, #f5f5f5); }
+    .sp-btn-sm { padding: 5px 11px; font-size: .78rem; }
+    .sp-btn-outline { background: none; border: 1.5px solid var(--border-default, rgba(0,0,0,.08)); color: var(--text-secondary, #3d3d3d); }
+    .sp-btn-outline:hover { background: var(--surface-secondary, #f5f5f5); }
+
+    /* ── Misc ── */
+    .sp-divider { height: 1px; background: var(--border-default, rgba(0,0,0,.08)); margin: 16px 0; }
+    .sp-empty { text-align: center; padding: 60px 20px; color: var(--text-muted, #808080); }
+    .sp-empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .sp-empty-text { font-size: .9rem; font-weight: 700; margin-bottom: 6px; }
+    .sp-empty-sub { font-size: .82rem; }
+    .sp-search { padding: 8px 12px; border: 1.5px solid var(--border-default, rgba(0,0,0,.08)); border-radius: 8px; font-size: .85rem; font-family: inherit; outline: none; background: var(--surface-primary, #fff); color: var(--text-primary, #080808); min-width: 220px; }
+    .sp-search:focus { border-color: #1a6b3c; }
+    .sp-filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .sp-tab { padding: 6px 14px; border-radius: 999px; font-size: .8rem; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; background: var(--surface-secondary, #f5f5f5); color: var(--text-secondary, #3d3d3d); transition: .12s; }
+    .sp-tab.active { background: #1a6b3c; color: white; }
+    .loading-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,.12); border-top-color: #1a6b3c; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sp-toast { position: fixed; bottom: 24px; right: 24px; background: #0d3d22; color: white; padding: 12px 20px; border-radius: 10px; font-size: .88rem; font-weight: 600; z-index: 9999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+    .sp-toast.show { display: block; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Page sections ── */
+    .sp-page { display: none; }
+    .sp-page.active { display: block; }
+    .sp-page-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .sp-page-sub { font-size: .85rem; color: var(--text-muted, #808080); margin-bottom: 22px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .sp-sidebar { display: none; }
+      .sp-main { margin-left: 0; padding: 16px; }
+      .sp-stats { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Screen ─────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">📍</div>
+      <div>
+        <div class="login-logo-text">GeoEstate</div>
+        <div class="login-logo-sub">Sales Portal</div>
+      </div>
+    </div>
+    <div class="login-title">Sales Team Login</div>
+    <div class="login-subtitle">Enter your admin token to access the sales dashboard.</div>
+    <div style="margin-bottom:14px">
+      <label class="login-label" for="login-token">Admin Token</label>
+      <input class="login-input" type="password" id="login-token" placeholder="Enter your admin token" autocomplete="current-password">
+    </div>
+    <div style="margin-bottom:0">
+      <label class="login-label" for="login-name">Your Name</label>
+      <input class="login-input" type="text" id="login-name" placeholder="e.g. Lateefah Majekodunmi">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Access Dashboard →</button>
+    <div class="login-err" id="login-err">Invalid token. Please check with your admin.</div>
+    <div style="margin-top:20px;font-size:.75rem;color:#9ca3af;text-align:center">GeoEstate Sales Portal · Popson Geospatial Services</div>
+  </div>
+</div>
+
+<!-- ── App Shell ─────────────────────────────────── -->
+<div id="app">
+  <!-- Top Bar -->
+  <div class="sp-topbar">
+    <div class="sp-topbar-left">
+      <div class="sp-topbar-logo">
+        <span style="font-size:1.2rem">📍</span>
+        GeoEstate
+        <span class="sp-topbar-badge">SALES</span>
+      </div>
+    </div>
+    <div class="sp-topbar-right">
+      <div class="sp-user-pill">
+        <div class="sp-user-avatar" id="user-initials">S</div>
+        <span id="user-name-display">Sales Rep</span>
+      </div>
+      <button class="sp-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="sp-layout">
+    <!-- Sidebar -->
+    <div class="sp-sidebar">
+      <div class="sp-nav-section">Overview</div>
+      <div class="sp-nav-item active" onclick="navTo('dashboard', this)">
+        <span class="sp-nav-icon">🏠</span> Dashboard
+      </div>
+
+      <div class="sp-nav-section">Work</div>
+      <div class="sp-nav-item" onclick="navTo('enquiries', this)">
+        <span class="sp-nav-icon">📬</span> Enquiries
+        <span class="sp-nav-badge" id="badge-enq" style="display:none">0</span>
+      </div>
+      <div class="sp-nav-item" onclick="navTo('pipeline', this)">
+        <span class="sp-nav-icon">🎯</span> Pipeline
+      </div>
+      <div class="sp-nav-item" onclick="navTo('transactions', this)">
+        <span class="sp-nav-icon">💳</span> Transactions
+      </div>
+
+      <div class="sp-nav-section">Listings</div>
+      <div class="sp-nav-item" onclick="navTo('properties', this)">
+        <span class="sp-nav-icon">🏢</span> Live Properties
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="sp-main">
+
+      <!-- ── Dashboard ── -->
+      <div class="sp-page active" id="page-dashboard">
+        <div class="sp-page-title">Good day 👋</div>
+        <div class="sp-page-sub" id="dash-date">Loading...</div>
+
+        <div class="sp-stats" id="stats-strip">
+          <div class="sp-stat">
+            <div class="sp-stat-val" id="stat-enquiries">—</div>
+            <div class="sp-stat-label">Total Enquiries</div>
+            <div class="sp-stat-trend up" id="stat-new-enq">⏳ Loading...</div>
+          </div>
+          <div class="sp-stat">
+            <div class="sp-stat-val" id="stat-properties">—</div>
+            <div class="sp-stat-label">Live Properties</div>
+            <div class="sp-stat-trend up">Available to sell</div>
+          </div>
+          <div class="sp-stat">
+            <div class="sp-stat-val" id="stat-transactions">—</div>
+            <div class="sp-stat-label">Transactions</div>
+            <div class="sp-stat-trend amber">In progress / closed</div>
+          </div>
+          <div class="sp-stat">
+            <div class="sp-stat-val" id="stat-pending-pay">—</div>
+            <div class="sp-stat-label">Pending Payments</div>
+            <div class="sp-stat-trend amber" id="stat-pay-label">Awaiting confirmation</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <!-- Recent Enquiries -->
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div>
+                <div class="sp-card-title">Recent Enquiries</div>
+                <div class="sp-card-subtitle">Latest inbound interest</div>
+              </div>
+              <button class="sp-btn sp-btn-secondary sp-btn-sm" onclick="navTo('enquiries',null)">View all →</button>
+            </div>
+            <div id="dash-enq-list"><div class="sp-empty"><div class="loading-spinner"></div></div></div>
+          </div>
+
+          <!-- Recent Transactions -->
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div>
+                <div class="sp-card-title">Recent Transactions</div>
+                <div class="sp-card-subtitle">Payments & deals</div>
+              </div>
+              <button class="sp-btn sp-btn-secondary sp-btn-sm" onclick="navTo('transactions',null)">View all →</button>
+            </div>
+            <div id="dash-txn-list"><div class="sp-empty"><div class="loading-spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Enquiries ── -->
+      <div class="sp-page" id="page-enquiries">
+        <div class="sp-page-title">📬 Enquiries</div>
+        <div class="sp-page-sub">All inbound property interest from the website</div>
+        <div class="sp-filter-row">
+          <input class="sp-search" type="text" id="enq-search" placeholder="Search by name, email or property…" oninput="filterEnquiries()">
+          <button class="sp-tab active" onclick="setEnqTab('all',this)">All</button>
+          <button class="sp-tab" onclick="setEnqTab('new',this)">New</button>
+          <button class="sp-tab" onclick="setEnqTab('contacted',this)">Contacted</button>
+          <button class="sp-tab" onclick="setEnqTab('closed',this)">Closed</button>
+          <button class="sp-btn sp-btn-secondary sp-btn-sm" onclick="loadEnquiries()" title="Refresh">⟳ Refresh</button>
+        </div>
+        <div class="sp-card" style="padding:0;overflow:hidden">
+          <table class="sp-table" id="enq-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Contact</th>
+                <th>Property</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="enq-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:40px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Pipeline ── -->
+      <div class="sp-page" id="page-pipeline">
+        <div class="sp-page-title">🎯 Lead Pipeline</div>
+        <div class="sp-page-sub">Drag-free kanban view of your active leads by stage</div>
+        <div class="sp-pipeline">
+          <div class="pipeline-col">
+            <div class="pipeline-col-title">🔵 New Enquiries</div>
+            <div id="pipe-new"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-title">🟡 Contacted</div>
+            <div id="pipe-contacted"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-title">✅ Closed / Won</div>
+            <div id="pipe-closed"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Transactions ── -->
+      <div class="sp-page" id="page-transactions">
+        <div class="sp-page-title">💳 Transactions</div>
+        <div class="sp-page-sub">Payments and deals submitted through the platform</div>
+        <div class="sp-filter-row">
+          <input class="sp-search" type="text" id="txn-search" placeholder="Search by ref, buyer or property…" oninput="filterTransactions()">
+          <button class="sp-btn sp-btn-secondary sp-btn-sm" onclick="loadTransactions()" title="Refresh">⟳ Refresh</button>
+        </div>
+        <div class="sp-card" style="padding:0;overflow:hidden">
+          <table class="sp-table" id="txn-table">
+            <thead>
+              <tr>
+                <th>Ref</th>
+                <th>Property</th>
+                <th>Buyer</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="txn-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:40px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Properties ── -->
+      <div class="sp-page" id="page-properties">
+        <div class="sp-page-title">🏢 Live Properties</div>
+        <div class="sp-page-sub">All currently available listings — click to view details & enquire</div>
+        <div class="sp-filter-row">
+          <input class="sp-search" type="text" id="prop-search" placeholder="Search properties…" oninput="filterProperties()">
+          <button class="sp-tab active" onclick="setPropTab('all',this)">All</button>
+          <button class="sp-tab" onclick="setPropTab('rent',this)">Rent</button>
+          <button class="sp-tab" onclick="setPropTab('buy',this)">Buy</button>
+          <button class="sp-tab" onclick="setPropTab('lease',this)">Lease</button>
+        </div>
+        <div class="sp-prop-grid" id="prop-grid-sales"></div>
+      </div>
+
+    </div><!-- /sp-main -->
+  </div><!-- /sp-layout -->
+</div><!-- /app -->
+
+<!-- ── Enquiry Detail Modal ── -->
+<div class="sp-modal-overlay" id="enq-modal">
+  <div class="sp-modal">
+    <div class="sp-modal-head">
+      <div class="sp-modal-title" id="enq-modal-name">Enquiry Detail</div>
+      <button class="sp-modal-close" onclick="closeModal('enq-modal')">✕</button>
+    </div>
+    <div class="sp-modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="sp-modal-row">
+          <div class="sp-modal-label">Name</div>
+          <div class="sp-modal-val" id="em-name">—</div>
+        </div>
+        <div class="sp-modal-row">
+          <div class="sp-modal-label">Email</div>
+          <div class="sp-modal-val" id="em-email">—</div>
+        </div>
+        <div class="sp-modal-row">
+          <div class="sp-modal-label">Phone</div>
+          <div class="sp-modal-val" id="em-phone">—</div>
+        </div>
+        <div class="sp-modal-row">
+          <div class="sp-modal-label">Date</div>
+          <div class="sp-modal-val" id="em-date">—</div>
+        </div>
+      </div>
+      <div class="sp-modal-row">
+        <div class="sp-modal-label">Property</div>
+        <div class="sp-modal-val" id="em-property">—</div>
+      </div>
+      <div class="sp-modal-row" id="em-msg-row">
+        <div class="sp-modal-label">Message</div>
+        <div class="sp-modal-val" id="em-message" style="white-space:pre-wrap">—</div>
+      </div>
+      <div class="sp-divider"></div>
+      <div class="sp-modal-row">
+        <div class="sp-modal-label">Update Status</div>
+        <select class="sp-modal-select" id="em-status">
+          <option value="new">🔵 New</option>
+          <option value="contacted">🟡 Contacted</option>
+          <option value="closed">✅ Closed / Won</option>
+          <option value="lost">❌ Lost</option>
+        </select>
+      </div>
+      <div class="sp-modal-row">
+        <div class="sp-modal-label">Sales Notes</div>
+        <textarea class="sp-modal-textarea" id="em-notes" placeholder="Add notes about this lead…"></textarea>
+      </div>
+      <input type="hidden" id="em-id">
+    </div>
+    <div class="sp-modal-footer">
+      <button class="sp-btn sp-btn-outline" onclick="closeModal('enq-modal')">Cancel</button>
+      <button class="sp-btn sp-btn-primary" onclick="saveEnquiryStatus()">Save Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Property Detail Modal ── -->
+<div class="sp-modal-overlay" id="prop-modal">
+  <div class="sp-modal" style="max-width:600px">
+    <div class="sp-modal-head">
+      <div class="sp-modal-title" id="pm-title">Property Details</div>
+      <button class="sp-modal-close" onclick="closeModal('prop-modal')">✕</button>
+    </div>
+    <div class="sp-modal-body" id="pm-body">—</div>
+    <div class="sp-modal-footer">
+      <button class="sp-btn sp-btn-outline" onclick="closeModal('prop-modal')">Close</button>
+      <button class="sp-btn sp-btn-primary" onclick="logEnquiryFromProp()">📬 Log Enquiry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="sp-toast" id="sp-toast"></div>
+
+<script>
+  // ── Config ──────────────────────────────────────────────
+  const API = 'https://geoestate.onrender.com';
+  let adminToken = '';
+  let salesName  = '';
+
+  // In-memory state
+  let allEnquiries    = [];
+  let allTransactions = [];
+  let allProperties   = [];
+  let allPayments     = [];
+  let enquiryStatuses = {}; // local overrides: id → {status, notes}
+  let currentEnqFilter = 'all';
+  let currentPropFilter = 'all';
+  let currentPropForEnquiry = null;
+
+  // ── Auth ─────────────────────────────────────────────────
+  function doLogin() {
+    const token = document.getElementById('login-token').value.trim();
+    const name  = document.getElementById('login-name').value.trim() || 'Sales Rep';
+    if (!token) { showLoginErr('Please enter your admin token.'); return; }
+    // Verify token against API
+    fetch(API + '/admin/registrations?since=0', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error && d.error.toLowerCase().includes('unauthorized')) {
+          showLoginErr('Invalid token. Check with your admin.');
+        } else {
+          adminToken = token;
+          salesName  = name;
+          localStorage.setItem('geo_sales_token', token);
+          localStorage.setItem('geo_sales_name', name);
+          initApp();
+        }
+      })
+      .catch(() => {
+        // Network issue — allow login with stored token
+        if (localStorage.getItem('geo_sales_token') === token) {
+          adminToken = token;
+          salesName = name;
+          initApp();
+        } else {
+          showLoginErr('Could not connect to server. Check your connection.');
+        }
+      });
+  }
+
+  function showLoginErr(msg) {
+    const el = document.getElementById('login-err');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function doLogout() {
+    adminToken = ''; salesName = '';
+    localStorage.removeItem('geo_sales_token');
+    localStorage.removeItem('geo_sales_name');
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app').classList.remove('visible');
+  }
+
+  function initApp() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    const initials = salesName.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2) || 'S';
+    document.getElementById('user-initials').textContent = initials;
+    document.getElementById('user-name-display').textContent = salesName;
+    // Set dashboard date
+    const now = new Date();
+    document.getElementById('dash-date').textContent =
+      now.toLocaleDateString('en-NG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    loadAll();
+  }
+
+  // ── Auto-login from localStorage ──────────────────────
+  (function autoLogin() {
+    const saved = localStorage.getItem('geo_sales_token');
+    const name  = localStorage.getItem('geo_sales_name');
+    if (saved) {
+      document.getElementById('login-token').value = saved;
+      document.getElementById('login-name').value = name || '';
+      adminToken = saved;
+      salesName  = name || 'Sales Rep';
+      initApp();
+    }
+  })();
+
+  // ── API helpers ──────────────────────────────────────────
+  function adminFetch(path) {
+    return fetch(API + path, { headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' } }).then(r => r.json());
+  }
+
+  // ── Load all data ─────────────────────────────────────────
+  function loadAll() {
+    Promise.all([
+      loadEnquiries(),
+      loadTransactions(),
+      loadProperties(),
+    ]);
+  }
+
+  async function loadEnquiries() {
+    try {
+      const d = await adminFetch('/admin/enquiries');
+      allEnquiries = d.enquiries || [];
+      renderEnquiries();
+      renderPipeline();
+      updateDashEnquiries();
+      updateBadges();
+    } catch(e) {}
+  }
+
+  async function loadTransactions() {
+    try {
+      const [txnData, payData] = await Promise.all([
+        adminFetch('/admin/transactions'),
+        adminFetch('/admin/payments')
+      ]);
+      allTransactions = txnData.transactions || [];
+      allPayments     = payData.payments     || [];
+      renderTransactions();
+      updateDashTransactions();
+      updateStats();
+    } catch(e) {}
+  }
+
+  async function loadProperties() {
+    try {
+      const d = await fetch(API + '/properties').then(r=>r.json());
+      allProperties = (d.properties || []).map(p => {
+        const lt = p.listing_type || p.type || 'rent';
+        let price = p.price || '';
+        if (!price) {
+          if (lt==='rent' && p.monthly_rent) price = '₦'+Number(p.monthly_rent).toLocaleString()+'/mo';
+          else if (lt==='buy' && p.sale_price) price = '₦'+Number(p.sale_price).toLocaleString();
+          else if (lt==='lease' && p.lease_price) price = '₦'+Number(p.lease_price).toLocaleString()+' lease';
+        }
+        return { ...p, listing_type: lt, displayPrice: price||p.price||'—',
+          location: p.address||p.lga||p.state||'—' };
+      });
+      renderProperties();
+      updateStats();
+    } catch(e) {}
+  }
+
+  // ── Stats ─────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('stat-enquiries').textContent   = allEnquiries.length || '0';
+    document.getElementById('stat-properties').textContent  = allProperties.length || '0';
+    document.getElementById('stat-transactions').textContent = allTransactions.length || '0';
+    const pending = allPayments.filter(p => p.status === 'pending').length;
+    document.getElementById('stat-pending-pay').textContent = pending;
+    document.getElementById('stat-pay-label').textContent   = pending > 0 ? `${pending} need confirmation` : 'All confirmed';
+    const newEnq = allEnquiries.filter(e => (enquiryStatuses[e.id]?.status || e.status || 'new') === 'new').length;
+    document.getElementById('stat-new-enq').textContent     = newEnq > 0 ? `🆕 ${newEnq} new` : '✅ All reviewed';
+  }
+
+  function updateBadges() {
+    const newCount = allEnquiries.filter(e => (enquiryStatuses[e.id]?.status || e.status || 'new') === 'new').length;
+    const badge = document.getElementById('badge-enq');
+    if (newCount > 0) { badge.textContent = newCount; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
+  }
+
+  // ── Dashboard quick-lists ─────────────────────────────────
+  function updateDashEnquiries() {
+    const el = document.getElementById('dash-enq-list');
+    const recent = [...allEnquiries].slice(0, 5);
+    if (!recent.length) { el.innerHTML = '<div class="sp-empty"><div class="sp-empty-text">No enquiries yet</div></div>'; return; }
+    el.innerHTML = recent.map(e => {
+      const st = enquiryStatuses[e.id]?.status || e.status || 'new';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-subtle,rgba(0,0,0,.04));cursor:pointer" onclick="openEnquiryModal(${allEnquiries.indexOf(e)})">
+        <div>
+          <div style="font-weight:700;font-size:.85rem">${e.name}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${e.property_title||e.property_id||'—'}</div>
+        </div>
+        <span class="badge badge-${st}">${st}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function updateDashTransactions() {
+    const el = document.getElementById('dash-txn-list');
+    const combined = [
+      ...allPayments.map(p => ({ ref: p.ref, prop: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
+      ...allTransactions.map(t => ({ ref: t.id, prop: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at }))
+    ].slice(0, 5);
+    if (!combined.length) { el.innerHTML = '<div class="sp-empty"><div class="sp-empty-text">No transactions yet</div></div>'; return; }
+    el.innerHTML = combined.map(t => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-subtle,rgba(0,0,0,.04))">
+        <div>
+          <div style="font-weight:700;font-size:.85rem">${t.ref||'—'}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${t.prop||t.property||'—'} · ${t.buyer||'—'}</div>
+        </div>
+        <span class="badge badge-${t.status||'pending'}">${fmtAmount(t.amount)}</span>
+      </div>`).join('');
+  }
+
+  // ── Enquiries Table ──────────────────────────────────────
+  function renderEnquiries(list) {
+    list = list || filterEnqList();
+    const tbody = document.getElementById('enq-tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="sp-empty"><div class="sp-empty-icon">📭</div><div class="sp-empty-text">No enquiries</div><div class="sp-empty-sub">They will appear here when customers submit interest on the website.</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((e, i) => {
+      const idx = allEnquiries.indexOf(e);
+      const st = enquiryStatuses[e.id]?.status || e.status || 'new';
+      const date = e.created_at ? new Date(e.created_at).toLocaleDateString('en-NG') : '—';
+      return `<tr class="clickable-row" onclick="openEnquiryModal(${idx})">
+        <td style="color:var(--text-muted);font-size:.78rem">${date}</td>
+        <td>
+          <div style="font-weight:700;font-size:.88rem">${e.name}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${e.email}</div>
+          ${e.phone ? `<div style="font-size:.72rem;color:var(--text-muted)">${e.phone}</div>` : ''}
+        </td>
+        <td style="font-size:.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.property_title||e.property_id||'—'}</td>
+        <td><span class="badge badge-${st}">${st}</span></td>
+        <td>
+          <button class="sp-btn sp-btn-outline sp-btn-sm" onclick="event.stopPropagation();openEnquiryModal(${idx})">Open →</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function filterEnqList() {
+    let list = [...allEnquiries];
+    const q = (document.getElementById('enq-search')||{}).value||'';
+    if (q) list = list.filter(e => (e.name+e.email+e.phone+e.property_title+e.property_id).toLowerCase().includes(q.toLowerCase()));
+    if (currentEnqFilter !== 'all') list = list.filter(e => (enquiryStatuses[e.id]?.status||e.status||'new') === currentEnqFilter);
+    return list;
+  }
+  function filterEnquiries() { renderEnquiries(); }
+  function setEnqTab(val, btn) {
+    currentEnqFilter = val;
+    document.querySelectorAll('#page-enquiries .sp-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderEnquiries();
+  }
+
+  // ── Enquiry Modal ─────────────────────────────────────────
+  function openEnquiryModal(idx) {
+    const e = allEnquiries[idx];
+    if (!e) return;
+    const st = enquiryStatuses[e.id]?.status || e.status || 'new';
+    const notes = enquiryStatuses[e.id]?.notes || '';
+    document.getElementById('enq-modal-name').textContent = e.name + ' — Enquiry';
+    document.getElementById('em-name').textContent     = e.name;
+    document.getElementById('em-email').innerHTML      = `<a href="mailto:${e.email}" style="color:#1a6b3c">${e.email}</a>`;
+    document.getElementById('em-phone').innerHTML      = e.phone ? `<a href="tel:${e.phone}" style="color:#1a6b3c">${e.phone}</a>` : '—';
+    document.getElementById('em-date').textContent     = e.created_at ? new Date(e.created_at).toLocaleString('en-NG') : '—';
+    document.getElementById('em-property').textContent = e.property_title || e.property_id || '—';
+    document.getElementById('em-message').textContent  = e.message || '(no message)';
+    document.getElementById('em-status').value         = st;
+    document.getElementById('em-notes').value          = notes;
+    document.getElementById('em-id').value             = e.id;
+    openModal('enq-modal');
+  }
+
+  function saveEnquiryStatus() {
+    const id     = document.getElementById('em-id').value;
+    const status = document.getElementById('em-status').value;
+    const notes  = document.getElementById('em-notes').value;
+    enquiryStatuses[id] = { status, notes };
+    closeModal('enq-modal');
+    renderEnquiries();
+    renderPipeline();
+    updateStats();
+    updateBadges();
+    updateDashEnquiries();
+    toast('✅ Enquiry updated');
+  }
+
+  // ── Pipeline ──────────────────────────────────────────────
+  function renderPipeline() {
+    const cols = { new: [], contacted: [], closed: [] };
+    allEnquiries.forEach((e, idx) => {
+      const st = enquiryStatuses[e.id]?.status || e.status || 'new';
+      const key = st === 'closed' || st === 'won' ? 'closed' : st === 'contacted' ? 'contacted' : 'new';
+      if (cols[key]) cols[key].push({ e, idx });
+    });
+    ['new','contacted','closed'].forEach(col => {
+      const el = document.getElementById('pipe-' + col);
+      if (!el) return;
+      if (!cols[col].length) { el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.78rem;color:var(--text-muted)">Empty</div>'; return; }
+      el.innerHTML = cols[col].map(({ e, idx }) => `
+        <div class="pipeline-card" onclick="openEnquiryModal(${idx})">
+          <div class="pipeline-card-title">${e.name}</div>
+          <div class="pipeline-card-prop">📍 ${e.property_title||e.property_id||'—'}</div>
+          <div class="pipeline-card-footer">
+            <div style="font-size:.72rem;color:var(--text-muted)">${e.email}</div>
+            <span class="badge badge-${enquiryStatuses[e.id]?.status||e.status||'new'}">${enquiryStatuses[e.id]?.status||e.status||'new'}</span>
+          </div>
+        </div>`).join('');
+    });
+  }
+
+  // ── Transactions Table ────────────────────────────────────
+  function renderTransactions(list) {
+    list = list || filterTxnList();
+    const tbody = document.getElementById('txn-tbody');
+    const combined = [
+      ...allPayments.map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at, _type: 'payment' })),
+      ...allTransactions.map(t => ({ ref: t.id, property: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at, _type: 'txn' }))
+    ];
+    const filtered = list || combined;
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="sp-empty"><div class="sp-empty-icon">💳</div><div class="sp-empty-text">No transactions yet</div><div class="sp-empty-sub">Transactions will appear here when buyers start payment.</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = combined.map(t => {
+      const date = t.date ? new Date(t.date).toLocaleDateString('en-NG') : '—';
+      return `<tr>
+        <td style="font-family:monospace;font-size:.78rem;font-weight:700">${t.ref||'—'}</td>
+        <td style="font-size:.85rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.property||'—'}</td>
+        <td style="font-size:.85rem">${t.buyer||'—'}</td>
+        <td style="font-weight:700;color:#1a6b3c">${fmtAmount(t.amount)}</td>
+        <td><span class="badge badge-${t.status||'pending'}">${t.status||'pending'}</span></td>
+        <td style="font-size:.78rem;color:var(--text-muted)">${date}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function filterTxnList() {
+    const q = (document.getElementById('txn-search')||{}).value||'';
+    const combined = [
+      ...allPayments.map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
+      ...allTransactions.map(t => ({ ref: t.id, property: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at }))
+    ];
+    return q ? combined.filter(t => (t.ref+t.property+t.buyer).toLowerCase().includes(q.toLowerCase())) : combined;
+  }
+  function filterTransactions() { renderTransactions(filterTxnList()); }
+
+  // ── Properties Grid ───────────────────────────────────────
+  function renderProperties(list) {
+    list = list || filterPropList();
+    const el = document.getElementById('prop-grid-sales');
+    if (!list.length) {
+      el.innerHTML = '<div class="sp-empty" style="grid-column:1/-1"><div class="sp-empty-icon">🏢</div><div class="sp-empty-text">No live properties</div><div class="sp-empty-sub">Properties go live after admin approval.</div></div>';
+      return;
+    }
+    const typeBg = { rent:'#0d3d22', buy:'#1e40af', lease:'#92400e' };
+    el.innerHTML = list.map(p => `
+      <div class="sp-prop-card" onclick="openPropertyModal(${JSON.stringify(p.id)})">
+        <div class="sp-prop-img">
+          <img src="${p.img||''}" alt="${p.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div style="display:none;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,#d9f2e3,#a8dfc0);width:100%;height:100%">🏠</div>
+          <div style="position:absolute;top:10px;left:10px;background:${typeBg[p.listing_type]||'#0d3d22'};color:#fff;border-radius:999px;padding:2px 9px;font-size:.65rem;font-weight:700">${(p.listing_type||'rent').toUpperCase()}</div>
+        </div>
+        <div class="sp-prop-body">
+          <div class="sp-prop-price">${p.displayPrice||p.price||'—'}</div>
+          <div class="sp-prop-title">${p.title}</div>
+          <div class="sp-prop-loc">📍 ${p.location}</div>
+          <div class="sp-prop-footer">
+            <div style="font-size:.72rem;color:var(--text-muted)">${[p.bedrooms?p.bedrooms+'bd':'',p.bathrooms?p.bathrooms+'ba':'',p.size_sqm?p.size_sqm+'sqm':''].filter(Boolean).join(' · ')||'—'}</div>
+            <button class="sp-btn sp-btn-primary sp-btn-sm" onclick="event.stopPropagation();openPropertyModal(${JSON.stringify(p.id)})">View →</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function filterPropList() {
+    let list = [...allProperties];
+    const q = (document.getElementById('prop-search')||{}).value||'';
+    if (q) list = list.filter(p => (p.title+p.location+p.state||'').toLowerCase().includes(q.toLowerCase()));
+    if (currentPropFilter !== 'all') list = list.filter(p => p.listing_type === currentPropFilter);
+    return list;
+  }
+  function filterProperties() { renderProperties(); }
+  function setPropTab(val, btn) {
+    currentPropFilter = val;
+    document.querySelectorAll('#page-properties .sp-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderProperties();
+  }
+
+  // ── Property Modal ────────────────────────────────────────
+  async function openPropertyModal(propId) {
+    currentPropForEnquiry = propId;
+    document.getElementById('pm-title').textContent = 'Loading…';
+    document.getElementById('pm-body').innerHTML = '<div style="text-align:center;padding:40px"><div class="loading-spinner"></div></div>';
+    openModal('prop-modal');
+    try {
+      const d = await fetch(API + '/properties/' + encodeURIComponent(propId)).then(r=>r.json());
+      const p = d.property;
+      if (!p) { document.getElementById('pm-body').innerHTML = '<div class="sp-empty">Property not found</div>'; return; }
+      const lt = p.listing_type || p.type || 'rent';
+      let price = p.price;
+      if (!price) {
+        if (lt==='rent' && p.monthly_rent) price = '₦'+Number(p.monthly_rent).toLocaleString()+'/mo';
+        else if (lt==='buy' && p.sale_price) price = '₦'+Number(p.sale_price).toLocaleString();
+        else if (lt==='lease' && p.lease_price) price = '₦'+Number(p.lease_price).toLocaleString()+' lease';
+      }
+      document.getElementById('pm-title').textContent = p.title;
+      document.getElementById('pm-body').innerHTML = `
+        ${p.img ? `<img src="${p.img}" style="width:100%;height:200px;object-fit:cover;border-radius:10px;margin-bottom:16px" onerror="this.style.display='none'">` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <div><div class="sp-modal-label">Price</div><div style="font-weight:800;font-size:1.1rem;color:#1a6b3c">${price||'—'}</div></div>
+          <div><div class="sp-modal-label">Type</div><div class="sp-modal-val">${lt.toUpperCase()}</div></div>
+          <div><div class="sp-modal-label">State</div><div class="sp-modal-val">${p.state||'—'}</div></div>
+          <div><div class="sp-modal-label">LGA</div><div class="sp-modal-val">${p.lga||'—'}</div></div>
+          <div><div class="sp-modal-label">Bedrooms</div><div class="sp-modal-val">${p.bedrooms||'—'}</div></div>
+          <div><div class="sp-modal-label">Bathrooms</div><div class="sp-modal-val">${p.bathrooms||'—'}</div></div>
+        </div>
+        <div class="sp-modal-label">Address</div>
+        <div class="sp-modal-val" style="margin-bottom:12px">${p.address||'—'}</div>
+        ${p.description ? `<div class="sp-modal-label">Description</div><div class="sp-modal-val" style="margin-bottom:12px;white-space:pre-wrap">${p.description}</div>` : ''}
+        ${p.owner ? `<div class="sp-modal-label">Owner</div><div class="sp-modal-val" style="margin-bottom:12px">${p.owner}</div>` : ''}
+        ${p.units && p.units.length ? `<div class="sp-modal-label" style="margin-bottom:8px">Units (${p.units.length})</div><div style="display:flex;flex-direction:column;gap:6px">${p.units.map(u=>`<div style="background:var(--surface-secondary);border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between"><span style="font-weight:600">${u.unit_label}</span><span class="badge badge-${u.status||'vacant'}">${u.status||'vacant'}</span></div>`).join('')}</div>` : ''}
+      `;
+    } catch(e) {
+      document.getElementById('pm-body').innerHTML = '<div class="sp-empty"><div class="sp-empty-text">Could not load property</div></div>';
+    }
+  }
+
+  function logEnquiryFromProp() {
+    closeModal('prop-modal');
+    toast('💡 To log an enquiry, have the client fill the enquiry form on geoestate.com.ng');
+  }
+
+  // ── Navigation ────────────────────────────────────────────
+  function navTo(page, btn) {
+    document.querySelectorAll('.sp-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sp-nav-item').forEach(n => n.classList.remove('active'));
+    const el = document.getElementById('page-' + page);
+    if (el) el.classList.add('active');
+    if (btn) btn.classList.add('active');
+    // Lazy load
+    if (page === 'enquiries') renderEnquiries();
+    if (page === 'pipeline')  renderPipeline();
+    if (page === 'transactions') renderTransactions();
+    if (page === 'properties') renderProperties();
+  }
+
+  // ── Modals ────────────────────────────────────────────────
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  document.addEventListener('click', function(e) {
+    document.querySelectorAll('.sp-modal-overlay').forEach(mo => {
+      if (e.target === mo) mo.classList.remove('open');
+    });
+  });
+
+  // ── Helpers ───────────────────────────────────────────────
+  function fmtAmount(v) {
+    const n = parseFloat(String(v||'').replace(/[^0-9.]/g,''));
+    if (!n || isNaN(n)) return v||'—';
+    return '₦' + n.toLocaleString('en-NG');
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('sp-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(window._spToast);
+    window._spToast = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // ── Dark mode sync with OS ─────────────────────────────────
+  (function() {
+    const pref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const saved = localStorage.getItem('obvious-theme') || pref;
+    if (saved === 'dark') document.documentElement.classList.add('dark');
+  })();
+</script>
+</body>
+</html>
