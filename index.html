@@ -4819,9 +4819,29 @@ function rejectId(idx){
   fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
 function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Tom K.';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
-function approveProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='live';saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' is now live ✓','success');addSyncLog('Property approved: '+adminProperties[idx].title);}
-function rejectProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='rejected';saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' rejected','error');addSyncLog('Property rejected: '+adminProperties[idx].title);}
-function requestPropInfo(idx){adminProperties[idx].status='info';saveState();renderPropQueue();closeModal('modal-prop');adminToast('Info requested for '+adminProperties[idx].title,'info');}
+function approveProp(idx){
+  const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;
+  adminProperties[idx].status='live';
+  saveState();updateBadges();renderPropQueue();closeModal('modal-prop');
+  adminToast(adminProperties[idx].title+' is now live ✓','success');
+  addSyncLog('Property approved: '+adminProperties[idx].title);
+  // FIX: persist to DB — without this the website's /properties query never sees the status change
+  fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify({status:'live',notes:adminProperties[idx].notes||''})}).catch(()=>{});
+}
+function rejectProp(idx){
+  const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;
+  adminProperties[idx].status='rejected';
+  saveState();updateBadges();renderPropQueue();closeModal('modal-prop');
+  adminToast(adminProperties[idx].title+' rejected','error');
+  addSyncLog('Property rejected: '+adminProperties[idx].title);
+  fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify({status:'rejected',notes:adminProperties[idx].notes||''})}).catch(()=>{});
+}
+function requestPropInfo(idx){
+  adminProperties[idx].status='info';
+  saveState();renderPropQueue();closeModal('modal-prop');
+  adminToast('Info requested for '+adminProperties[idx].title,'info');
+  fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},body:JSON.stringify({status:'info'})}).catch(()=>{});
+}
 function fileNPF(idx){disputes[idx].npfFiled=true;renderDisputes();adminToast('NPF CID case file submitted for '+disputes[idx].id,'success');addSyncLog('NPF report filed: '+disputes[idx].id);}
 function resolveDispute(idx){disputes[idx].status='resolved';renderDisputes();closeModal('modal-dispute');adminToast('Dispute '+disputes[idx].id+' marked resolved','success');addSyncLog('Dispute resolved: '+disputes[idx].id);}
 function suspendUser(idx){verifiedUsers[idx].status='suspended';renderUsers();closeModal('modal-user');adminToast(verifiedUsers[idx].name+' suspended','error');addSyncLog('User suspended: '+verifiedUsers[idx].name);}
