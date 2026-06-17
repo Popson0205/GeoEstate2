@@ -3016,7 +3016,7 @@ function showAuthToast(msg,type){const el=document.getElementById('toast');if(!e
 })();
 
 // ── INIT ────────────────────────────────────────────────────────────────────
-const GEO_API_PUBLIC = GEO_API || 'https://geoestate.onrender.com';
+const GEO_API_PUBLIC = 'https://geoestate.onrender.com'; // GEO_API defined later in admin block
 
 // ── Load live properties from DB on startup ──────────────────────────────────
 // ── Load live properties from API — Phase 1 fix ──
@@ -4188,6 +4188,7 @@ const chartData = [{day:'Mon',val:0},{day:'Tue',val:0},{day:'Wed',val:0},{day:'T
 
 // ══ STATE ══
 let submissions = [];
+let verifiedUsers = []; // derived from approved registrations
 let adminProperties  = [];
 let checkStates = {};
 let syncLog = [];
@@ -4228,7 +4229,17 @@ async function loadFromDB() {
       fetch(GEO_API + '/admin/activity', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({log:[]})),
     ]);
 
-    if (regsRes.registrations)   submissions     = regsRes.registrations;
+    if (regsRes.registrations) {
+      submissions    = regsRes.registrations;
+      // Derive verifiedUsers from approved registrations
+      verifiedUsers  = regsRes.registrations.filter(r => r.status === 'approved').map(r => ({
+        id: r.id, name: r.name || (r.fname + ' ' + r.lname), email: r.email,
+        phone: r.phone, state: r.state, lga: r.lga,
+        idRef: r.nin, status: 'active', role: r.role || 'renter',
+        initials: r.initials || (r.fname[0] + r.lname[0]),
+        verifiedDate: r.registeredAt, activeListing: 0, transactions: 0
+      }));
+    }
     if (propsRes.properties)     adminProperties = propsRes.properties;
     if (lawyersRes.lawyers)      lawyers         = lawyersRes.lawyers.map(l => ({
       ...l, cases: parseInt(l.cases)||0, done: parseInt(l.done)||0
@@ -4525,19 +4536,19 @@ function openIdModal(idx){
 function openPropModal(idx){
   const p=adminProperties[idx];
   document.getElementById('modal-prop-title').textContent=p.title;
-  document.getElementById('modal-prop-sub').textContent=p.id+' · Submitted '+p.submitted.split(' ')[0]+' · Owner: '+p.owner;
+  document.getElementById('modal-prop-sub').textContent=p.id+' · Submitted '+(p.submitted||p.created_at||'').toString().split('T')[0]+' · Owner: '+p.owner;
   document.getElementById('modal-prop-body').innerHTML=`
     <div style="height:180px;border-radius:10px;overflow:hidden;margin-bottom:20px;background:var(--adm-surface-2)">
       <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Status</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${statusPill(p.status)}<span class="tag">${p.type.toUpperCase()}</span>${p.geo?'<span class="tag" style="color:#16a34a">📍 Geo-tagged</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo-tag</span>'}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️ Lawyer Required</span>':''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${statusPill(p.status)}<span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span>${p.geo?'<span class="tag" style="color:#16a34a">📍 Geo-tagged</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo-tag</span>'}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️ Lawyer Required</span>':''}</div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Property Details</div>
       <div class="field-grid">
-        <div><div class="field-label">Type</div><div class="field-value">${p.type.toUpperCase()}</div></div>
+        <div><div class="field-label">Type</div><div class="field-value">${(p.listing_type||p.type||'rent').toUpperCase()}</div></div>
         <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price}</div></div>
         <div><div class="field-label">State</div><div class="field-value">${p.state}</div></div>
         <div><div class="field-label">LGA</div><div class="field-value">${p.lga}</div></div>
@@ -4553,7 +4564,7 @@ function openPropModal(idx){
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Title Documents</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${p.docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${(Array.isArray(p.docs)?p.docs:[]).map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
       <div class="doc-grid">
         <div class="doc-thumb" onclick="adminToast('Opening title document...','info')">📄<div class="doc-thumb-label">${p.docs[0]||'Document'}</div></div>
         ${p.docs[1]?`<div class="doc-thumb" onclick="adminToast('Opening document...','info')">📋<div class="doc-thumb-label">${p.docs[1]}</div></div>`:''}
@@ -5036,10 +5047,10 @@ function renderPropQueue(){
     <tr class="clickable-row" onclick="openPropModal(${i})">
       <td><div class="name-link" style="font-weight:700">${p.title}</div><div style="font-size:.75rem;color:var(--adm-text-subtle)">${p.id}</div></td>
       <td style="font-size:.82rem">${p.owner}</td>
-      <td><span class="tag">${p.type.toUpperCase()}</span></td>
+      <td><span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span></td>
       <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price}</td>
-      <td>${p.docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️</span>':''}${p.geo?'<span class="tag" style="color:#16a34a">📍</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo</span>'}</td>
-      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.submitted.split(' ')[0]}</td>
+      <td>${(Array.isArray(p.docs)?p.docs:(typeof p.docs==='string'?[]:[])).map(d=>`<span class="tag">📄 ${d}</span>`).join('')}${p.lawyer_req||p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️</span>':''}${p.geo!==false?'<span class="tag" style="color:#16a34a">📍</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo</span>'}</td>
+      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split(' ')[0]}</td>
       <td>${statusPill(p.status)}</td>
       <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
     </tr>`).join('');
@@ -5545,7 +5556,7 @@ function renderPropertiesMgmt(list){
       <td><span class="tag">${(p.type||'').toUpperCase()}</span></td>
       <td style="font-weight:700;color:#1a6b3c">${p.price}</td>
       <td>${statusPill(p.status)}</td>
-      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.submitted?(p.submitted.split(' ')[0]):'—'}</td>
+      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.submitted?((p.submitted||p.created_at||'').toString().split('T')[0]):'—'}</td>
       <td style="display:flex;gap:6px">
         <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropertyEditModal('${p.id}')">✏️ Edit</button>
         <button class="btn btn-reject btn-sm" onclick="event.stopPropagation();removePropertyById('${p.id}')">🗑 Remove</button>
@@ -6177,7 +6188,7 @@ function renderTypePage(type, props) {
   if (countEl) countEl.textContent = props.length + ' propert' + (props.length===1?'y':'ies');
   if (!props.length) {
     const labels = {rent:'🔑 No rental properties available yet.',buy:'🏠 No properties for sale yet.',lease:'📋 No lease properties available yet.'};
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">' + (type==='rent'?'🔑':type==='buy'?'🏠':'📋') + '</div><div style="font-size:1rem;font-weight:700;margin-bottom:8px">' + labels[type] + '</div><div style="font-size:.85rem">Check back soon or <button class="btn btn-primary btn-sm" onclick="showPage('list')">list your own</button></div></div>';
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">' + (type==='rent'?'🔑':type==='buy'?'🏠':'📋') + '</div><div style="font-size:1rem;font-weight:700;margin-bottom:8px">' + labels[type] + '</div><div style="font-size:.85rem">Check back soon or <button class="btn btn-primary btn-sm" onclick="showPage(&apos;list&apos;)">list your own</button></div></div>';
     return;
   }
   const typeLabels = {rent:'🔑 RENT',buy:'🏠 BUY',lease:'📋 LEASE'};
