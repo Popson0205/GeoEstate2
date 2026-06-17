@@ -4190,6 +4190,7 @@ const chartData = [{day:'Mon',val:0},{day:'Tue',val:0},{day:'Wed',val:0},{day:'T
 let submissions = [];
 let verifiedUsers = []; // derived from approved registrations
 let adminProperties  = [];
+let disputes = []; // loaded from Neon DB on init — FIX: was never declared, caused ReferenceError in renderDisputes()
 let checkStates = {};
 let syncLog = [];
 
@@ -4535,6 +4536,7 @@ function openIdModal(idx){
 // ══ PROPERTY MODAL ══
 function openPropModal(idx){
   const p=adminProperties[idx];
+  const docs=Array.isArray(p.docs)?p.docs:[]; // FIX: p.docs can be undefined from the API; guard before indexing
   document.getElementById('modal-prop-title').textContent=p.title;
   document.getElementById('modal-prop-sub').textContent=p.id+' · Submitted '+(p.submitted||p.created_at||'').toString().split('T')[0]+' · Owner: '+p.owner;
   document.getElementById('modal-prop-body').innerHTML=`
@@ -4564,10 +4566,10 @@ function openPropModal(idx){
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Title Documents</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${(Array.isArray(p.docs)?p.docs:[]).map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
       <div class="doc-grid">
-        <div class="doc-thumb" onclick="adminToast('Opening title document...','info')">📄<div class="doc-thumb-label">${p.docs[0]||'Document'}</div></div>
-        ${p.docs[1]?`<div class="doc-thumb" onclick="adminToast('Opening document...','info')">📋<div class="doc-thumb-label">${p.docs[1]}</div></div>`:''}
+        <div class="doc-thumb" onclick="adminToast('Opening title document...','info')">📄<div class="doc-thumb-label">${docs[0]||'Document'}</div></div>
+        ${docs[1]?`<div class="doc-thumb" onclick="adminToast('Opening document...','info')">📋<div class="doc-thumb-label">${docs[1]}</div></div>`:''}
       </div>
     </div>
     <div class="panel-section">
