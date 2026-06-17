@@ -2576,7 +2576,7 @@ async function renderDetail(id) {
       }
     } catch(e) {}
     if (!p) {
-      if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">❌</div><div style="font-weight:700;margin-bottom:8px">Property not found</div><button class="btn btn-ghost btn-sm" onclick="showPage('map')">← Browse all properties</button></div>';
+      if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">&#10060;</div><div style="font-weight:700;margin-bottom:8px">Property not found</div><button class="btn btn-ghost btn-sm" onclick="showPage(\'map\')">&#8592; Browse all properties</button></div>';
       return;
     }
   }
