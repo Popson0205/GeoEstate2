@@ -3764,6 +3764,17 @@ window.addEventListener('load', handleRoute);
       </div>
 
       <!-- ══ SETTINGS ══ -->
+
+      <!-- Enquiries Management Page -->
+      <div id="adm-page-enquiries-mgmt" class="page" style="display:none;height:100%;overflow-y:auto;padding:24px">
+        <div style="max-width:900px">
+          <h2 style="font-size:1rem;font-weight:700;margin-bottom:20px">Enquiries</h2>
+          <div id="admin-enq-list" style="display:flex;flex-direction:column;gap:12px">
+            <div style="text-align:center;padding:48px;color:var(--a-muted)">Loading...</div>
+          </div>
+        </div>
+      </div>
+
       <div id="page-settings" class="page">
 <div id="admin-token-setting" style="padding:24px;max-width:480px"></div>
 
@@ -4301,32 +4312,18 @@ function adminDoLogout(){
 // ══ NAV ══
 const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
 
-<!-- Admin Enquiries Page (injected) -->
-<div id="adm-page-enquiries-mgmt" class="page" style="display:none;height:100%;overflow-y:auto;padding:24px">
-  <div style="max-width:900px">
-    <h2 style="font-size:1rem;font-weight:700;margin-bottom:20px">Enquiries</h2>
-    <div id="admin-enq-list" style="display:flex;flex-direction:column;gap:12px">
-      <div style="text-align:center;padding:48px;color:var(--a-muted)">Loading enquiries...</div>
-    </div>
-  </div>
-</div>
-
-
 function renderAdminTokenSetting() {
-  const el = document.getElementById('admin-token-setting');
+  var el = document.getElementById('admin-token-setting');
   if (!el) return;
-  const current = localStorage.getItem('geo_admin_token') || '(not set)';
-  el.innerHTML = \`
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:.82rem;font-weight:600;color:var(--a-muted);margin-bottom:6px">Admin API Token</label>
-      <div style="display:flex;gap:8px">
-        <input id="admin-token-input" type="text" value="\${current}"
-          style="flex:1;padding:9px 12px;border:1.5px solid var(--a-border);border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.85rem;outline:none">
-        <button onclick="saveAdminToken()" style="padding:9px 16px;background:var(--a-green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--a-font)">Save</button>
-      </div>
-      <div style="font-size:.75rem;color:var(--a-subtle);margin-top:6px">This must match the ADMIN_SECRET environment variable on your Render API server.</div>
-    </div>
-  \`;
+  var current = localStorage.getItem('geo_admin_token') || '(not set)';
+  el.innerHTML = '<div style="margin-bottom:16px">' +
+    '<label style="display:block;font-size:.82rem;font-weight:600;color:var(--a-muted);margin-bottom:6px">Admin API Token</label>' +
+    '<div style="display:flex;gap:8px">' +
+    '<input id="admin-token-input" type="text" value="' + current.replace(/"/g,'&quot;') + '" style="flex:1;padding:9px 12px;border:1.5px solid var(--a-border);border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.85rem;outline:none">' +
+    '<button onclick="saveAdminToken()" style="padding:9px 16px;background:var(--a-green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--a-font)">Save</button>' +
+    '</div>' +
+    '<div style="font-size:.75rem;color:var(--a-subtle);margin-top:6px">Must match ADMIN_SECRET on Render.</div>' +
+    '</div>';
 }
 function saveAdminToken() {
   const val = (document.getElementById('admin-token-input')||{}).value||'';
