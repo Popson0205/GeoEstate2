@@ -2545,8 +2545,12 @@ const sideImages = ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w
 
 function showDetail(id) { showPage('detail'); renderDetail(id); }
 async function renderDetail(id) {
-  // ── Try local array first, then fall back to API fetch ──
+  // ── Try local array first but fetch fresh if detail fields missing ──
   let p = properties.find(x => x.id === id);
+  // If found in cache but missing detail fields, force a fresh fetch
+  if (p && (p.beds === undefined || p.beds === 0) && (p.description === undefined || p.description === '')) {
+    p = null; // force API fetch to get full detail
+  }
   if (!p) {
     const contentEl = document.getElementById('detail-content');
     if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><div style="font-weight:700">Loading property…</div></div>';

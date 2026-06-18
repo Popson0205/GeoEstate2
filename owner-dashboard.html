@@ -627,7 +627,7 @@ function propCard(p) {
   const unitCount = parseInt(p.unit_count) || 0;
   const vacantCount = parseInt(p.vacant_units) || 0;
 
-  return `<div class="prop-card">
+  return `<div class="prop-card" style="cursor:pointer" onclick="viewPropertyDetail('${p.id}')">
     <div class="prop-img">
       <img src="${p.img || ''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:cover">
       <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:#d9f2e3;font-size:2.5rem">🏠</div>
@@ -643,7 +643,8 @@ function propCard(p) {
       ${statusBadge}
       <div style="margin-left:auto;display:flex;gap:6px">
         ${unitCount > 0 || true ? `<button class="btn btn-outline btn-xs" onclick="openUnitsModal('${p.id}','${p.title.replace(/'/g,"\\'")}')">Manage Units</button>` : ''}
-        <button class="btn btn-outline btn-xs" onclick="editProperty('${p.id}')">Edit</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();viewPropertyDetail('${p.id}')">View</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();editProperty('${p.id}')">Edit</button>
       </div>
     </div>
   </div>`;
@@ -836,6 +837,64 @@ async function submitAddUnit() {
 }
 
 // ── Edit Property ─────────────────────────────────────────────
+// ── Property Detail View ─────────────────────────────────────
+async function viewPropertyDetail(propId) {
+  const p = ownerProperties.find(x => x.id === propId);
+  const modal = document.getElementById('prop-detail-modal');
+  const body  = document.getElementById('prop-detail-body');
+  const titleEl = document.getElementById('prop-detail-title');
+  if (!modal || !body) return;
+  if (titleEl) titleEl.textContent = p ? p.title : 'Loading…';
+  body.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:2rem;animation:spin 1s linear infinite;display:inline-block">⏳</div></div>';
+  modal.style.display = 'flex';
+
+  try {
+    const d = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(propId) + '/detail').catch(() => null);
+    const prop = (d && d.property) ? d.property : p;
+    if (!prop) { body.innerHTML = '<div style="text-align:center;color:var(--danger);padding:32px">Property not found</div>'; return; }
+
+    const lt = prop.listing_type || prop.type || 'rent';
+    let price = prop.price || '';
+    if (!price || price === '—') {
+      if (lt === 'rent' && prop.monthly_rent) price = '₦' + Number(prop.monthly_rent).toLocaleString() + '/mo';
+      else if (lt === 'buy' && prop.sale_price) price = '₦' + Number(prop.sale_price).toLocaleString();
+      else if (lt === 'lease' && prop.lease_price) price = '₦' + Number(prop.lease_price).toLocaleString() + ' lease';
+    }
+    if (titleEl) titleEl.textContent = prop.title;
+
+    const images = (typeof prop.images === 'string') ? JSON.parse(prop.images || '[]') : (prop.images || []);
+    const mainImg = prop.img || images[0] || '';
+    const amenities = (typeof prop.amenities === 'string') ? JSON.parse(prop.amenities || '[]') : (prop.amenities || []);
+
+    body.innerHTML = `
+      ${mainImg ? `<img src="${mainImg}" alt="${prop.title}" style="width:100%;height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px" onerror="this.style.display='none'">` : ''}
+      ${images.length > 1 ? `<div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px">${images.slice(1,4).map(img=>`<img src="${img}" style="height:72px;width:100px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">`).join('')}</div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Price</div><div style="font-weight:800;font-size:1.05rem;color:var(--green)">${price || '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Type</div><div style="font-weight:700">${lt.toUpperCase()}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Bedrooms</div><div style="font-weight:700">${prop.bedrooms || '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Bathrooms</div><div style="font-weight:700">${prop.bathrooms || '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Size</div><div style="font-weight:700">${prop.size_sqm ? prop.size_sqm + ' sqm' : '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Status</div><div style="font-weight:700">${prop.status || '—'}</div></div>
+      </div>
+      <div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Address</div><div style="font-weight:600">${prop.address || prop.lga || '—'}, ${prop.state || ''}</div></div>
+      ${prop.description ? `<div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Description</div><div style="font-size:.88rem;line-height:1.6;color:var(--text-secondary)">${prop.description}</div></div>` : ''}
+      ${amenities.length > 0 ? `<div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Amenities</div><div style="display:flex;flex-wrap:wrap;gap:6px">${amenities.map(a=>`<span style="background:#d9f2e3;color:#0d3d22;border-radius:999px;padding:3px 10px;font-size:.78rem;font-weight:600">${a}</span>`).join('')}</div></div>` : ''}
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
+        <button class="btn btn-primary btn-sm" onclick="closeModal('prop-detail-modal');editProperty('${propId}')">Edit Property</button>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;color:var(--danger);padding:32px">Failed to load property details</div>';
+  }
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
 function editProperty(propId) {
   toast('Property editing — coming in next update. Contact admin for urgent changes.', 'info');
 }
@@ -980,5 +1039,17 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<!-- Property Detail Modal -->
+<div id="prop-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg-card,#fff);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.35)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border,#e5e7eb);position:sticky;top:0;background:var(--bg-card,#fff);z-index:1">
+      <div id="prop-detail-title" style="font-weight:800;font-size:1.05rem">Property Details</div>
+      <button onclick="closeModal('prop-detail-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted,#6b7280);padding:4px 8px">✕</button>
+    </div>
+    <div id="prop-detail-body" style="padding:20px 24px"></div>
+  </div>
+</div>
+
 </body>
 </html>
