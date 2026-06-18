@@ -2569,10 +2569,12 @@ const sideImages = ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w
 function showDetail(id) { showPage('detail'); renderDetail(id); }
 async function renderDetail(id) {
   // ── Try local array first but fetch fresh if detail fields missing ──
-  let p = properties.find(x => x.id === id);
-  // If found in cache but missing detail fields, force a fresh fetch
-  if (p && (p.beds === undefined || p.beds === 0) && (p.description === undefined || p.description === '')) {
-    p = null; // force API fetch to get full detail
+  // Always fetch fresh from API for detail page — the list endpoint doesn't return full fields
+  let p = null;
+  // Quick local lookup only if it was already fetched as a full detail (has description)
+  const cached = properties.find(x => x.id === id);
+  if (cached && cached.description && cached.description.length > 10 && cached.beds !== undefined) {
+    p = cached;
   }
   if (!p) {
     const contentEl = document.getElementById('detail-content');
@@ -2590,9 +2592,11 @@ async function renderDetail(id) {
             else if (lt==='buy' && prop.sale_price) price = '₦'+Number(prop.sale_price).toLocaleString();
             else if (lt==='lease' && prop.lease_price) price = '₦'+Number(prop.lease_price).toLocaleString()+' lease';
           }
+          let imgs = [];
+          try { imgs = typeof prop.images==='string' ? JSON.parse(prop.images) : (prop.images||[]); } catch(e) {}
           return { id: prop.id, type: lt, listing_type: lt, title: prop.title, price: price||'—',
             location: prop.address||prop.lga||prop.state||'—', state: prop.state||'', lga: prop.lga||'',
-            img: prop.img||'', lat: 0, lng: 0, verified: true,
+            img: prop.img || (imgs[0]||''), images: imgs, lat: 0, lng: 0, verified: true,
             beds: prop.bedrooms||0, baths: prop.bathrooms||0, sqm: prop.size_sqm||0,
             description: prop.description||'', amenities: prop.amenities||[], units: prop.units||[],
             tags: [], video: false, owner: prop.owner||'' };
@@ -2615,8 +2619,9 @@ async function renderDetail(id) {
   const platformFee = Math.round(feeNum * 0.1).toLocaleString('en-NG');
   const total = Math.round(feeNum * 1.1).toLocaleString('en-NG');
   const imgIdx = Math.abs(String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0));
-  const img2 = sideImages[imgIdx % sideImages.length];
-  const img3 = sideImages[(imgIdx + 1) % sideImages.length];
+  const propImages = (p.images && Array.isArray(p.images) && p.images.length > 1) ? p.images : [];
+  const img2 = propImages[1] || sideImages[imgIdx % sideImages.length];
+  const img3 = propImages[2] || sideImages[(imgIdx + 1) % sideImages.length];
   const verifyDate = `${Math.floor(Math.random()*28)+1} ${['Jan','Feb','Mar','Apr','May','Jun'][Math.floor(Math.random()*6)]} 2026`;
   window._currentProp = p;
   document.getElementById('detail-content').innerHTML = `
@@ -3107,7 +3112,8 @@ const GEO_API_PUBLIC = 'https://geoestate-api-clpa.onrender.com'; // GEO_API def
     ];
     if (!allProps.length) return;
     // Map to frontend format using GeoAPI helper (if loaded), else inline
-    const mapper = (window.GeoAPI && window.GeoAPI.mapProperty) ? window.GeoAPI.mapProperty : function(p) {
+    const mapper = function(p) {
+      if (window.GeoAPI && window.GeoAPI.mapProperty) return window.GeoAPI.mapProperty(p);
       const lt = p.listing_type || p.type || 'rent';
       let price = p.price || '';
       if (!price) {
@@ -3115,11 +3121,13 @@ const GEO_API_PUBLIC = 'https://geoestate-api-clpa.onrender.com'; // GEO_API def
         else if (lt==='buy' && p.sale_price) price = '₦'+Number(p.sale_price).toLocaleString();
         else if (lt==='lease' && p.lease_price) price = '₦'+Number(p.lease_price).toLocaleString()+' lease';
       }
+      let pImgs = []; try { pImgs = typeof p.images==='string' ? JSON.parse(p.images) : (p.images||[]); } catch(e) {}
+      let pAmen = []; try { pAmen = typeof p.amenities==='string' ? JSON.parse(p.amenities) : (p.amenities||[]); } catch(e) {}
       return { id: p.id, type: lt, listing_type: lt, title: p.title, price: price,
         location: p.address||p.lga||p.state||'—', state: p.state||'', lga: p.lga||'',
-        img: p.img||'', lat: 0, lng: 0, verified: true,
+        img: p.img||(pImgs[0]||''), images: pImgs, lat: 0, lng: 0, verified: true,
         beds: p.bedrooms||0, baths: p.bathrooms||0, sqm: p.size_sqm||0,
-        description: p.description||'', tags: [], video: false, owner: p.owner||'' };
+        description: p.description||'', amenities: pAmen, tags: [], video: false, owner: p.owner||'' };
     };
     const mapped = allProps.map(mapper);
     mapped.forEach(p => {
@@ -3150,7 +3158,7 @@ window.__sseRefresh = function() {
   // Re-fetch and re-render without full reload
   fetch(GEO_API_PUBLIC + '/properties').then(r=>r.json()).then(d => {
     if (!d.properties || !d.properties.length) return;
-    const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p) { return {id:p.id,type:p.listing_type||p.type||'rent',listing_type:p.listing_type||p.type||'rent',title:p.title,price:p.price||'—',location:p.address||p.lga||'—',state:p.state||'',img:p.img||'',lat:0,lng:0,verified:true,beds:p.bedrooms||0,baths:p.bathrooms||0,sqm:p.size_sqm||0,tags:[],video:false,owner:p.owner||''}; };
+    const mapper = function(p) { if(window.GeoAPI&&window.GeoAPI.mapProperty) return window.GeoAPI.mapProperty(p); let gi=[]; try{gi=typeof p.images==='string'?JSON.parse(p.images):(p.images||[]);}catch(e){} let ga=[]; try{ga=typeof p.amenities==='string'?JSON.parse(p.amenities):(p.amenities||[]);}catch(e){} return {id:p.id,type:p.listing_type||p.type||'rent',listing_type:p.listing_type||p.type||'rent',title:p.title,price:p.price||'—',location:p.address||p.lga||'—',state:p.state||'',img:p.img||(gi[0]||''),images:gi,lat:0,lng:0,verified:true,beds:p.bedrooms||0,baths:p.bathrooms||0,sqm:p.size_sqm||0,description:p.description||'',amenities:ga,tags:[],video:false,owner:p.owner||''}; };
     // Replace live properties (keep demo ones)
     const dbIds = d.properties.map(p=>p.id);
     properties = properties.filter(p => !dbIds.includes(p.id));
@@ -6272,7 +6280,7 @@ async function loadTypePage(type) {
       return { id:p.id, type:p.listing_type||p.type||type, listing_type:p.listing_type||type, title:p.title,
         price: p.price || (type==='rent'&&p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':type==='buy'&&p.sale_price?'₦'+Number(p.sale_price).toLocaleString():type==='lease'&&p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—'),
         location:p.address||p.lga||p.state||'—', state:p.state||'', img:p.img||'',
-        beds:p.bedrooms||0, baths:p.bathrooms||0, sqm:p.size_sqm||0, verified:true, lat:0, lng:0, tags:[], video:false };
+        beds:p.bedrooms||0, baths:p.bathrooms||0, sqm:p.size_sqm||0, verified:true, lat:0, lng:0, description:p.description||'', amenities:(()=>{try{return typeof p.amenities==='string'?JSON.parse(p.amenities):(p.amenities||[]);}catch(e){return [];}})(), tags:[], video:false };
     };
     return props.map(mapper);
   } catch(e) { return []; }
