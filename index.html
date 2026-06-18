@@ -6375,8 +6375,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ══ ENQUIRY SYSTEM ══════════════════════════════════════════════
 let enquiryPropId = null;
+let enquiryPropTitle = null;
 function openEnquiryModal(propId, propTitle) {
   enquiryPropId = propId;
+  enquiryPropTitle = propTitle || '';
   const modal = document.getElementById('enquiry-modal');
   const titleEl = document.getElementById('enq-modal-prop');
   if (titleEl) titleEl.textContent = propTitle || 'Property';
@@ -6393,6 +6395,7 @@ function closeEnquiryModal() {
   const modal = document.getElementById('enquiry-modal');
   if (modal) modal.style.display = 'none';
   enquiryPropId = null;
+  enquiryPropTitle = null;
 }
 
 async function submitEnquiry() {
@@ -6405,7 +6408,7 @@ async function submitEnquiry() {
   if (errEl) errEl.style.display = 'none';
   try {
     const api = window.GeoAPI || { API_BASE: 'https://geoestate-api-clpa.onrender.com', submitEnquiry: async function(d) { const r = await fetch(this.API_BASE+'/enquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); } };
-    const d = await api.submitEnquiry({ property_id: enquiryPropId, name, email, phone, message });
+    const d = await api.submitEnquiry({ property_id: enquiryPropId, property_title: enquiryPropTitle, name, email, phone, message });
     if (d.error) { if(errEl){errEl.textContent=d.error;errEl.style.display='block';} return; }
     closeEnquiryModal();
     // Show success toast if available

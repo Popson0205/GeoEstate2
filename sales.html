@@ -532,9 +532,16 @@
       </div>
       <input type="hidden" id="em-id">
     </div>
-    <div class="sp-modal-footer">
-      <button class="sp-btn sp-btn-outline" onclick="closeModal('enq-modal')">Cancel</button>
-      <button class="sp-btn sp-btn-primary" onclick="saveEnquiryStatus()">Save Update</button>
+    <div class="sp-modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sp-btn" id="em-call-btn" onclick="callCustomer()" style="background:#1a6b3c;color:#fff;border:none">📞 Call</button>
+        <button class="sp-btn" id="em-whatsapp-btn" onclick="whatsappCustomer()" style="background:#25D366;color:#fff;border:none">💬 WhatsApp</button>
+        <button class="sp-btn" id="em-email-btn" onclick="emailCustomer()" style="background:#1d4ed8;color:#fff;border:none">✉️ Email</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="sp-btn sp-btn-outline" onclick="closeModal('enq-modal')">Cancel</button>
+        <button class="sp-btn sp-btn-primary" onclick="saveEnquiryStatus()">Save Update</button>
+      </div>
     </div>
   </div>
 </div>
@@ -799,9 +806,11 @@
   }
 
   // ── Enquiry Modal ─────────────────────────────────────────
+  let _currentEnquiry = null;
   function openEnquiryModal(idx) {
     const e = allEnquiries[idx];
     if (!e) return;
+    _currentEnquiry = e;
     const st = enquiryStatuses[e.id]?.status || e.status || 'new';
     const notes = enquiryStatuses[e.id]?.notes || '';
     document.getElementById('enq-modal-name').textContent = e.name + ' — Enquiry';
@@ -811,6 +820,11 @@
     document.getElementById('em-date').textContent     = e.created_at ? new Date(e.created_at).toLocaleString('en-NG') : '—';
     document.getElementById('em-property').textContent = e.property_title || e.property_id || '—';
     document.getElementById('em-message').textContent  = e.message || '(no message)';
+    // Update contact button states
+    const callBtn = document.getElementById('em-call-btn');
+    const waBtn   = document.getElementById('em-whatsapp-btn');
+    if (callBtn) callBtn.style.opacity = e.phone ? '1' : '0.4';
+    if (waBtn)   waBtn.style.opacity   = e.phone ? '1' : '0.4';
     document.getElementById('em-status').value         = st;
     document.getElementById('em-notes').value          = notes;
     document.getElementById('em-id').value             = e.id;
@@ -840,6 +854,38 @@
       toast('✅ Enquiry saved to database');
     } catch(e) {
       toast('⚠️ Saved locally — sync to DB failed (check connection)');
+    }
+  }
+
+  // ── Contact Actions ───────────────────────────────────────
+  function callCustomer() {
+    if (!_currentEnquiry || !_currentEnquiry.phone) { toast('⚠️ No phone number for this customer'); return; }
+    window.open('tel:' + _currentEnquiry.phone);
+    // Auto-mark as contacted
+    autoMarkContacted();
+  }
+  function whatsappCustomer() {
+    if (!_currentEnquiry || !_currentEnquiry.phone) { toast('⚠️ No phone number for this customer'); return; }
+    const prop = _currentEnquiry.property_title || _currentEnquiry.property_id || 'your enquiry';
+    const msg = encodeURIComponent('Hello ' + _currentEnquiry.name + ', this is the GeoEstate sales team reaching out about your interest in ' + prop + '. How can we help you proceed?');
+    const phone = _currentEnquiry.phone.replace(/\D/g,'');
+    window.open('https://wa.me/' + phone + '?text=' + msg, '_blank');
+    autoMarkContacted();
+  }
+  function emailCustomer() {
+    if (!_currentEnquiry || !_currentEnquiry.email) return;
+    const prop = _currentEnquiry.property_title || _currentEnquiry.property_id || 'the property';
+    const subject = encodeURIComponent('Your GeoEstate Enquiry — ' + prop);
+    const body = encodeURIComponent('Hello ' + _currentEnquiry.name + ',\n\nThank you for your interest in ' + prop + ' on GeoEstate.\n\nWe would love to help you proceed with this. Please let us know your preferred time to connect.\n\nBest regards,\nGeoEstate Sales Team');
+    window.open('mailto:' + _currentEnquiry.email + '?subject=' + subject + '&body=' + body);
+    autoMarkContacted();
+  }
+  function autoMarkContacted() {
+    if (!_currentEnquiry) return;
+    const statusEl = document.getElementById('em-status');
+    if (statusEl && statusEl.value === 'new') {
+      statusEl.value = 'contacted';
+      toast('ℹ️ Status auto-updated to Contacted — remember to Save.');
     }
   }
 
