@@ -247,7 +247,7 @@
 </div>
 <script>
 (function(){
-  var API = 'https://geoestate.onrender.com';
+  var API = 'https://geoestate-api-clpa.onrender.com';
   fetch(API + '/').then(r=>r.text()).then(t=>{
     if(t.indexOf('suspended')!==-1||t.indexOf('Suspended')!==-1)
       document.getElementById('api-down-banner').style.display='block';
@@ -559,7 +559,7 @@
 
 <script>
   // ── Config ──────────────────────────────────────────────
-  const API = 'https://geoestate.onrender.com';
+  const API = 'https://geoestate-api-clpa.onrender.com';
   let adminToken = '';
   let salesName  = '';
 
