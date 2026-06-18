@@ -184,6 +184,21 @@
 </head>
 <body>
 
+<div id="api-down-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:white;text-align:center;padding:10px 16px;font-size:.85rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  ⚠️ Backend service unavailable. Data may not load — check Render dashboard.
+  <button onclick="document.getElementById('api-down-banner').style.display='none'" style="margin-left:12px;background:rgba(255,255,255,.2);border:none;color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-weight:700">✕</button>
+</div>
+<script>
+(function(){
+  var API = 'https://geoestate.onrender.com';
+  fetch(API + '/').then(r=>r.text()).then(t=>{
+    if(t.indexOf('suspended')!==-1||t.indexOf('Suspended')!==-1)
+      document.getElementById('api-down-banner').style.display='block';
+  }).catch(()=>{ document.getElementById('api-down-banner').style.display='block'; });
+})();
+</script>
+
+
 <!-- ── Login Screen ── -->
 <div id="login-screen">
   <div class="login-box">
@@ -368,7 +383,13 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Main Image URL</label>
-                <input class="form-input" id="fp-img" placeholder="https://... (paste image link)">
+                <div style="display:flex;gap:8px;align-items:center">
+                <input class="form-input" id="fp-img" placeholder="https://... or use Upload button" style="flex:1">
+                <button type="button" onclick="ownerCloudinaryUpload('fp-img','fp-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
+              </div>
+              <div id="fp-img-preview" style="display:none;margin-top:6px">
+                <img id="fp-img-preview-img" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px">
+              </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Amenities (comma-separated)</label>
@@ -1038,6 +1059,59 @@ window.addEventListener('DOMContentLoaded', function() {
     b.style.display = 'inline-flex';
   });
 });
+
+  // ── Cloudinary upload helper (owner dashboard) ─────────────────────────────
+  async function ownerCloudinaryUpload(inputId, previewId) {
+    const API = 'https://geoestate.onrender.com';
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.onchange = async function() {
+      const file = fileInput.files[0];
+      if (!file) { document.body.removeChild(fileInput); return; }
+      document.body.removeChild(fileInput);
+      toast('⏳ Uploading image…');
+      try {
+        const s = await fetch(API + '/upload-sign', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ folder: 'geoestate/properties' })
+        });
+        if (!s.ok) throw new Error('Upload not configured on server yet');
+        const sign = await s.json();
+        const form = new FormData();
+        form.append('file', file);
+        form.append('api_key', sign.api_key);
+        form.append('timestamp', sign.timestamp);
+        form.append('signature', sign.signature);
+        form.append('folder', sign.folder);
+        const r = await fetch(sign.upload_url, { method: 'POST', body: form });
+        const d = await r.json();
+        if (d.secure_url) {
+          document.getElementById(inputId).value = d.secure_url;
+          const prev = document.getElementById(previewId);
+          const prevImg = document.getElementById(previewId + '-img');
+          if (prev && prevImg) { prevImg.src = d.secure_url; prev.style.display = 'block'; }
+          toast('✅ Image uploaded!');
+        } else {
+          throw new Error(d.error?.message || 'Upload failed');
+        }
+      } catch(e) {
+        // Fallback: use local FileReader preview
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          document.getElementById(inputId).value = '';
+          document.getElementById(inputId).placeholder = '(Local preview — cloud upload unavailable)';
+          const prev = document.getElementById(previewId);
+          const prevImg = document.getElementById(previewId + '-img');
+          if (prev && prevImg) { prevImg.src = ev.target.result; prev.style.display = 'block'; }
+        };
+        reader.readAsDataURL(file);
+        toast('⚠️ Cloud upload unavailable: ' + e.message);
+      }
+    };
+    fileInput.click();
+  }
+
 </script>
 
 <!-- Property Detail Modal -->

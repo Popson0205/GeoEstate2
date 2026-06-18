@@ -241,6 +241,21 @@
 </head>
 <body>
 
+<div id="api-down-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:white;text-align:center;padding:10px 16px;font-size:.85rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  ⚠️ Backend service unavailable. Data may not load — check Render dashboard.
+  <button onclick="document.getElementById('api-down-banner').style.display='none'" style="margin-left:12px;background:rgba(255,255,255,.2);border:none;color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-weight:700">✕</button>
+</div>
+<script>
+(function(){
+  var API = 'https://geoestate.onrender.com';
+  fetch(API + '/').then(r=>r.text()).then(t=>{
+    if(t.indexOf('suspended')!==-1||t.indexOf('Suspended')!==-1)
+      document.getElementById('api-down-banner').style.display='block';
+  }).catch(()=>{ document.getElementById('api-down-banner').style.display='block'; });
+})();
+</script>
+
+
 <!-- ── Login Screen ─────────────────────────────── -->
 <div id="login-screen">
   <div class="login-card">

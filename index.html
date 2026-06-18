@@ -343,6 +343,27 @@ YPE html>
 </head>
 <body>
 
+<!-- API Status Banner — shown when backend is unreachable -->
+<div id="api-down-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:white;text-align:center;padding:10px 16px;font-size:.88rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  ⚠️ Backend service is currently unavailable. Property data may not load. Please check Render dashboard.
+  <button onclick="document.getElementById('api-down-banner').style.display='none'" style="margin-left:16px;background:rgba(255,255,255,.2);border:none;color:white;border-radius:4px;padding:2px 10px;cursor:pointer;font-weight:700">✕</button>
+</div>
+<script>
+(function checkAPIHealth() {
+  var API = 'https://geoestate.onrender.com';
+  fetch(API + '/', { method: 'GET' }).then(function(r) {
+    return r.text();
+  }).then(function(t) {
+    if (t.indexOf('suspended') !== -1 || t.indexOf('Service Suspended') !== -1) {
+      document.getElementById('api-down-banner').style.display = 'block';
+    }
+  }).catch(function() {
+    document.getElementById('api-down-banner').style.display = 'block';
+  });
+})();
+</script>
+
+
 <!-- ============================================================
      NAVIGATION
      ============================================================ -->
@@ -1052,14 +1073,16 @@ YPE html>
         </div>
         <div class="geo-form-group">
           <label class="geo-label">Property Photos (min. 4)</label>
-          <div style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);padding:var(--space-5);text-align:center;cursor:pointer;color:var(--text-muted)">
-            <input type="file" accept="image/*" capture="environment" multiple style="display:none" id="upload-prop-photos" onchange="previewUpload(this,'prev-prop-photos')">
-            <label for="upload-prop-photos" style="cursor:pointer;display:block">
-              📸 Tap to take geo-tagged photos or upload from gallery<br>
-              <span style="font-size:0.78rem">Min. 4 photos · Must be taken at property location · EXIF location validated</span>
-            </label>
-            <div id="prev-prop-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center"></div>
+          <div style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);padding:var(--space-5);text-align:center;cursor:pointer;color:var(--text-muted)" onclick="document.getElementById('upload-prop-photos').click()">
+            <input type="file" accept="image/*" multiple style="display:none" id="upload-prop-photos" onchange="handlePropPhotosUpload(this)">
+            <div style="font-size:2rem;margin-bottom:8px">📸</div>
+            <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Click to upload property photos</div>
+            <div style="font-size:.78rem">Images upload directly to Cloudinary · Min. 4 photos</div>
+            <div id="prop-upload-status" style="margin-top:8px;font-size:.78rem;color:var(--geo-green-600);display:none"></div>
           </div>
+          <div id="prev-prop-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+          <input type="hidden" id="list-img-main" value="">
+          <input type="hidden" id="list-images-json" value="[]">
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:var(--space-4)">
           <button class="btn btn-ghost" onclick="listStep(1)">← Back</button>
@@ -4056,7 +4079,11 @@ window.addEventListener('load', handleRoute);
         <div><label class="form-label">LGA *</label><input class="form-input" id="pe-lga" placeholder="e.g. Lekki"></div>
       </div>
       <label class="form-label">Full Address</label><input class="form-input" id="pe-address" placeholder="Full property address">
-      <label class="form-label">Image URL</label><input class="form-input" id="pe-img" placeholder="https://... (Unsplash or direct URL)">
+      <label class="form-label">Image URL</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-input" id="pe-img" placeholder="https://... (Unsplash or direct URL)" style="flex:1">
+        <button type="button" onclick="adminCloudinaryUpload('pe-img')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
+      </div>
       <label class="form-label">Notes / Reason for change</label>
       <textarea class="notes-area" id="pe-notes" placeholder="e.g. Price updated per owner request..."></textarea>
     </div>
@@ -6378,6 +6405,178 @@ async function submitEnquiry() {
     else alert('✅ Enquiry sent! The owner will be in touch.');
   } catch(e) { if(errEl){errEl.textContent='Could not send enquiry. Please try again.';errEl.style.display='block';} }
 }
+</script>
+
+<script>
+// ── Property photos upload (multi-file → Cloudinary) ────────────────────────
+let _uploadedImgUrls = [];
+
+async function handlePropPhotosUpload(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const statusEl = document.getElementById('prop-upload-status');
+  const previewEl = document.getElementById('prev-prop-photos');
+  if (statusEl) { statusEl.textContent = '⏳ Uploading ' + files.length + ' image(s)…'; statusEl.style.display = 'block'; }
+
+  const API = window.GEO_API_PUBLIC || 'https://geoestate.onrender.com';
+  let signData = null;
+  try {
+    const s = await fetch(API + '/upload-sign', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ folder: 'geoestate/properties' })
+    });
+    if (!s.ok) throw new Error('Upload service not available');
+    signData = await s.json();
+  } catch(e) {
+    // Fallback: use local preview + data URLs (no cloud storage)
+    if (statusEl) { statusEl.textContent = '⚠️ Cloud upload unavailable — using local preview'; statusEl.style.display = 'block'; }
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        _uploadedImgUrls.push(ev.target.result);
+        document.getElementById('list-img-main').value = _uploadedImgUrls[0] || '';
+        document.getElementById('list-images-json').value = JSON.stringify(_uploadedImgUrls);
+        if (previewEl) previewEl.innerHTML += `<img src="${ev.target.result}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
+      };
+      reader.readAsDataURL(file);
+    });
+    return;
+  }
+
+  let uploaded = 0;
+  for (const file of files) {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('api_key', signData.api_key);
+      form.append('timestamp', signData.timestamp);
+      form.append('signature', signData.signature);
+      form.append('folder', signData.folder);
+      const r = await fetch(signData.upload_url, { method: 'POST', body: form });
+      const d = await r.json();
+      if (d.secure_url) {
+        _uploadedImgUrls.push(d.secure_url);
+        if (previewEl) previewEl.innerHTML += `<img src="${d.secure_url}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
+        uploaded++;
+      }
+    } catch(e) {}
+    if (statusEl) statusEl.textContent = `⏳ Uploaded ${uploaded}/${files.length}…`;
+  }
+
+  document.getElementById('list-img-main').value = _uploadedImgUrls[0] || '';
+  document.getElementById('list-images-json').value = JSON.stringify(_uploadedImgUrls);
+  if (statusEl) statusEl.textContent = `✅ ${uploaded} photo(s) uploaded`;
+}
+
+async function adminCloudinaryUpload(inputId) {
+  const API = window.GEO_API || 'https://geoestate.onrender.com';
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+  document.body.appendChild(fileInput);
+  fileInput.onchange = async function() {
+    const file = fileInput.files[0];
+    if (!file) return;
+    document.body.removeChild(fileInput);
+    if (typeof adminToast === 'function') adminToast('⏳ Uploading image…', 'info');
+    try {
+      const s = await fetch(API + '/upload-sign', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ folder: 'geoestate/properties' })
+      });
+      if (!s.ok) throw new Error('Upload service not configured');
+      const sign = await s.json();
+      const form = new FormData();
+      form.append('file', file);
+      form.append('api_key', sign.api_key);
+      form.append('timestamp', sign.timestamp);
+      form.append('signature', sign.signature);
+      form.append('folder', sign.folder);
+      const r = await fetch(sign.upload_url, { method: 'POST', body: form });
+      const d = await r.json();
+      if (d.secure_url) {
+        document.getElementById(inputId).value = d.secure_url;
+        if (typeof adminToast === 'function') adminToast('✅ Image uploaded to Cloudinary!', 'success');
+      } else {
+        throw new Error(d.error?.message || 'Upload failed');
+      }
+    } catch(e) {
+      if (typeof adminToast === 'function') adminToast('⚠️ ' + e.message, 'warn');
+    }
+  };
+  fileInput.click();
+}
+
+// ── Cloudinary Direct Upload Helper ─────────────────────────────────────────
+async function cloudinaryUpload(inputId, previewId) {
+  const API = window.GEO_API_PUBLIC || 'https://geoestate.onrender.com';
+  try {
+    // 1. Get signed params from our backend
+    const signRes = await fetch(API + '/upload-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: 'geoestate/properties' })
+    });
+    if (!signRes.ok) {
+      if (typeof showAuthToast === 'function') showAuthToast('Image upload not configured on server yet.', 'error');
+      else alert('Image upload not configured. Paste URL manually.');
+      return;
+    }
+    const sign = await signRes.json();
+
+    // 2. Create a hidden file input and trigger click
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    fileInput.onchange = async function() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      document.body.removeChild(fileInput);
+
+      const btnEl = document.querySelector(`[onclick*="${inputId}"]`);
+      if (btnEl) { btnEl.textContent = '⏳ Uploading…'; btnEl.disabled = true; }
+
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('api_key', sign.api_key);
+        form.append('timestamp', sign.timestamp);
+        form.append('signature', sign.signature);
+        form.append('folder', sign.folder);
+
+        const upRes = await fetch(sign.upload_url, { method: 'POST', body: form });
+        const upData = await upRes.json();
+
+        if (upData.secure_url) {
+          const inputEl = document.getElementById(inputId);
+          if (inputEl) inputEl.value = upData.secure_url;
+
+          // Show preview
+          const previewEl = document.getElementById(previewId);
+          const previewImg = document.getElementById(previewId + '-img');
+          if (previewEl && previewImg) {
+            previewImg.src = upData.secure_url;
+            previewEl.style.display = 'block';
+          }
+          if (typeof showAuthToast === 'function') showAuthToast('✅ Image uploaded!', 'success');
+        } else {
+          if (typeof showAuthToast === 'function') showAuthToast('Upload failed: ' + (upData.error?.message || 'unknown error'), 'error');
+        }
+      } catch(e) {
+        if (typeof showAuthToast === 'function') showAuthToast('Upload error: ' + e.message, 'error');
+      } finally {
+        if (btnEl) { btnEl.textContent = '📸 Upload Photo'; btnEl.disabled = false; }
+      }
+    };
+    fileInput.click();
+  } catch(e) {
+    if (typeof showAuthToast === 'function') showAuthToast('Could not reach upload server.', 'error');
+    else alert('Could not reach upload server.');
+  }
+}
+
 </script>
 
 <script src="geo-api.js"></script>
