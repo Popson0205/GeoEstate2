@@ -2423,7 +2423,7 @@ YPE html>
 <script>
 
 // ---- SAMPLE DATA ----
-const properties = [];
+let properties = [];
 // Properties will be loaded from the database via API
 // Format: { id, type, title, price, location, state, img, lat, lng, verified, beds, baths, sqm, tags, video }
 
@@ -2579,9 +2579,11 @@ async function renderDetail(id) {
   if (!p) {
     const contentEl = document.getElementById('detail-content');
     if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><div style="font-weight:700">Loading property…</div></div>';
+    let fetchError = null;
     try {
       const apiBase = window.GEO_API_PUBLIC || 'https://geo-estate-phi.vercel.app';
       const r = await fetch(apiBase + '/properties/' + encodeURIComponent(id));
+      if (!r.ok) { fetchError = 'API returned ' + r.status + ' ' + r.statusText; }
       const d = await r.json();
       if (d.property) {
         const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(prop) {
@@ -2604,10 +2606,18 @@ async function renderDetail(id) {
         p = mapper(d.property);
         // Cache into local array for subsequent uses
         if (!properties.find(x => x.id === p.id)) properties.push(p);
+      } else if (!fetchError) {
+        fetchError = d.error || 'API response had no property data';
       }
-    } catch(e) {}
+    } catch(e) {
+      fetchError = e.message;
+      console.error('renderDetail fetch failed for id=' + id + ':', e);
+    }
     if (!p) {
-      if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">&#10060;</div><div style="font-weight:700;margin-bottom:8px">Property not found</div><button class="btn btn-ghost btn-sm" onclick="showPage(\'map\')">&#8592; Browse all properties</button></div>';
+      if (fetchError) console.error('GeoEstate: could not load property ' + id + ' — ' + fetchError);
+      if (contentEl) contentEl.innerHTML = fetchError
+        ? '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">⚠️</div><div style="font-weight:700;margin-bottom:8px">Couldn\'t load this property</div><div style="font-size:.82rem;margin-bottom:16px">' + fetchError + ' — open the browser console for details.</div><button class="btn btn-ghost btn-sm" onclick="showPage(\'map\')">&#8592; Browse all properties</button></div>'
+        : '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">&#10060;</div><div style="font-weight:700;margin-bottom:8px">Property not found</div><button class="btn btn-ghost btn-sm" onclick="showPage(\'map\')">&#8592; Browse all properties</button></div>';
       return;
     }
   }
