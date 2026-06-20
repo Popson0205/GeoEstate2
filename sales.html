@@ -247,7 +247,7 @@
 </div>
 <script>
 (function(){
-  var API = 'https://geoestate-api-clpa.onrender.com';
+  var API = 'https://geo-estate-phi.vercel.app';
   fetch(API + '/').then(r=>r.text()).then(t=>{
     if(t.indexOf('suspended')!==-1||t.indexOf('Suspended')!==-1)
       document.getElementById('api-down-banner').style.display='block';
@@ -566,7 +566,7 @@
 
 <script>
   // ── Config ──────────────────────────────────────────────
-  const API = 'https://geoestate-api-clpa.onrender.com';
+  const API = 'https://geo-estate-phi.vercel.app';
   let adminToken = '';
   let salesName  = '';
 

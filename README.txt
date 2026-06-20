@@ -1,7 +1,7 @@
 GeoEstate — Complete Fix Package v3
 =====================================
 Date: June 2026
-API: https://geoestate-api-clpa.onrender.com
+API: https://geo-estate-phi.vercel.app
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FILES & WHERE THEY GO
@@ -33,7 +33,7 @@ STEP 4 (optional) — Add Cloudinary env vars on Render for image uploads:
 IF YOU NEED TO RE-SEED THE DB LATER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 After server.js is deployed, run:
-  curl -X POST https://geoestate-api-clpa.onrender.com/admin/seed-properties \
+  curl -X POST https://geo-estate-phi.vercel.app/admin/seed-properties \
     -H "Authorization: Bearer geoestate-admin-2024" \
     -H "Content-Type: application/json" \
     -d "{}"
