@@ -350,7 +350,7 @@ YPE html>
 </div>
 <script>
 (function checkAPIHealth() {
-  var API = 'https://geo-estate-phi.vercel.app';
+  var API = 'https://api.geoestate.com.ng';
   fetch(API + '/', { method: 'GET' }).then(function(r) {
     return r.text();
   }).then(function(t) {
@@ -2581,7 +2581,7 @@ async function renderDetail(id) {
     if (contentEl) contentEl.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:12px">⏳</div><div style="font-weight:700">Loading property…</div></div>';
     let fetchError = null;
     try {
-      const apiBase = window.GEO_API_PUBLIC || 'https://geo-estate-phi.vercel.app';
+      const apiBase = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
       const r = await fetch(apiBase + '/properties/' + encodeURIComponent(id));
       if (!r.ok) { fetchError = 'API returned ' + r.status + ' ' + r.statusText; }
       const d = await r.json();
@@ -3015,7 +3015,7 @@ async function sendOTP(emailOrPhone, context) {
   const devNote = document.getElementById('otp-dev-code');
   if(devNote){ devNote.textContent='Sending code to '+email+'...'; devNote.style.display='block'; }
   try {
-    const res = await fetch('https://geo-estate-phi.vercel.app/send-otp', {
+    const res = await fetch('https://api.geoestate.com.ng/send-otp', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email, name, purpose: context||'register' })
@@ -3051,7 +3051,7 @@ async function verifyOTP() {
   if(!email){errEl.textContent='❌ Session expired. Please register again.';errEl.style.display='block';return;}
   // Verify against server
   try {
-    const res = await fetch('https://geo-estate-phi.vercel.app/verify-otp', {
+    const res = await fetch('https://api.geoestate.com.ng/verify-otp', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email, code: entered })
@@ -3063,7 +3063,7 @@ async function verifyOTP() {
       const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,pass:btoa(pendingRegData.pass),role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
       users.push(newUser); localStorage.setItem('geo_users',JSON.stringify(users));
       // POST to backend so admin sees the registration
-      fetch('https://geo-estate-phi.vercel.app/register', {
+      fetch('https://api.geoestate.com.ng/register', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           id: newUser.id, fname: newUser.fname, lname: newUser.lname,
@@ -3104,7 +3104,7 @@ function showAuthToast(msg,type){const el=document.getElementById('toast');if(!e
 })();
 
 // ── INIT ────────────────────────────────────────────────────────────────────
-const GEO_API_PUBLIC = 'https://geo-estate-phi.vercel.app'; // GEO_API defined later in admin block
+const GEO_API_PUBLIC = 'https://api.geoestate.com.ng'; // GEO_API defined later in admin block
 
 // ── Load live properties from DB on startup ──────────────────────────────────
 // ── Load live properties from API — Phase 1 fix ──
@@ -4445,7 +4445,7 @@ function nav(page,el){
   const adminRoot = document.getElementById('admin-root');
   // Load enquiries on demand
   if (page === 'enquiries-mgmt') {
-    const apiBase = window.GEO_API || 'https://geo-estate-phi.vercel.app';
+    const apiBase = window.GEO_API || 'https://api.geoestate.com.ng';
     fetch(apiBase + '/admin/enquiries', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}})
       .then(r=>r.json()).then(d => {
         const el2 = document.getElementById('admin-enq-list');
@@ -6122,7 +6122,7 @@ window.initApp = function(){
 };
 
 // ══ API SYNC ══
-const GEO_API = 'https://geo-estate-phi.vercel.app';
+const GEO_API = 'https://api.geoestate.com.ng';
 
 async function syncFromAPI() {
   const btn = document.querySelector('[onclick="syncFromAPI()"]');
@@ -6281,7 +6281,7 @@ let typePageCache = { rent: [], buy: [], lease: [] };
 
 async function loadTypePage(type) {
   try {
-    const baseUrl = (window.GEO_API_PUBLIC || 'https://geo-estate-phi.vercel.app');
+    const baseUrl = (window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng');
     const r = await fetch(baseUrl + '/properties?type=' + type);
     const d = await r.json();
     const props = d.properties || [];
@@ -6417,7 +6417,7 @@ async function submitEnquiry() {
   if (!name || !email) { if(errEl){errEl.textContent='Name and email are required';errEl.style.display='block';} return; }
   if (errEl) errEl.style.display = 'none';
   try {
-    const api = window.GeoAPI || { API_BASE: 'https://geo-estate-phi.vercel.app', submitEnquiry: async function(d) { const r = await fetch(this.API_BASE+'/enquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); } };
+    const api = window.GeoAPI || { API_BASE: 'https://api.geoestate.com.ng', submitEnquiry: async function(d) { const r = await fetch(this.API_BASE+'/enquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); } };
     const d = await api.submitEnquiry({ property_id: enquiryPropId, property_title: enquiryPropTitle, name, email, phone, message });
     if (d.error) { if(errEl){errEl.textContent=d.error;errEl.style.display='block';} return; }
     closeEnquiryModal();
@@ -6439,7 +6439,7 @@ async function handlePropPhotosUpload(input) {
   const previewEl = document.getElementById('prev-prop-photos');
   if (statusEl) { statusEl.textContent = '⏳ Uploading ' + files.length + ' image(s)…'; statusEl.style.display = 'block'; }
 
-  const API = window.GEO_API_PUBLIC || 'https://geo-estate-phi.vercel.app';
+  const API = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
   let signData = null;
   try {
     const s = await fetch(API + '/upload-sign', {
@@ -6490,7 +6490,7 @@ async function handlePropPhotosUpload(input) {
 }
 
 async function adminCloudinaryUpload(inputId) {
-  const API = window.GEO_API || 'https://geo-estate-phi.vercel.app';
+  const API = window.GEO_API || 'https://api.geoestate.com.ng';
   const fileInput = document.createElement('input');
   fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
@@ -6529,7 +6529,7 @@ async function adminCloudinaryUpload(inputId) {
 
 // ── Cloudinary Direct Upload Helper ─────────────────────────────────────────
 async function cloudinaryUpload(inputId, previewId) {
-  const API = window.GEO_API_PUBLIC || 'https://geo-estate-phi.vercel.app';
+  const API = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
   try {
     // 1. Get signed params from our backend
     const signRes = await fetch(API + '/upload-sign', {
