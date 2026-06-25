@@ -2600,7 +2600,8 @@ async function renderDetail(id) {
             location: prop.address||prop.lga||prop.state||'—', state: prop.state||'', lga: prop.lga||'',
             img: prop.img || (imgs[0]||''), images: imgs, lat: 0, lng: 0, verified: true,
             beds: prop.bedrooms||0, baths: prop.bathrooms||0, sqm: prop.size_sqm||0,
-            description: prop.description||'', amenities: prop.amenities||[], units: prop.units||[],
+            let _amen = []; try { _amen = typeof prop.amenities === 'string' ? JSON.parse(prop.amenities||'[]') : (Array.isArray(prop.amenities) ? prop.amenities : []); } catch(e) { _amen = []; }
+            description: prop.description||'', amenities: _amen, units: prop.units||[],
             tags: [], video: false, owner: prop.owner||'' };
         };
         p = mapper(d.property);
@@ -2708,7 +2709,7 @@ async function renderDetail(id) {
         </div>
         <div style="margin-top:16px;background:var(--surface-primary);border-radius:var(--radius-xl);padding:16px;box-shadow:var(--shadow-lifted-card)">
           <div style="font-size:0.82rem;font-weight:700;margin-bottom:12px">Fee Breakdown</div>
-          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:8px"><span style="color:var(--text-muted)">${typeLabel}</span><span>${p.price.replace('/yr','')}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:8px"><span style="color:var(--text-muted)">${typeLabel}</span><span>${(p.price||'—').replace('/yr','')}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:8px"><span style="color:var(--text-muted)">Platform fee (10%)</span><span>₦${platformFee}</span></div>
           <div class="divider"></div>
           <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:800"><span>Total</span><span style="color:var(--geo-green-600)">₦${total}</span></div>
@@ -4454,7 +4455,32 @@ function nav(page,el){
         if (!enqs.length) { el2.innerHTML = '<div style="text-align:center;padding:48px;color:var(--a-muted)">No enquiries yet</div>'; return; }
         const badge = document.getElementById('badge-enquiries');
         if (badge) { badge.textContent = enqs.filter(e=>e.status==='new').length; badge.style.display = enqs.filter(e=>e.status==='new').length ? 'inline-flex' : 'none'; }
-        el2.innerHTML = enqs.map(e => '<div style="background:var(--a-card);border-radius:10px;padding:16px;box-shadow:var(--a-shadow);display:flex;gap:14px;align-items:flex-start"><div style="width:36px;height:36px;border-radius:50%;background:var(--a-green-light);color:var(--a-green-dark);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">' + (e.name[0]||'?').toUpperCase() + '</div><div style="flex:1"><div style="font-weight:700;font-size:.88rem">' + e.name + '</div><div style="font-size:.75rem;color:var(--a-muted)">📍 ' + (e.property_title||'Property') + ' · ' + e.email + ' · ' + (e.phone||'—') + '</div>' + (e.message ? '<div style="font-size:.82rem;color:var(--a-muted);margin-top:4px">"' + e.message + '"</div>' : '') + '</div><div style="font-size:.72rem;color:var(--a-subtle);white-space:nowrap">' + new Date(e.created_at).toLocaleDateString('en-NG') + '</div></div>').join('');
+        el2.innerHTML = enqs.map(e => {
+          const phone = (e.phone||'').replace(/[^0-9+]/g,'');
+          const waNum = phone.startsWith('+') ? phone.slice(1) : (phone.startsWith('0') ? '234'+phone.slice(1) : phone);
+          const waMsg = encodeURIComponent('Hi ' + e.name + ', this is GeoEstate Sales Team. I saw your enquiry about "' + (e.property_title||'our property') + '". How can I help you?');
+          const waLink = 'https://wa.me/' + waNum + '?text=' + waMsg;
+          const isNew = e.status === 'new';
+          return '<div style="background:var(--a-card);border-radius:12px;padding:16px;box-shadow:var(--a-shadow);margin-bottom:4px;border-left:3px solid ' + (isNew ? 'var(--a-green)' : 'var(--a-border)') + '">' +
+            '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">' +
+            '<div style="width:38px;height:38px;border-radius:50%;background:var(--a-green-bg);color:var(--a-green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">' + (e.name[0]||'?').toUpperCase() + '</div>' +
+            '<div style="flex:1;min-width:0">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+            '<span style="font-weight:800;font-size:.9rem">' + e.name + '</span>' +
+            (isNew ? '<span style="background:var(--a-green);color:#fff;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:999px">NEW</span>' : '') +
+            '</div>' +
+            '<div style="font-size:.75rem;color:var(--a-muted);margin-top:2px">📍 ' + (e.property_title||'Property') + '</div>' +
+            '<div style="font-size:.75rem;color:var(--a-muted)">✉️ ' + e.email + (e.phone ? ' · 📞 ' + e.phone : '') + '</div>' +
+            (e.message ? '<div style="font-size:.8rem;color:var(--a-muted);margin-top:6px;font-style:italic;background:var(--a-card2);border-radius:6px;padding:6px 10px">"' + e.message + '"</div>' : '') +
+            '</div>' +
+            '<div style="font-size:.72rem;color:var(--a-subtle);white-space:nowrap">' + new Date(e.created_at).toLocaleDateString('en-NG') + '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+            (phone ? '<a href="' + waLink + '" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:700">💬 WhatsApp</a>' : '') +
+            (phone ? '<a href="tel:' + e.phone + '" style="display:inline-flex;align-items:center;gap:5px;background:var(--a-green);color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:700">📞 Call</a>' : '') +
+            '<a href="mailto:' + e.email + '" style="display:inline-flex;align-items:center;gap:5px;background:var(--a-card2);color:var(--a-text);text-decoration:none;padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:700;border:1px solid var(--a-border)">✉️ Email</a>' +
+            '</div></div>';
+        }).join('');
       }).catch(() => {});
   }
   adminRoot.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -6275,6 +6301,30 @@ document.addEventListener('click', function(e) {
 </div>
 
 
+<!-- ── Sales Contact Popup ─────────────────────────────────────────────── -->
+<div id="sales-contact-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9100;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface-primary);border-radius:20px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.35);overflow:hidden">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0d3d22,#1a6b3c);padding:24px 28px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="color:#fff;font-size:1.1rem;font-weight:800;margin-bottom:4px">✅ Enquiry Sent!</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.82rem">Our sales team will reach out shortly.</div>
+        </div>
+        <button onclick="closeSalesPopup()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+    </div>
+    <!-- Sales team cards -->
+    <div style="padding:20px 24px" id="sales-team-cards">
+      <!-- Injected by JS -->
+    </div>
+    <div style="padding:0 24px 20px;font-size:.75rem;color:var(--text-muted);text-align:center">
+      You can also reach us directly via the contact details above
+    </div>
+  </div>
+</div>
+
+
 <script>
 // ══ RENT / BUY / LEASE TYPE PAGES ══════════════════════════════
 let typePageCache = { rent: [], buy: [], lease: [] };
@@ -6416,16 +6466,56 @@ async function submitEnquiry() {
   const errEl   = document.getElementById('enq-error');
   if (!name || !email) { if(errEl){errEl.textContent='Name and email are required';errEl.style.display='block';} return; }
   if (errEl) errEl.style.display = 'none';
+  const btn = document.querySelector('#enquiry-modal button[onclick="submitEnquiry()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   try {
     const api = window.GeoAPI || { API_BASE: 'https://api.geoestate.com.ng', submitEnquiry: async function(d) { const r = await fetch(this.API_BASE+'/enquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); } };
     const d = await api.submitEnquiry({ property_id: enquiryPropId, property_title: enquiryPropTitle, name, email, phone, message });
-    if (d.error) { if(errEl){errEl.textContent=d.error;errEl.style.display='block';} return; }
+    if (d.error) { if(errEl){errEl.textContent=d.error;errEl.style.display='block';} if(btn){btn.disabled=false;btn.textContent='Send Enquiry →';} return; }
     closeEnquiryModal();
-    // Show success toast if available
-    if (typeof showAuthToast === 'function') showAuthToast('✅ Enquiry sent! The owner will contact you shortly.');
-    else alert('✅ Enquiry sent! The owner will be in touch.');
-  } catch(e) { if(errEl){errEl.textContent='Could not send enquiry. Please try again.';errEl.style.display='block';} }
+    // Show sales contact popup
+    const salesTeam = d.salesTeam || [
+      { name: 'Majekodunmi Lateefat', title: 'Sales Manager', phone: '+2348133343645', whatsapp: '2348133343645', email: 'mlateefat95@gmail.com' },
+      { name: 'Adesina Faridat Adenike', title: 'Sales Manager', phone: '+2349131916831', whatsapp: '2349131916831', email: 'faridat3008@gmail.com' }
+    ];
+    showSalesContactPopup(salesTeam, enquiryPropTitle || 'the property', name, phone);
+  } catch(e) { if(errEl){errEl.textContent='Could not send enquiry. Please try again.';errEl.style.display='block';} if(btn){btn.disabled=false;btn.textContent='Send Enquiry →';} }
 }
+
+function showSalesContactPopup(salesTeam, propTitle, enquirerName, enquirerPhone) {
+  const popup = document.getElementById('sales-contact-popup');
+  const cardsEl = document.getElementById('sales-team-cards');
+  if (!popup || !cardsEl) return;
+  cardsEl.innerHTML = salesTeam.map(function(sm) {
+    const waMsg = encodeURIComponent('Hi ' + enquirerName + ', I\'m ' + sm.name + ' from GeoEstate Sales. I saw your enquiry about "' + propTitle + '". I\'d love to help! When is a good time to talk?');
+    const waLink = 'https://wa.me/' + sm.whatsapp + '?text=' + waMsg;
+    return '<div style="background:var(--surface-secondary);border-radius:14px;padding:16px;margin-bottom:12px">' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">' +
+      '<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#0d3d22,#1a6b3c);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1rem;flex-shrink:0">' + sm.name.charAt(0) + '</div>' +
+      '<div><div style="font-weight:800;font-size:.95rem">' + sm.name + '</div><div style="font-size:.78rem;color:var(--text-muted)">' + sm.title + ' · GeoEstate</div></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+      '<a href="' + waLink + '" target="_blank" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#25D366;color:#fff;text-decoration:none;padding:10px 6px;border-radius:10px;font-size:.75rem;font-weight:700">' +
+        '<span style="font-size:1.3rem">💬</span>WhatsApp</a>' +
+      '<a href="tel:' + sm.phone + '" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#1a6b3c;color:#fff;text-decoration:none;padding:10px 6px;border-radius:10px;font-size:.75rem;font-weight:700">' +
+        '<span style="font-size:1.3rem">📞</span>Call</a>' +
+      '<a href="mailto:' + sm.email + '" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface-primary);color:var(--text-primary);text-decoration:none;padding:10px 6px;border-radius:10px;font-size:.75rem;font-weight:700;border:1.5px solid var(--border-light)">' +
+        '<span style="font-size:1.3rem">✉️</span>Email</a>' +
+      '</div></div>';
+  }).join('');
+  popup.style.display = 'flex';
+}
+
+function closeSalesPopup() {
+  const popup = document.getElementById('sales-contact-popup');
+  if (popup) popup.style.display = 'none';
+}
+
+// Close sales popup on backdrop click
+document.addEventListener('click', function(e) {
+  const popup = document.getElementById('sales-contact-popup');
+  if (popup && e.target === popup) closeSalesPopup();
+});
 </script>
 
 <script>
