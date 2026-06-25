@@ -2600,8 +2600,7 @@ async function renderDetail(id) {
             location: prop.address||prop.lga||prop.state||'—', state: prop.state||'', lga: prop.lga||'',
             img: prop.img || (imgs[0]||''), images: imgs, lat: 0, lng: 0, verified: true,
             beds: prop.bedrooms||0, baths: prop.bathrooms||0, sqm: prop.size_sqm||0,
-            let _amen = []; try { _amen = typeof prop.amenities === 'string' ? JSON.parse(prop.amenities||'[]') : (Array.isArray(prop.amenities) ? prop.amenities : []); } catch(e) { _amen = []; }
-            description: prop.description||'', amenities: _amen, units: prop.units||[],
+            description: prop.description||'', amenities: (function(){try{return typeof prop.amenities==='string'?JSON.parse(prop.amenities||'[]'):(Array.isArray(prop.amenities)?prop.amenities:[]);}catch(e){return [];}})(), units: prop.units||[],
             tags: [], video: false, owner: prop.owner||'' };
         };
         p = mapper(d.property);
