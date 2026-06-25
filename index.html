@@ -2583,7 +2583,7 @@ async function renderDetail(id) {
     try {
       const apiBase = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
       const r = await fetch(apiBase + '/properties/' + encodeURIComponent(id));
-      if (!r.ok) { fetchError = 'API returned ' + r.status + ' ' + r.statusText; }
+      if (!r.ok) { fetchError = 'API returned ' + r.status + ' ' + r.statusText; throw new Error(fetchError); }
       const d = await r.json();
       if (d.property) {
         const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(prop) {
