@@ -2697,7 +2697,7 @@ async function renderDetail(id) {
           <div style="font-size:0.82rem;color:var(--text-tertiary);margin-top:12px">⚠️ Contact details revealed only after your identity is verified.</div>
         </div>
         <div style="margin-top:16px;background:var(--surface-primary);border-radius:var(--radius-xl);padding:16px;box-shadow:var(--shadow-lifted-card)">
-          <button onclick="openEnquiryModal(${JSON.stringify(p.id)}, ${JSON.stringify(p.title)})" style="width:100%;padding:12px;background:var(--surface-secondary);color:var(--text-primary);border:1.5px solid var(--border-light);border-radius:10px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:var(--font-sans);margin-bottom:10px;transition:background .15s">📬 Express Interest / Enquire</button>
+          <button onclick="openEnquiryModal(window._currentProp.id, window._currentProp.title)" style="width:100%;padding:12px;background:var(--surface-secondary);color:var(--text-primary);border:1.5px solid var(--border-light);border-radius:10px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:var(--font-sans);margin-bottom:10px;transition:background .15s">📬 Express Interest / Enquire</button>
           <p style="font-size:.75rem;color:var(--text-muted);text-align:center;margin:0 0 12px">Our sales team responds within 24 hours.</p>
         </div>
         <div class="escrow-cta" style="margin-top:0">
@@ -6395,7 +6395,7 @@ function renderTypePage(type, props) {
         <div class="geo-card-footer">
           <span class="verified-badge" style="font-size:.72rem">NIN Verified</span>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEnquiryModal(${JSON.stringify(p.id)},${JSON.stringify(p.title)})">Enquire</button>
+            <button class="btn btn-outline btn-sm geo-enquire-btn" data-prop-id="${p.id}" data-prop-title="${(p.title||'').replace(/"/g,'&quot;')}" onclick="event.stopPropagation();openEnquiryModal(this.dataset.propId, this.dataset.propTitle)">Enquire</button>
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${JSON.stringify(p.id)})">View →</button>
           </div>
         </div>
