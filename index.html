@@ -4457,7 +4457,7 @@ function nav(page,el){
         el2.innerHTML = enqs.map(e => {
           const phone = (e.phone||'').replace(/[^0-9+]/g,'');
           const waNum = phone.startsWith('+') ? phone.slice(1) : (phone.startsWith('0') ? '234'+phone.slice(1) : phone);
-          const waMsg = encodeURIComponent('Hi ' + e.name + ', I\'m from the GeoEstate Sales Team. I saw your enquiry about "' + (e.property_title||'our property') + '" and I\'d love to help. When is a good time to talk?');
+          const propRef = (e.property_title||'our property') + (e.property_id ? ' (ID: '+e.property_id+')' : ''); const waMsg = encodeURIComponent('Hi ' + e.name + ', I\'m from the GeoEstate Sales Team. I saw your enquiry about "' + propRef + '" and I\'d love to help. When is a good time to talk?');
           const waLink = 'https://wa.me/' + waNum + '?text=' + waMsg;
           const isNew = e.status === 'new';
           return '<div style="background:var(--a-card);border-radius:12px;padding:16px;box-shadow:var(--a-shadow);margin-bottom:4px;border-left:3px solid ' + (isNew ? 'var(--a-green)' : 'var(--a-border)') + '">' +
@@ -6493,16 +6493,19 @@ async function submitEnquiry() {
       { name: 'Majekodunmi Lateefat', title: 'Sales Manager', phone: '+2348133343645', whatsapp: '2348133343645', email: 'mlateefat95@gmail.com' },
       { name: 'Adesina Faridat Adenike', title: 'Sales Manager', phone: '+2349131916831', whatsapp: '2349131916831', email: 'faridat3008@gmail.com' }
     ];
-    showSalesContactPopup(salesTeam, enquiryPropTitle || 'the property', name, phone);
+    showSalesContactPopup(salesTeam, enquiryPropTitle || 'the property', enquiryPropId || '', name, phone);
   } catch(e) { if(errEl){errEl.textContent='Could not send enquiry. Please try again.';errEl.style.display='block';} if(btn){btn.disabled=false;btn.textContent='Send Enquiry →';} }
 }
 
-function showSalesContactPopup(salesTeam, propTitle, enquirerName, enquirerPhone) {
+function showSalesContactPopup(salesTeam, propTitle, propId, enquirerName, enquirerPhone) {
   const popup = document.getElementById('sales-contact-popup');
   const cardsEl = document.getElementById('sales-team-cards');
   if (!popup || !cardsEl) return;
   cardsEl.innerHTML = salesTeam.map(function(sm) {
-    const waMsg = encodeURIComponent('Hi ' + sm.name + ', I\'m ' + enquirerName + '. I came across "' + propTitle + '" on GeoEstate and I\'d like to make further enquiries. When would be a good time to talk?');
+    const propLocation = (window._currentProp && window._currentProp.location) ? window._currentProp.location : '';
+    const propIdStr = propId ? ' (ID: ' + propId + ')' : '';
+    const propLocationStr = propLocation ? ', ' + propLocation : '';
+    const waMsg = encodeURIComponent('Hi ' + sm.name + ', I\'m ' + enquirerName + '. I came across "' + propTitle + '"' + propLocationStr + propIdStr + ' on GeoEstate and I\'d like to make further enquiries. When would be a good time to talk?');
     const waLink = 'https://wa.me/' + sm.whatsapp + '?text=' + waMsg;
     return '<div style="background:var(--surface-secondary);border-radius:14px;padding:16px;margin-bottom:12px">' +
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">' +
