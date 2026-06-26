@@ -2457,7 +2457,7 @@ function renderProps(filter) {
     return;
   }
   grid.innerHTML = filtered.map(p => `
-    <div class="geo-card" style="cursor:pointer" onclick="showDetail(${JSON.stringify(p.id)})">
+    <div class="geo-card" style="cursor:pointer" onclick="showDetail('${p.id}')">
       <div style="position:relative;height:210px;overflow:hidden;background:#e8f0e9;">
         <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.4s ease;display:block;"
           onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
@@ -2479,7 +2479,7 @@ function renderProps(filter) {
         </div>
         <div class="geo-card-footer">
           <span class="verified-badge" style="font-size:0.72rem">NIN Verified</span>
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${JSON.stringify(p.id)})">View →</button>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail('${p.id}')">View →</button>
         </div>
       </div>
     </div>
@@ -2508,7 +2508,7 @@ function initMap() {
     properties.forEach(p => {
       const greenIcon = L.divIcon({ className: '', html: `<div style="background:#1a6b3c;color:white;border-radius:999px;padding:4px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid white">✓ VERIFIED</div>`, iconAnchor: [40, 20] });
       const marker = L.marker([p.lat, p.lng], { icon: greenIcon }).addTo(mapInstance)
-        .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail(${JSON.stringify(p.id)})" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
+        .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail('${p.id}')" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
       marker._propData = p;
       markers.push(marker);
     });
@@ -2530,7 +2530,7 @@ function renderMapList(list) {
   const el = document.getElementById('map-listing-list');
   if (!el) return;
   el.innerHTML = list.map(p => `
-    <div onclick="showDetail(${JSON.stringify(p.id)})" style="background:var(--surface-primary);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-lifted-card);transition:transform 0.15s ease" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
+    <div onclick="showDetail('${p.id}')" style="background:var(--surface-primary);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-lifted-card);transition:transform 0.15s ease" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">
       <div style="display:flex;align-items:stretch">
         <div style="width:72px;flex-shrink:0;overflow:hidden"><img src="${p.img}" alt="${p.title}" style="width:100%;height:72px;object-fit:cover" onerror="this.style.display='none'"></div>
         <div style="padding:8px 10px;min-width:0;flex:1">
@@ -6376,7 +6376,7 @@ function renderTypePage(type, props) {
   const typeLabels = {rent:'🔑 RENT',buy:'🏠 BUY',lease:'📋 LEASE'};
   const typeBg = {rent:'#0d3d22',buy:'#1e40af',lease:'#92400e'};
   grid.innerHTML = props.map(p => `
-    <div class="geo-card" style="cursor:pointer" onclick="showDetail(${JSON.stringify(p.id)})">
+    <div class="geo-card" style="cursor:pointer" onclick="showDetail('${p.id}')">
       <div style="position:relative;height:210px;overflow:hidden;background:#e8f0e9">
         <img src="${p.img||''}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
         <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem;background:linear-gradient(135deg,#d9f2e3,#a8dfc0)">🏠</div>
@@ -6396,7 +6396,7 @@ function renderTypePage(type, props) {
           <span class="verified-badge" style="font-size:.72rem">NIN Verified</span>
           <div style="display:flex;gap:6px">
             <button class="btn btn-outline btn-sm geo-enquire-btn" data-prop-id="${p.id}" data-prop-title="${(p.title||'').replace(/"/g,'&quot;')}" onclick="event.stopPropagation();openEnquiryModal(this.dataset.propId, this.dataset.propTitle)">Enquire</button>
-            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail(${JSON.stringify(p.id)})">View →</button>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetail('${p.id}')">View →</button>
           </div>
         </div>
       </div>
