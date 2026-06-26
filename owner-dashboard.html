@@ -1056,45 +1056,134 @@ async function renderVerification() {
   el.innerHTML = `
     <div style="background:var(--amber-bg);border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid #fde68a">
       <strong style="color:#92400e">⚠️ Verification required</strong>
-      <p style="font-size:.82rem;color:#92400e;margin-top:4px">Submit your identity documents once. After verification, you can list unlimited properties without repeating this step.</p>
+      <p style="font-size:.82rem;color:#92400e;margin-top:4px">Fill in all fields below. This is a one-time process — after verification you can list unlimited properties.</p>
     </div>
     <div class="card">
       <div class="card-body">
-        <div class="form-group">
-          <label class="form-label">NIN (National Identification Number)</label>
-          <input class="form-input" id="vf-nin" placeholder="12345678901" maxlength="11">
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Personal Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Date of Birth</label>
+            <input class="form-input" type="date" id="vf-dob">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Gender</label>
+            <select class="form-select" id="vf-gender">
+              <option value="">Select...</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Occupation</label>
+            <input class="form-input" id="vf-occupation" placeholder="e.g. Property Developer, Engineer">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employer / Business Name</label>
+            <input class="form-input" id="vf-employer" placeholder="e.g. Self-employed, Company name">
+          </div>
+        </div>
+
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Residential Address</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">State</label>
+            <input class="form-input" id="vf-state" placeholder="e.g. Lagos">
+          </div>
+          <div class="form-group">
+            <label class="form-label">LGA</label>
+            <input class="form-input" id="vf-lga" placeholder="e.g. Eti-Osa">
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Document Type</label>
-          <select class="form-select" id="vf-doc-type">
-            <option value="NIN">NIN Slip</option>
-            <option value="IntlPassport">International Passport</option>
-            <option value="DriversLicence">Driver's Licence</option>
-            <option value="VotersCard">Voter's Card</option>
-            <option value="CAC">CAC Certificate (for companies)</option>
-          </select>
+          <label class="form-label">Full Address</label>
+          <input class="form-input" id="vf-address" placeholder="House number, street, area">
+        </div>
+
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Next of Kin</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" id="vf-nok-name" placeholder="Next of kin full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Relationship</label>
+            <select class="form-select" id="vf-nok-rel">
+              <option value="">Select...</option>
+              <option value="Spouse">Spouse</option>
+              <option value="Parent">Parent</option>
+              <option value="Sibling">Sibling</option>
+              <option value="Child">Child</option>
+              <option value="Friend">Friend</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input class="form-input" id="vf-nok-phone" placeholder="+234...">
+          </div>
+        </div>
+
+        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Identity Documents</div>
+        <div class="form-group">
+          <label class="form-label">NIN (National Identification Number) <span style="color:#dc2626">*</span></label>
+          <input class="form-input" id="vf-nin" placeholder="11-digit NIN e.g. 12345678901" maxlength="11" inputmode="numeric">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Document Type <span style="color:#dc2626">*</span></label>
+            <select class="form-select" id="vf-doc-type">
+              <option value="NIN">NIN Slip</option>
+              <option value="IntlPassport">International Passport</option>
+              <option value="DriversLicence">Driver's Licence</option>
+              <option value="VotersCard">Voter's Card</option>
+              <option value="CAC">CAC Certificate (for companies)</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Document URL / Link</label>
-          <input class="form-input" id="vf-doc-url" placeholder="Paste a link to your scanned document (Google Drive, Dropbox, etc.)">
-          <div style="font-size:.75rem;color:var(--subtle);margin-top:4px">Upload to Google Drive and paste the share link here. Ensure sharing is set to "Anyone with link can view".</div>
+          <label class="form-label">Document URL / Link <span style="color:#dc2626">*</span></label>
+          <input class="form-input" id="vf-doc-url" placeholder="Paste a Google Drive / Dropbox share link to your scanned document">
+          <div style="font-size:.75rem;color:var(--subtle);margin-top:4px">Upload to Google Drive → Share → "Anyone with link can view" → Paste link here</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Selfie with Document URL</label>
-          <input class="form-input" id="vf-selfie-url" placeholder="Paste link to selfie holding your ID document">
+          <label class="form-label">Selfie with Document (URL)</label>
+          <input class="form-input" id="vf-selfie-url" placeholder="Paste link to a selfie holding your ID document (optional but recommended)">
         </div>
-        <button class="btn btn-primary" onclick="submitVerification()">Submit for Verification →</button>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="submitVerification()">Submit Identity for Verification →</button>
       </div>
     </div>`;
 }
 
 async function submitVerification() {
-  const nin = document.getElementById('vf-nin').value.trim();
-  const docType = document.getElementById('vf-doc-type').value;
-  const docUrl = document.getElementById('vf-doc-url').value.trim();
-  const selfieUrl = document.getElementById('vf-selfie-url').value.trim();
-  if (!nin || !docUrl) { toast('NIN and document URL are required', 'error'); return; }
-  const d = await GeoAPI.ownerFetch('/owner/verify-identity', { method: 'POST', body: { nin, doc_type: docType, doc_url: docUrl, selfie_url: selfieUrl } });
+  const nin      = document.getElementById('vf-nin').value.trim();
+  const docType  = document.getElementById('vf-doc-type').value;
+  const docUrl   = document.getElementById('vf-doc-url').value.trim();
+  const selfieUrl= document.getElementById('vf-selfie-url')?.value.trim() || '';
+  const dob      = document.getElementById('vf-dob')?.value || '';
+  const gender   = document.getElementById('vf-gender')?.value || '';
+  const occupation  = document.getElementById('vf-occupation')?.value.trim() || '';
+  const employer    = document.getElementById('vf-employer')?.value.trim() || '';
+  const state    = document.getElementById('vf-state')?.value.trim() || '';
+  const lga      = document.getElementById('vf-lga')?.value.trim() || '';
+  const address  = document.getElementById('vf-address')?.value.trim() || '';
+  const nextOfKin      = document.getElementById('vf-nok-name')?.value.trim() || '';
+  const nextOfKinRel   = document.getElementById('vf-nok-rel')?.value || '';
+  const nextOfKinPhone = document.getElementById('vf-nok-phone')?.value.trim() || '';
+
+  if (!nin || nin.length !== 11) { toast('Please enter your 11-digit NIN', 'error'); return; }
+  if (!docUrl) { toast('Document URL is required', 'error'); return; }
+  if (!state || !address) { toast('Please fill in your state and address', 'error'); return; }
+
+  const d = await GeoAPI.ownerFetch('/owner/verify-identity', {
+    method: 'POST',
+    body: {
+      nin, doc_type: docType, doc_url: docUrl, selfie_url: selfieUrl,
+      dob, gender, occupation, employer,
+      state, lga, address,
+      next_of_kin: nextOfKin, next_of_kin_rel: nextOfKinRel, next_of_kin_phone: nextOfKinPhone
+    }
+  });
   if (d.error) { toast(d.error, 'error'); return; }
   if (d.alreadyVerified) { toast('Already verified ✅', 'success'); renderVerification(); return; }
   toast('✅ Documents submitted. You will be notified once verified (usually within 24 hours).', 'success');

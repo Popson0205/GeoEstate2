@@ -3078,13 +3078,23 @@ async function verifyOTP() {
       const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,pass:btoa(pendingRegData.pass),role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
       users.push(newUser); localStorage.setItem('geo_users',JSON.stringify(users));
       // POST to backend so admin sees the registration
+      const regPayload = {
+        id: newUser.id, fname: newUser.fname, lname: newUser.lname,
+        email: newUser.email, phone: newUser.phone, role: newUser.role,
+        registeredAt: newUser.registeredAt
+      };
+      // Include any extended fields if collected at registration time
+      if (pendingRegData.dob)          regPayload.dob = pendingRegData.dob;
+      if (pendingRegData.gender)       regPayload.gender = pendingRegData.gender;
+      if (pendingRegData.occupation)   regPayload.occupation = pendingRegData.occupation;
+      if (pendingRegData.employer)     regPayload.employer = pendingRegData.employer;
+      if (pendingRegData.state)        regPayload.state = pendingRegData.state;
+      if (pendingRegData.lga)          regPayload.lga = pendingRegData.lga;
+      if (pendingRegData.address)      regPayload.address = pendingRegData.address;
+      if (pendingRegData.next_of_kin)  regPayload.next_of_kin = pendingRegData.next_of_kin;
       fetch('https://api.geoestate.com.ng/register', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          id: newUser.id, fname: newUser.fname, lname: newUser.lname,
-          email: newUser.email, phone: newUser.phone, role: newUser.role,
-          registeredAt: newUser.registeredAt
-        })
+        body: JSON.stringify(regPayload)
       }).catch(e => console.warn('Registration sync failed:', e));
       pendingRegData=null; clearInterval(otpTimerInterval); loginSuccess(newUser);
       showAuthToast('Account created! 🎉 Complete verification to unlock all features.');
@@ -5210,11 +5220,20 @@ function filterIdQueue(q){renderIdQueue(submissions.filter(s=>s.name.toLowerCase
 function filterIdQueueStatus(v){renderIdQueue(v==='all'?submissions:submissions.filter(s=>s.status===v));}
 function filterIdQueueType(v){renderIdQueue(v==='all'?submissions:submissions.filter(s=>s.type===v));}
 
-function renderPropQueue(){
+function renderPropQueue(filterStatus){
   const pqc = document.getElementById('prop-queue-count');
   const pending = adminProperties.filter(p=>['pending','review','info'].includes(p.status));
   if(pqc) pqc.textContent = pending.length + ' Awaiting Review';
-  document.getElementById('prop-queue-table').innerHTML=adminProperties.map((p,i)=>`
+  // Default: show pending+review+info+live+approved (hide rejected/inactive)
+  const showAll = filterStatus === 'all';
+  const filtered = showAll
+    ? adminProperties
+    : adminProperties.filter(p => !['rejected','inactive'].includes(p.status));
+  if(!filtered.length){
+    document.getElementById('prop-queue-table').innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--adm-text-subtle);font-size:.85rem">No property submissions yet — queue will populate when owners list properties</td></tr>';
+    return;
+  }
+  document.getElementById('prop-queue-table').innerHTML=filtered.map((p)=>{ const i=adminProperties.indexOf(p); return `
     <tr class="clickable-row" onclick="openPropModal(${i})">
       <td><div class="name-link" style="font-weight:700">${p.title}</div><div style="font-size:.75rem;color:var(--adm-text-subtle)">${p.id}</div></td>
       <td style="font-size:.82rem">${p.owner}</td>
@@ -5224,7 +5243,7 @@ function renderPropQueue(){
       <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split(' ')[0]}</td>
       <td>${statusPill(p.status)}</td>
       <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
-    </tr>`).join('');
+    </tr>`; }).join('');
 }
 function renderUsers(){
   if (!verifiedUsers.length) {
