@@ -4457,7 +4457,7 @@ function nav(page,el){
         el2.innerHTML = enqs.map(e => {
           const phone = (e.phone||'').replace(/[^0-9+]/g,'');
           const waNum = phone.startsWith('+') ? phone.slice(1) : (phone.startsWith('0') ? '234'+phone.slice(1) : phone);
-          const waMsg = encodeURIComponent('Hi ' + e.name + ', this is GeoEstate Sales Team. I saw your enquiry about "' + (e.property_title||'our property') + '". How can I help you?');
+          const waMsg = encodeURIComponent('Hi ' + e.name + ', I\'m from the GeoEstate Sales Team. I saw your enquiry about "' + (e.property_title||'our property') + '" and I\'d love to help. When is a good time to talk?');
           const waLink = 'https://wa.me/' + waNum + '?text=' + waMsg;
           const isNew = e.status === 'new';
           return '<div style="background:var(--a-card);border-radius:12px;padding:16px;box-shadow:var(--a-shadow);margin-bottom:4px;border-left:3px solid ' + (isNew ? 'var(--a-green)' : 'var(--a-border)') + '">' +
@@ -6502,7 +6502,7 @@ function showSalesContactPopup(salesTeam, propTitle, enquirerName, enquirerPhone
   const cardsEl = document.getElementById('sales-team-cards');
   if (!popup || !cardsEl) return;
   cardsEl.innerHTML = salesTeam.map(function(sm) {
-    const waMsg = encodeURIComponent('Hi ' + enquirerName + ', I\'m ' + sm.name + ' from GeoEstate Sales. I saw your enquiry about "' + propTitle + '". I\'d love to help! When is a good time to talk?');
+    const waMsg = encodeURIComponent('Hi ' + sm.name + ', I\'m ' + enquirerName + '. I came across "' + propTitle + '" on GeoEstate and I\'d like to make further enquiries. When would be a good time to talk?');
     const waLink = 'https://wa.me/' + sm.whatsapp + '?text=' + waMsg;
     return '<div style="background:var(--surface-secondary);border-radius:14px;padding:16px;margin-bottom:12px">' +
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">' +
