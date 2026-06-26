@@ -2888,7 +2888,7 @@ async function sendOTP(emailOrPhone, context) {
   const devNote = document.getElementById('otp-dev-code');
   if(devNote){ devNote.textContent='Sending code to '+email+'...'; devNote.style.display='block'; }
   try {
-    const res = await fetch('https://geo-estate-phi.vercel.app/send-otp', {
+    const res = await fetch('https://api.geoestate.com.ng/send-otp', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email, name, purpose: context||'register' })
@@ -2924,7 +2924,7 @@ async function verifyOTP() {
   if(!email){errEl.textContent='❌ Session expired. Please register again.';errEl.style.display='block';return;}
   // Verify against server
   try {
-    const res = await fetch('https://geo-estate-phi.vercel.app/verify-otp', {
+    const res = await fetch('https://api.geoestate.com.ng/verify-otp', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email, code: entered })
@@ -2936,7 +2936,7 @@ async function verifyOTP() {
       const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,pass:btoa(pendingRegData.pass),role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
       users.push(newUser); localStorage.setItem('geo_users',JSON.stringify(users));
       // POST to backend so admin sees the registration
-      fetch('https://geo-estate-phi.vercel.app/register', {
+      fetch('https://api.geoestate.com.ng/register', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           id: newUser.id, fname: newUser.fname, lname: newUser.lname,
@@ -5678,7 +5678,7 @@ window.initApp = function(){
 };
 
 // ══ API SYNC ══
-const GEO_API = 'https://geo-estate-phi.vercel.app';
+const GEO_API = 'https://api.geoestate.com.ng';
 
 async function syncFromAPI() {
   const btn = document.querySelector('[onclick="syncFromAPI()"]');

@@ -1,7 +1,7 @@
 GeoEstate — Complete Fix Package v3
 =====================================
 Date: June 2026
-API: https://geo-estate-phi.vercel.app
+API: https://api.geoestate.com.ng
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FILES & WHERE THEY GO
@@ -16,7 +16,7 @@ FILES & WHERE THEY GO
 DEPLOY ORDER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 1 — Push server.js to GeoEstate repo
-         Render (geoestate-api-clpa) auto-deploys.
+         Railway auto-deploys.
 
 STEP 2 — Push all 4 frontend files to GeoEstate2 repo.
 
@@ -33,8 +33,8 @@ STEP 4 (optional) — Add Cloudinary env vars on Render for image uploads:
 IF YOU NEED TO RE-SEED THE DB LATER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 After server.js is deployed, run:
-  curl -X POST https://geo-estate-phi.vercel.app/admin/seed-properties \
-    -H "Authorization: Bearer geoestate-admin-2024" \
+  curl -X POST https://api.geoestate.com.ng/admin/seed-properties \
+    -H "Authorization: Bearer [YOUR-ADMIN-SECRET]" \
     -H "Content-Type: application/json" \
     -d "{}"
 This wipes + reinserts the 8 clean test properties.

@@ -2274,6 +2274,43 @@ YPE html>
           onkeydown="if(event.key==='Enter')doRegister()">
       </div>
 
+      <!-- ── File Uploads (required) ── -->
+      <div id="reg-uploads" style="margin-bottom:20px">
+        <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:10px">Identity Documents <span style="color:#ef4444">*</span></div>
+
+        <!-- Profile photo -->
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">🤳 Profile / Selfie Photo <span style="color:#ef4444">*</span></label>
+          <label id="reg-photo-label" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default);cursor:pointer">
+            <input type="file" id="reg-photo" accept="image/*" capture="user" style="display:none" onchange="geoHandleFileSelect(this,'reg-photo-label','reg-photo-status')">
+            <span style="font-size:1.1rem">📷</span>
+            <span id="reg-photo-status" style="font-size:.82rem;color:var(--text-muted)">Tap to upload selfie or ID photo</span>
+          </label>
+        </div>
+
+        <!-- Government ID -->
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">🪪 Government ID (NIN slip, passport, driver's licence) <span style="color:#ef4444">*</span></label>
+          <label id="reg-idoc-label" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default);cursor:pointer">
+            <input type="file" id="reg-idoc" accept="image/*,application/pdf" style="display:none" onchange="geoHandleFileSelect(this,'reg-idoc-label','reg-idoc-status')">
+            <span style="font-size:1.1rem">📄</span>
+            <span id="reg-idoc-status" style="font-size:.82rem;color:var(--text-muted)">Tap to upload government ID</span>
+          </label>
+        </div>
+
+        <!-- Other document (optional) -->
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">📎 Other Document <span style="font-size:.72rem;font-weight:400">(optional — proof of address, utility bill, etc.)</span></label>
+          <label id="reg-odoc-label" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default);cursor:pointer">
+            <input type="file" id="reg-odoc" accept="image/*,application/pdf" style="display:none" onchange="geoHandleFileSelect(this,'reg-odoc-label','reg-odoc-status')">
+            <span style="font-size:1.1rem">📁</span>
+            <span id="reg-odoc-status" style="font-size:.82rem;color:var(--text-muted)">Tap to upload (optional)</span>
+          </label>
+        </div>
+
+        <div id="reg-upload-progress" style="display:none;font-size:.78rem;color:var(--geo-green-600);margin-top:6px">⏳ Uploading documents…</div>
+      </div>
+
       <div style="margin-bottom:20px">
         <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.82rem;color:var(--text-secondary)">
           <input type="checkbox" id="reg-agree" style="margin-top:3px;accent-color:var(--geo-green-600)">
@@ -2986,9 +3023,90 @@ function checkPassStrength(pass) {
   lbl.textContent = pass.length ? lvl.label : ''; lbl.style.color = lvl.color;
 }
 function togglePassVis(fieldId, btn) { const field = document.getElementById(fieldId); if (!field) return; field.type = field.type === 'password' ? 'text' : 'password'; btn.textContent = field.type === 'password' ? '👁' : '🙈'; }
+
+// ── Cloudinary Upload Helpers ────────────────────────────────────────────────
+function geoHandleFileSelect(input, labelId, statusId) {
+  const file = input.files && input.files[0];
+  const label  = document.getElementById(labelId);
+  const status = document.getElementById(statusId);
+  if (!file) return;
+  const kb = (file.size / 1024).toFixed(0);
+  if (file.size > 10 * 1024 * 1024) {
+    if (status) status.textContent = '❌ File too large (max 10MB)';
+    if (label)  label.style.boxShadow = 'inset 0 0 0 2px #ef4444';
+    input.value = '';
+    return;
+  }
+  if (status) status.textContent = '✅ ' + file.name + ' (' + kb + 'KB) — ready to upload';
+  if (label)  label.style.boxShadow = 'inset 0 0 0 2px var(--geo-green-400)';
+}
+
+async function geoUploadToCloudinary(fileInput, folder, tags) {
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) return null; // optional field — skip if empty
+
+  // Step 1: get signed params from our API
+  const signRes = await fetch('https://api.geoestate.com.ng/upload-sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder, tags })
+  });
+  if (!signRes.ok) throw new Error('Could not get upload signature');
+  const params = await signRes.json();
+
+  // Step 2: upload directly to Cloudinary
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('api_key',   params.api_key);
+  fd.append('timestamp', params.timestamp);
+  fd.append('signature', params.signature);
+  fd.append('folder',    params.folder);
+  fd.append('tags',      params.tags);
+
+  const uploadRes = await fetch(
+    `https://api.cloudinary.com/v1_1/${params.cloud_name}/auto/upload`,
+    { method: 'POST', body: fd }
+  );
+  if (!uploadRes.ok) throw new Error('Cloudinary upload failed');
+  const result = await uploadRes.json();
+  return result.secure_url; // ← this is what we save to Neon
+}
+
+async function geoUploadRegistrationDocs() {
+  const progressEl = document.getElementById('reg-upload-progress');
+  if (progressEl) { progressEl.style.display = 'block'; progressEl.textContent = '⏳ Uploading documents…'; }
+
+  const photoInput = document.getElementById('reg-photo');
+  const idocInput  = document.getElementById('reg-idoc');
+  const odocInput  = document.getElementById('reg-odoc');
+
+  try {
+    const [photo_url, id_doc_url, other_doc_url] = await Promise.all([
+      geoUploadToCloudinary(photoInput, 'geoestate/registrations/photos', 'geoestate,registration,photo'),
+      geoUploadToCloudinary(idocInput,  'geoestate/registrations/id-docs', 'geoestate,registration,id-doc'),
+      geoUploadToCloudinary(odocInput,  'geoestate/registrations/other-docs', 'geoestate,registration,other-doc')
+    ]);
+    if (progressEl) { progressEl.textContent = '✅ Documents uploaded'; }
+    return { photo_url, id_doc_url, other_doc_url };
+  } catch(e) {
+    if (progressEl) { progressEl.textContent = '❌ Upload failed: ' + e.message; progressEl.style.color = '#ef4444'; }
+    throw e;
+  }
+}
+
 function doRegister() {
   const fname=document.getElementById('reg-fname').value.trim(), lname=document.getElementById('reg-lname').value.trim();
   const email=document.getElementById('reg-email').value.trim(), phone=document.getElementById('reg-phone').value.trim();
+  // Validate required uploads
+  const photoInput = document.getElementById('reg-photo');
+  const idocInput  = document.getElementById('reg-idoc');
+  const errEl = document.getElementById('reg-error');
+  if (!photoInput || !photoInput.files || !photoInput.files[0]) {
+    if(errEl){ errEl.textContent='❌ Please upload a selfie/profile photo.'; errEl.style.display='block'; } return;
+  }
+  if (!idocInput || !idocInput.files || !idocInput.files[0]) {
+    if(errEl){ errEl.textContent='❌ Please upload your government ID.'; errEl.style.display='block'; } return;
+  }
   const pass=document.getElementById('reg-pass').value, pass2=document.getElementById('reg-pass2').value;
   const agreed=document.getElementById('reg-agree').checked;
   const errEl=document.getElementById('reg-error'); errEl.style.display='none';
@@ -3077,13 +3195,12 @@ async function verifyOTP() {
       const users=JSON.parse(localStorage.getItem('geo_users')||'[]');
       const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,pass:btoa(pendingRegData.pass),role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
       users.push(newUser); localStorage.setItem('geo_users',JSON.stringify(users));
-      // POST to backend so admin sees the registration
+      // POST to backend — upload docs to Cloudinary first, then save
       const regPayload = {
         id: newUser.id, fname: newUser.fname, lname: newUser.lname,
         email: newUser.email, phone: newUser.phone, role: newUser.role,
         registeredAt: newUser.registeredAt
       };
-      // Include any extended fields if collected at registration time
       if (pendingRegData.dob)          regPayload.dob = pendingRegData.dob;
       if (pendingRegData.gender)       regPayload.gender = pendingRegData.gender;
       if (pendingRegData.occupation)   regPayload.occupation = pendingRegData.occupation;
@@ -3092,10 +3209,21 @@ async function verifyOTP() {
       if (pendingRegData.lga)          regPayload.lga = pendingRegData.lga;
       if (pendingRegData.address)      regPayload.address = pendingRegData.address;
       if (pendingRegData.next_of_kin)  regPayload.next_of_kin = pendingRegData.next_of_kin;
-      fetch('https://api.geoestate.com.ng/register', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(regPayload)
-      }).catch(e => console.warn('Registration sync failed:', e));
+      // Upload documents to Cloudinary then save URLs to Neon
+      (async () => {
+        try {
+          const docs = await geoUploadRegistrationDocs();
+          if (docs.photo_url)     regPayload.photo_url     = docs.photo_url;
+          if (docs.id_doc_url)    regPayload.id_doc_url    = docs.id_doc_url;
+          if (docs.other_doc_url) regPayload.other_doc_url = docs.other_doc_url;
+        } catch(uploadErr) {
+          console.warn('Doc upload failed (proceeding without):', uploadErr.message);
+        }
+        fetch('https://api.geoestate.com.ng/register', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(regPayload)
+        }).catch(e => console.warn('Registration sync failed:', e));
+      })();
       pendingRegData=null; clearInterval(otpTimerInterval); loginSuccess(newUser);
       showAuthToast('Account created! 🎉 Complete verification to unlock all features.');
     } else {
@@ -3305,7 +3433,7 @@ function adminDoLogin() {
     if (err) err.style.display = 'none';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    localStorage.setItem('geo_admin_token', window.GEO_ADMIN_TOKEN || 'geoestate-admin-2024');
+    localStorage.setItem('geo_admin_token', window.GEO_ADMIN_TOKEN || '');
     if (typeof initApp === 'function') initApp();
   } else {
     if (err) { err.style.display = 'block'; err.textContent = '❌ Invalid email or password'; }
@@ -4440,7 +4568,7 @@ function adminDoLogin(){
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='flex';
     // Store admin token from env or use hardcoded fallback
-    const adminToken = window.GEO_ADMIN_TOKEN || (typeof process !== 'undefined' && process.env && process.env.ADMIN_SECRET) || 'geoestate-admin-2024';
+    const adminToken = window.GEO_ADMIN_TOKEN || (typeof process !== 'undefined' && process.env && process.env.ADMIN_SECRET) || '';
     localStorage.setItem('geo_admin_token', adminToken);
     if (window.GeoAPI) GeoAPI.setAdminToken(adminToken);
     initApp();
