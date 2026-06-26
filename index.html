@@ -3100,17 +3100,16 @@ function doRegister() {
   // Validate required uploads
   const photoInput = document.getElementById('reg-photo');
   const idocInput  = document.getElementById('reg-idoc');
-  const errEl = document.getElementById('reg-error');
+  const errEl = document.getElementById('reg-error'); errEl.style.display='none';
+  const showErr = msg => { errEl.textContent='❌ '+msg; errEl.style.display='block'; };
   if (!photoInput || !photoInput.files || !photoInput.files[0]) {
-    if(errEl){ errEl.textContent='❌ Please upload a selfie/profile photo.'; errEl.style.display='block'; } return;
+    return showErr('Please upload a selfie/profile photo.');
   }
   if (!idocInput || !idocInput.files || !idocInput.files[0]) {
-    if(errEl){ errEl.textContent='❌ Please upload your government ID.'; errEl.style.display='block'; } return;
+    return showErr('Please upload your government ID.');
   }
   const pass=document.getElementById('reg-pass').value, pass2=document.getElementById('reg-pass2').value;
   const agreed=document.getElementById('reg-agree').checked;
-  const errEl=document.getElementById('reg-error'); errEl.style.display='none';
-  const showErr = msg => { errEl.textContent='❌ '+msg; errEl.style.display='block'; };
   if (!fname||!lname) return showErr('Please enter your full name.');
   if (!email||!email.includes('@')) return showErr('Please enter a valid email address.');
   if (!phone||phone.length<10) return showErr('Please enter a valid phone number.');
