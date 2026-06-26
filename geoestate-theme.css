@@ -88,7 +88,7 @@ body {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0;
 }
 .geo-logo {
   display: flex;
@@ -100,6 +100,7 @@ body {
   color: var(--geo-green-600);
   letter-spacing: -0.02em;
   flex-shrink: 0;
+  margin-right: 2.5rem;   /* ← hard gap between logo and first nav link */
 }
 .geo-logo-icon {
   display: flex;
@@ -110,9 +111,10 @@ body {
 .geo-nav-links {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
   list-style: none;
-  margin-left: 2rem;        /* ← breathing room from logo */
+  flex: 1;
+  flex-wrap: nowrap;
 }
 .geo-nav-links a {
   text-decoration: none;
@@ -123,7 +125,7 @@ body {
 }
 .geo-nav-links a:hover { color: var(--geo-green-600); }
 .geo-nav-links a.active { color: var(--geo-green-600); }
-.geo-nav-cta { display: flex; align-items: center; gap: var(--space-3); margin-left: auto; }
+.geo-nav-cta { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; margin-left: auto; }
 
 /* ---- BUTTONS ---- */
 .btn {
@@ -291,6 +293,39 @@ body {
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); }
+
+/* ── Breakpoint: wide tablet (≤1200px) — tighten nav links ── */
+@media (max-width: 1200px) {
+  .geo-nav-links {
+    gap: 0.75rem;
+  }
+  .geo-nav-links a {
+    font-size: 0.82rem;
+  }
+  .geo-logo {
+    margin-right: 1.5rem;
+  }
+  .geo-nav { padding: 0 var(--space-4); }
+}
+
+/* ── Breakpoint: narrow tablet (≤1024px) — further compress ── */
+@media (max-width: 1024px) {
+  .geo-nav-links {
+    gap: 0.5rem;
+  }
+  .geo-nav-links a {
+    font-size: 0.78rem;
+  }
+  .geo-logo {
+    margin-right: 1rem;
+    font-size: 1.1rem;
+  }
+  .geo-logo svg {
+    width: 28px;
+    height: auto;
+  }
+}
+
 @media (max-width: 900px) {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
