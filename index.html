@@ -3164,6 +3164,7 @@ function doRegister() {
   if (pass.length<8) return showErr('Password must be at least 8 characters.');
   if (pass!==pass2) return showErr('Passwords do not match.');
   if (!agreed) return showErr('Please agree to the Terms of Service and Privacy Policy.');
+  const users=JSON.parse(localStorage.getItem('geo_users')||'[]');
   if (users.find(u=>u.email.toLowerCase()===email.toLowerCase())) return showErr('An account with this email already exists.');
   // FIX 4: capture NIN + Next of Kin into pendingRegData
   const nin = (document.getElementById('reg-nin')||{}).value||'';
