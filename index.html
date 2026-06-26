@@ -2447,7 +2447,7 @@ YPE html>
       ⚠️ Report a Dispute
     </button>
     <div style="height:1px;background:var(--border-subtle);margin:6px 0"></div>
-    <button onclick="adminDoLogout()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:#dc2626;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+    <button onclick="adminPanelLogout()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:#dc2626;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
       🚪 Sign Out
     </button>
   </div>
@@ -3548,7 +3548,7 @@ function adminDoLogin() {
     if (err) { err.style.display = 'block'; err.textContent = '❌ Could not reach API.'; }
   });
 }
-function adminDoLogout() {
+function adminPanelLogout() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   var pass = document.getElementById('login-pass');
@@ -3732,7 +3732,7 @@ window.addEventListener('load', handleRoute);
         <div class="sidebar-avatar">TK</div>
         <div><div class="sidebar-user-name">Tom Khan</div><div class="sidebar-user-role">Super Admin</div></div>
       </div>
-      <button class="logout-btn" onclick="adminDoLogout()">Sign Out</button>
+      <button class="logout-btn" onclick="adminPanelLogout()">Sign Out</button>
     </div>
   </div>
 
@@ -4698,7 +4698,7 @@ function adminDoLogin(){
     document.getElementById('login-error').textContent = '❌ Could not reach API. Check your connection.';
   });
 }
-function adminDoLogout(){
+function adminPanelLogout(){
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-pass').value='';
