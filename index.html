@@ -2178,7 +2178,7 @@ YPE html>
 
       <div id="login-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:14px;box-shadow:inset 0 0 0 1px #fca5a5"></div>
 
-      <button onclick="doLogin()" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;font-size:.95rem">Sign In →</button>
+      <button id="login-submit-btn" onclick="doLogin()" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;font-size:.95rem">Sign In →</button>
 
       <div style="text-align:center;margin-top:16px;font-size:.82rem;color:var(--text-muted)">
         Don't have an account? <button onclick="switchAuthTab('register')" style="background:none;border:none;color:var(--geo-green-600);font-weight:700;cursor:pointer;font-family:var(--font-sans);font-size:.82rem">Create one →</button>
@@ -2447,7 +2447,7 @@ YPE html>
       ⚠️ Report a Dispute
     </button>
     <div style="height:1px;background:var(--border-subtle);margin:6px 0"></div>
-    <button onclick="adminPanelLogout()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:#dc2626;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+    <button onclick="adminDoLogout()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:#dc2626;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
       🚪 Sign Out
     </button>
   </div>
@@ -3173,8 +3173,7 @@ function doRegister() {
   if (pass.length<8) return showErr('Password must be at least 8 characters.');
   if (pass!==pass2) return showErr('Passwords do not match.');
   if (!agreed) return showErr('Please agree to the Terms of Service and Privacy Policy.');
-  const users=JSON.parse(localStorage.getItem('geo_users')||'[]');
-  if (users.find(u=>u.email.toLowerCase()===email.toLowerCase())) return showErr('An account with this email already exists.');
+  // Duplicate email check happens server-side in Neon DB (via /register endpoint)
   // FIX 4: capture NIN + Next of Kin into pendingRegData
   const nin = (document.getElementById('reg-nin')||{}).value||'';
   const kinName  = (document.getElementById('reg-kin-name') ||{}).value||'';
@@ -3194,17 +3193,37 @@ function doRegister() {
   sendOTP(phone,'register'); switchAuthTab('otp');
   document.getElementById('otp-sub').textContent='We sent a 6-digit code to '+email+' (check your inbox)';
 }
-function doLogin() {
-  const email=document.getElementById('login-email-field').value.trim(), pass=document.getElementById('login-pass-field').value;
-  const errEl=document.getElementById('login-error'); errEl.style.display='none';
-  const showErr = msg => { errEl.textContent='❌ '+msg; errEl.style.display='block'; };
+async function doLogin() {
+  const email = document.getElementById('login-email-field').value.trim();
+  const pass  = document.getElementById('login-pass-field').value;
+  const errEl = document.getElementById('login-error'); errEl.style.display = 'none';
+  const showErr = msg => { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; };
   if (!email) return showErr('Please enter your email address.');
-  if (!pass) return showErr('Please enter your password.');
-  const users=JSON.parse(localStorage.getItem('geo_users')||'[]');
-  const user=users.find(u=>u.email.toLowerCase()===email.toLowerCase());
-  if (!user) return showErr('No account found with this email. Register first.');
-  if (user.pass!==btoa(pass)) return showErr('Incorrect password. Try again.');
-  loginSuccess(user);
+  if (!pass)  return showErr('Please enter your password.');
+
+  // Disable button while we wait
+  const loginBtn = document.getElementById('login-submit-btn');
+  if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
+
+  try {
+    const res = await fetch('https://api.geoestate.com.ng/user/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (data.success && data.user) {
+      // Merge password into local session (never sent back from server)
+      const sessionUser = { ...data.user, pass: btoa(pass) };
+      loginSuccess(sessionUser);
+    } else {
+      showErr(data.error || 'Login failed. Please try again.');
+    }
+  } catch(err) {
+    showErr('Could not reach server. Check your connection.');
+  } finally {
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
+  }
 }
 function loginSuccess(user) {
   currentUser=user; localStorage.setItem('geo_session',JSON.stringify(user));
@@ -3264,26 +3283,35 @@ async function verifyOTP() {
     if(data.success){
       // OTP verified — create account (DB-only, no localStorage user store)
       const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
-      // POST to backend — upload docs to Cloudinary first, then save
+      // POST to backend — upload docs to Cloudinary first, then save to Neon DB.
+      // IMPORTANT: We await everything before calling loginSuccess so the user is
+      // only logged in after their record is confirmed in the database.
       const regPayload = {
         id: newUser.id, fname: newUser.fname, lname: newUser.lname,
         email: newUser.email, phone: newUser.phone, role: newUser.role,
-        registeredAt: newUser.registeredAt
+        registeredAt: newUser.registeredAt,
+        pass: newUser.pass || pendingRegData.pass || ''
       };
-      if (pendingRegData.dob)          regPayload.dob = pendingRegData.dob;
-      if (pendingRegData.gender)       regPayload.gender = pendingRegData.gender;
-      if (pendingRegData.occupation)   regPayload.occupation = pendingRegData.occupation;
-      if (pendingRegData.employer)     regPayload.employer = pendingRegData.employer;
-      if (pendingRegData.state)        regPayload.state = pendingRegData.state;
-      if (pendingRegData.lga)          regPayload.lga = pendingRegData.lga;
-      if (pendingRegData.address)      regPayload.address = pendingRegData.address;
-      // FIX 5: include NIN + full next of kin fields in payload
-      if (pendingRegData.nin)              regPayload.nin              = pendingRegData.nin;
-      if (pendingRegData.next_of_kin)      regPayload.next_of_kin      = pendingRegData.next_of_kin;
-      if (pendingRegData.next_of_kin_rel)  regPayload.next_of_kin_rel  = pendingRegData.next_of_kin_rel;
-      if (pendingRegData.next_of_kin_phone)regPayload.next_of_kin_phone= pendingRegData.next_of_kin_phone;
-      // Upload documents to Cloudinary then save URLs to Neon
-      (async () => {
+      if (pendingRegData.dob)               regPayload.dob               = pendingRegData.dob;
+      if (pendingRegData.gender)            regPayload.gender            = pendingRegData.gender;
+      if (pendingRegData.occupation)        regPayload.occupation        = pendingRegData.occupation;
+      if (pendingRegData.employer)          regPayload.employer          = pendingRegData.employer;
+      if (pendingRegData.state)             regPayload.state             = pendingRegData.state;
+      if (pendingRegData.lga)               regPayload.lga               = pendingRegData.lga;
+      if (pendingRegData.address)           regPayload.address           = pendingRegData.address;
+      if (pendingRegData.nin)               regPayload.nin               = pendingRegData.nin;
+      if (pendingRegData.next_of_kin)       regPayload.next_of_kin       = pendingRegData.next_of_kin;
+      if (pendingRegData.next_of_kin_rel)   regPayload.next_of_kin_rel   = pendingRegData.next_of_kin_rel;
+      if (pendingRegData.next_of_kin_phone) regPayload.next_of_kin_phone = pendingRegData.next_of_kin_phone;
+
+      // Show saving state
+      const otpErrEl = document.getElementById('otp-error');
+      if(otpErrEl){ otpErrEl.style.display='none'; }
+      const otpBtn = document.querySelector('[onclick="verifyOTP()"]') || document.querySelector('.otp-submit-btn');
+      if(otpBtn){ otpBtn.disabled = true; otpBtn.textContent = '⏳ Saving account…'; }
+
+      try {
+        // Step 1: upload documents to Cloudinary (non-fatal if it fails)
         try {
           const docs = await geoUploadRegistrationDocs();
           if (docs.photo_url)     regPayload.photo_url     = docs.photo_url;
@@ -3291,14 +3319,36 @@ async function verifyOTP() {
           if (docs.other_doc_url) regPayload.other_doc_url = docs.other_doc_url;
         } catch(uploadErr) {
           console.warn('Doc upload failed (proceeding without):', uploadErr.message);
+          // Continue — registration still goes to DB without doc URLs
         }
-        fetch('https://api.geoestate.com.ng/register', {
-          method:'POST', headers:{'Content-Type':'application/json'},
+
+        // Step 2: save registration to Neon DB — this MUST succeed
+        const regRes = await fetch('https://api.geoestate.com.ng/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(regPayload)
-        }).catch(e => console.warn('Registration sync failed:', e));
-      })();
-      pendingRegData=null; clearInterval(otpTimerInterval); loginSuccess(newUser);
-      showAuthToast('Account created! 🎉 Complete verification to unlock all features.');
+        });
+        const regData = await regRes.json();
+
+        if (!regRes.ok && regRes.status !== 200) {
+          throw new Error(regData.error || 'Registration failed. Please try again.');
+        }
+
+        // Step 3: all good — log user in
+        pendingRegData = null;
+        clearInterval(otpTimerInterval);
+        loginSuccess(newUser);
+        showAuthToast('Account created! 🎉 Complete verification to unlock all features.');
+
+      } catch(saveErr) {
+        // DB save failed — show error, do NOT log user in
+        if(otpBtn){ otpBtn.disabled = false; otpBtn.textContent = 'Verify Code'; }
+        if(otpErrEl){
+          otpErrEl.textContent = '❌ ' + saveErr.message;
+          otpErrEl.style.display = 'block';
+        }
+        console.error('Registration save error:', saveErr.message);
+      }
     } else {
       errEl.textContent='❌ '+(data.error||'Incorrect code. Please try again.');
       errEl.style.display='block';
