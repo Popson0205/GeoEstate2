@@ -6487,13 +6487,16 @@ async function submitEnquiry() {
     const api = window.GeoAPI || { API_BASE: 'https://api.geoestate.com.ng', submitEnquiry: async function(d) { const r = await fetch(this.API_BASE+'/enquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return r.json(); } };
     const d = await api.submitEnquiry({ property_id: enquiryPropId, property_title: enquiryPropTitle, name, email, phone, message });
     if (d.error) { if(errEl){errEl.textContent=d.error;errEl.style.display='block';} if(btn){btn.disabled=false;btn.textContent='Send Enquiry →';} return; }
+    // Capture before closeEnquiryModal() clears them
+    const _propTitle = enquiryPropTitle || (window._currentProp && window._currentProp.title) || 'this property';
+    const _propId    = enquiryPropId    || (window._currentProp && window._currentProp.id)    || '';
     closeEnquiryModal();
     // Show sales contact popup
     const salesTeam = d.salesTeam || [
       { name: 'Majekodunmi Lateefat', title: 'Sales Manager', phone: '+2348133343645', whatsapp: '2348133343645', email: 'mlateefat95@gmail.com' },
       { name: 'Adesina Faridat Adenike', title: 'Sales Manager', phone: '+2349131916831', whatsapp: '2349131916831', email: 'faridat3008@gmail.com' }
     ];
-    showSalesContactPopup(salesTeam, enquiryPropTitle || 'the property', enquiryPropId || '', name, phone);
+    showSalesContactPopup(salesTeam, _propTitle, _propId, name, phone);
   } catch(e) { if(errEl){errEl.textContent='Could not send enquiry. Please try again.';errEl.style.display='block';} if(btn){btn.disabled=false;btn.textContent='Send Enquiry →';} }
 }
 
