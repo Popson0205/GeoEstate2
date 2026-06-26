@@ -373,8 +373,15 @@ YPE html>
 <nav class="geo-nav">
   <div class="geo-nav-inner">
     <a href="#" class="geo-logo" onclick="showPage('home')">
-      <div class="geo-logo-icon">📍</div>
-      GeoEstate
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="34" height="41" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#1a6b3c"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#0d3d22" opacity="0.45"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg>
+      <span>GeoEstate</span>
     </a>
     <ul class="geo-nav-links">
       <li><a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
@@ -3413,7 +3420,14 @@ window.addEventListener('load', handleRoute);
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">📍 GeoEstate Admin</div>
+    <div class="login-logo" style="display:flex;align-items:center;gap:8px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="28" height="34" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.5"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg><span>GeoEstate Admin</span></div>
     <div class="login-sub">Verification & Operations Dashboard</div>
     <label class="login-label">Email Address</label>
     <input class="login-input" type="email" id="login-email" placeholder="Email address">
@@ -3430,7 +3444,14 @@ window.addEventListener('load', handleRoute);
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">📍</div>
+      <div class="sidebar-logo-icon" style="background:none;padding:0"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="28" height="34" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.5"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg></div>
       <div>
         <div style="font-size:.88rem;font-weight:800;color:#fff">GeoEstate Admin</div>
         <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:1px">Operations Centre</div>
