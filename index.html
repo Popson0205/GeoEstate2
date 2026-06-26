@@ -3094,28 +3094,37 @@ async function geoUploadToCloudinary(fileInput, folder, tags) {
   if (!file) return null; // optional field — skip if empty
 
   // Step 1: get signed params from our API
+  // NOTE: send only folder — backend signs folder+timestamp only (no tags in sig)
   const signRes = await fetch('https://api.geoestate.com.ng/upload-sign', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ folder, tags })
+    body: JSON.stringify({ folder })
   });
   if (!signRes.ok) throw new Error('Could not get upload signature');
   const params = await signRes.json();
 
   // Step 2: upload directly to Cloudinary
+  // IMPORTANT: backend returns wrong cloud_name ("GeoEstate") — override with correct slug
+  // Backend env var CLOUDINARY_CLOUD_NAME should be updated to "dyxr2njxw" on Railway/Render
+  const CORRECT_CLOUD_NAME = 'dyxr2njxw';
+  const cloudName = CORRECT_CLOUD_NAME; // override params.cloud_name until backend is fixed
+  const uploadUrl = params.upload_url ||
+    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+
   const fd = new FormData();
-  fd.append('file', file);
+  fd.append('file',      file);
   fd.append('api_key',   params.api_key);
   fd.append('timestamp', params.timestamp);
   fd.append('signature', params.signature);
   fd.append('folder',    params.folder);
-  fd.append('tags',      params.tags);
+  // Only append tags if backend included them in signature (to avoid sig mismatch)
+  if (params.tags && params.tags_in_signature) fd.append('tags', params.tags);
 
-  const uploadRes = await fetch(
-    `https://api.cloudinary.com/v1_1/${params.cloud_name}/auto/upload`,
-    { method: 'POST', body: fd }
-  );
-  if (!uploadRes.ok) throw new Error('Cloudinary upload failed');
+  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: fd });
+  if (!uploadRes.ok) {
+    const errBody = await uploadRes.json().catch(() => ({}));
+    throw new Error('Cloudinary upload failed: ' + (errBody.error?.message || uploadRes.status));
+  }
   const result = await uploadRes.json();
   return result.secure_url; // ← this is what we save to Neon
 }
@@ -6875,7 +6884,8 @@ async function handlePropPhotosUpload(input) {
       form.append('timestamp', signData.timestamp);
       form.append('signature', signData.signature);
       form.append('folder', signData.folder);
-      const r = await fetch(signData.upload_url, { method: 'POST', body: form });
+      const _propCloudUrl = signData.upload_url || `https://api.cloudinary.com/v1_1/dyxr2njxw/auto/upload`;
+      const r = await fetch(_propCloudUrl, { method: 'POST', body: form });
       const d = await r.json();
       if (d.secure_url) {
         _uploadedImgUrls.push(d.secure_url);
@@ -6914,7 +6924,8 @@ async function adminCloudinaryUpload(inputId) {
       form.append('timestamp', sign.timestamp);
       form.append('signature', sign.signature);
       form.append('folder', sign.folder);
-      const r = await fetch(sign.upload_url, { method: 'POST', body: form });
+      const _signUrl2 = sign.upload_url || `https://api.cloudinary.com/v1_1/dyxr2njxw/auto/upload`;
+      const r = await fetch(_signUrl2, { method: 'POST', body: form });
       const d = await r.json();
       if (d.secure_url) {
         document.getElementById(inputId).value = d.secure_url;
@@ -6969,7 +6980,8 @@ async function cloudinaryUpload(inputId, previewId) {
         form.append('signature', sign.signature);
         form.append('folder', sign.folder);
 
-        const upRes = await fetch(sign.upload_url, { method: 'POST', body: form });
+        const _adminCloudUrl = sign.upload_url || `https://api.cloudinary.com/v1_1/dyxr2njxw/auto/upload`;
+        const upRes = await fetch(_adminCloudUrl, { method: 'POST', body: form });
         const upData = await upRes.json();
 
         if (upData.secure_url) {
