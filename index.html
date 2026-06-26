@@ -3116,7 +3116,6 @@ function doRegister() {
   if (pass.length<8) return showErr('Password must be at least 8 characters.');
   if (pass!==pass2) return showErr('Passwords do not match.');
   if (!agreed) return showErr('Please agree to the Terms of Service and Privacy Policy.');
-  const users=JSON.parse(localStorage.getItem('geo_users')||'[]');
   if (users.find(u=>u.email.toLowerCase()===email.toLowerCase())) return showErr('An account with this email already exists.');
   pendingRegData={fname,lname,email,phone,pass,role:selectedRole};
   sendOTP(phone,'register'); switchAuthTab('otp');
@@ -3190,10 +3189,8 @@ async function verifyOTP() {
     });
     const data = await res.json();
     if(data.success){
-      // OTP verified — create account
-      const users=JSON.parse(localStorage.getItem('geo_users')||'[]');
-      const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,pass:btoa(pendingRegData.pass),role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
-      users.push(newUser); localStorage.setItem('geo_users',JSON.stringify(users));
+      // OTP verified — create account (DB-only, no localStorage user store)
+      const newUser={id:'USR-'+Date.now(),fname:pendingRegData.fname,lname:pendingRegData.lname,email:pendingRegData.email,phone:pendingRegData.phone,role:pendingRegData.role,verified:false,registeredAt:new Date().toISOString()};
       // POST to backend — upload docs to Cloudinary first, then save
       const regPayload = {
         id: newUser.id, fname: newUser.fname, lname: newUser.lname,
@@ -3420,24 +3417,59 @@ function goToAdmin(e) {
 }
 
 // ── ADMIN STUBS (real functions defined in admin script block below) ──────────
+
+// ── Auto-logout on JWT expiry ────────────────────────────────────────────────
+// Any 401 from an admin endpoint means the JWT expired — clear and re-login
+function geoAdminFetch(url, opts) {
+  const token = localStorage.getItem('geo_admin_token') || '';
+  const merged = {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(opts && opts.headers ? opts.headers : {}),
+      'Authorization': 'Bearer ' + token
+    }
+  };
+  return fetch(url, merged).then(res => {
+    if (res.status === 401) {
+      // JWT expired or invalid — force re-login
+      localStorage.removeItem('geo_admin_token');
+      const ls = document.getElementById('login-screen');
+      const app = document.getElementById('app');
+      if (ls) ls.style.display = 'flex';
+      if (app) app.style.display = 'none';
+      console.warn('Admin session expired — please log in again.');
+    }
+    return res;
+  });
+}
+
 function adminDoLogin() {
-  // Deferred: real function loads with admin script block
-  var email = document.getElementById('login-email');
-  var pass = document.getElementById('login-pass');
-  var err = document.getElementById('login-error');
-  if (!email || !pass) return;
-  var validEmail = 'popson0205@gmail.com';
-  var validPass  = 'Admin@GeoEstate_2026';
-  if (email.value.trim().toLowerCase() === validEmail && pass.value === validPass) {
-    if (err) err.style.display = 'none';
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    localStorage.setItem('geo_admin_token', window.GEO_ADMIN_TOKEN || '');
-    if (typeof initApp === 'function') initApp();
-  } else {
-    if (err) { err.style.display = 'block'; err.textContent = '❌ Invalid email or password'; }
-    if (pass) pass.value = '';
-  }
+  // Delegates to the full implementation below
+  const emailEl = document.getElementById('login-email');
+  const passEl  = document.getElementById('login-pass');
+  const err     = document.getElementById('login-error');
+  if (!emailEl || !passEl) return;
+  const email = emailEl.value.trim().toLowerCase();
+  const pass  = passEl.value;
+  fetch('https://api.geoestate.com.ng/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pass })
+  }).then(r => r.json()).then(data => {
+    if (data.success && data.token) {
+      localStorage.setItem('geo_admin_token', data.token);
+      if (err) err.style.display = 'none';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      if (typeof initApp === 'function') initApp();
+    } else {
+      if (err) { err.style.display = 'block'; err.textContent = '❌ ' + (data.error || 'Invalid email or password'); }
+      passEl.value = '';
+    }
+  }).catch(() => {
+    if (err) { err.style.display = 'block'; err.textContent = '❌ Could not reach API.'; }
+  });
 }
 function adminDoLogout() {
   document.getElementById('app').style.display = 'none';
@@ -4560,21 +4592,27 @@ async function loadFromDB() {
 function adminDoLogin(){
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value;
-  const validEmail = 'popson0205@gmail.com';
-  const validPass  = 'Admin@GeoEstate_2026';
-  if(email === validEmail && pass === validPass){
-    document.getElementById('login-error').style.display='none';
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='flex';
-    // Store admin token from env or use hardcoded fallback
-    const adminToken = window.GEO_ADMIN_TOKEN || (typeof process !== 'undefined' && process.env && process.env.ADMIN_SECRET) || '';
-    localStorage.setItem('geo_admin_token', adminToken);
-    if (window.GeoAPI) GeoAPI.setAdminToken(adminToken);
-    initApp();
-  } else {
-    document.getElementById('login-error').style.display='block';
-    document.getElementById('login-error').textContent='❌ Invalid email or password';
-  }
+  // POST /admin/login — server validates, returns JWT. Never compare password client-side.
+  fetch('https://api.geoestate.com.ng/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pass })
+  }).then(r => r.json()).then(data => {
+    if (data.success && data.token) {
+      localStorage.setItem('geo_admin_token', data.token);
+      if (window.GeoAPI) GeoAPI.setAdminToken(data.token);
+      document.getElementById('login-error').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      initApp();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+      document.getElementById('login-error').textContent = '❌ ' + (data.error || 'Invalid email or password');
+    }
+  }).catch(() => {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('login-error').textContent = '❌ Could not reach API. Check your connection.';
+  });
 }
 function adminDoLogout(){
   document.getElementById('app').style.display='none';
@@ -4586,25 +4624,14 @@ function adminDoLogout(){
 const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
 
 function renderAdminTokenSetting() {
+  // Token management no longer needed — admin auth uses JWT via /admin/login
   var el = document.getElementById('admin-token-setting');
   if (!el) return;
-  var current = localStorage.getItem('geo_admin_token') || '(not set)';
-  el.innerHTML = '<div style="margin-bottom:16px">' +
-    '<label style="display:block;font-size:.82rem;font-weight:600;color:var(--a-muted);margin-bottom:6px">Admin API Token</label>' +
-    '<div style="display:flex;gap:8px">' +
-    '<input id="admin-token-input" type="text" value="' + current.replace(/"/g,'&quot;') + '" style="flex:1;padding:9px 12px;border:1.5px solid var(--a-border);border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.85rem;outline:none">' +
-    '<button onclick="saveAdminToken()" style="padding:9px 16px;background:var(--a-green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--a-font)">Save</button>' +
-    '</div>' +
-    '<div style="font-size:.75rem;color:var(--a-subtle);margin-top:6px">Must match ADMIN_SECRET on Render.</div>' +
+  el.innerHTML = '<div style="padding:12px;background:var(--a-green-bg);border-radius:8px;font-size:.82rem;color:var(--a-green)">' +
+    '🔐 Admin session is managed server-side via JWT. No manual token needed.' +
     '</div>';
 }
-function saveAdminToken() {
-  const val = (document.getElementById('admin-token-input')||{}).value||'';
-  if (!val.trim()) return;
-  localStorage.setItem('geo_admin_token', val.trim());
-  if (window.GeoAPI) GeoAPI.setAdminToken(val.trim());
-  adminToast('✅ Token saved — refresh will use new token', 'success');
-}
+function saveAdminToken() { /* deprecated */ }
 
 function nav(page,el){
   // Only touch pages INSIDE admin-root to avoid conflicting with website pages
