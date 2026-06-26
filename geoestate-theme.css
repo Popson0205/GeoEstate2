@@ -977,7 +977,11 @@ body {
   .geo-nav-cta .btn-primary { display: none; }
   .geo-nav-cta .theme-toggle { display: flex; }
   /* Hide admin link from nav on mobile — it's in the drawer */
-  .geo-nav-cta a[title="Admin Portal"] { display: none; }
+  .geo-nav-cta a[title="Admin Portal"],
+  .geo-nav-cta a[title="Owner Portal"],
+  .geo-nav-cta a[title="Sales Portal"] { display: none; }
+  /* Hide the whole portal group div on mobile */
+  .geo-nav-cta > div:last-of-type { display: none; }
 
   /* Hero */
   .geo-hero { min-height: 100svh; padding: calc(var(--nav-height) + 24px) 20px 48px; }

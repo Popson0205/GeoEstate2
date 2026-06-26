@@ -390,7 +390,6 @@ YPE html>
       <li><a href="#" onclick="showPage('buy')" id="nav-buy">Buy</a></li>
       <li><a href="#" onclick="showPage('lease')" id="nav-lease">Lease</a></li>
       <li><a href="#" onclick="showPage('list')" id="nav-list">List Property</a></li>
-      <li><a href="/owner-dashboard" id="nav-owner">Owner Portal</a></li>
       <li><a href="#" onclick="showPage('verify')" id="nav-verify">Verify Identity</a></li>
       <li><a href="#" onclick="showPage('about')" id="nav-about">How It Works</a></li>
       <li><a href="#" onclick="showPage('team')" id="nav-team">Our Team</a></li>
@@ -404,7 +403,11 @@ YPE html>
         <button class="btn btn-secondary btn-sm" onclick="openAuthModal('login')">Sign In</button>
         <button class="btn btn-primary btn-sm" onclick="openAuthModal('register')">Register</button>
       </div>
-      <a href="#admin" onclick="return goToAdmin(event)" class="btn btn-ghost btn-sm" style="border-left:1px solid var(--border-subtle);padding-left:12px;margin-left:4px;color:var(--text-muted);font-size:.75rem;text-decoration:none" title="Admin Portal">🔐 Admin</a>
+      <div style="display:flex;align-items:center;gap:0;border-left:1px solid var(--border-subtle);margin-left:4px;padding-left:8px">
+        <a href="/owner-dashboard" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Owner Portal">🏠 Owner</a>
+        <a href="/sales" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Sales Portal">📊 Sales</a>
+        <a href="#admin" onclick="return goToAdmin(event)" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Admin Portal">🔐 Admin</a>
+      </div>
       <!-- Hamburger — mobile only -->
       <button class="geo-hamburger" id="geo-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -426,6 +429,8 @@ YPE html>
   <div class="geo-mobile-nav-cta">
     <button class="btn btn-primary" onclick="closeMobileNav();openAuthModal('register')">Create Account</button>
     <button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>
+    <a href="/owner-dashboard" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🏠 Owner Portal</a>
+    <a href="/sales" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">📊 Sales Portal</a>
     <a href="#admin" onclick="return goToAdmin(event)" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🔐 Admin Portal</a>
   </div>
 </div>
