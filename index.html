@@ -2247,6 +2247,54 @@ YPE html>
           onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'">
       </div>
 
+      <!-- NIN field — FIX 3 -->
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">NIN (National Identification Number) *</label>
+        <input id="reg-nin" type="text" placeholder="Enter your 11-digit NIN"
+          maxlength="11"
+          style="width:100%;padding:10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box;letter-spacing:.1em"
+          onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
+          onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:3px">Your NIN is stored securely and used only for identity verification (NDPR compliant)</div>
+      </div>
+
+      <!-- Next of Kin section — FIX 3 -->
+      <div style="margin-bottom:16px;padding:14px;background:var(--surface-secondary);border-radius:10px;box-shadow:inset 0 0 0 1px var(--border-default)">
+        <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:10px">👤 Next of Kin <span style="font-size:.72rem;font-weight:400;color:var(--text-muted)">(required for verification)</span></div>
+        <div style="margin-bottom:10px">
+          <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">Full Name *</label>
+          <input id="reg-kin-name" type="text" placeholder="Next of kin full name"
+            style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-primary,#fff);color:var(--text-primary);font-family:var(--font-sans);font-size:.85rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
+            onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
+            onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">Relationship *</label>
+            <select id="reg-kin-rel"
+              style="width:100%;padding:9px 10px;border:none;border-radius:8px;background:var(--surface-primary,#fff);color:var(--text-primary);font-family:var(--font-sans);font-size:.85rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box;cursor:pointer"
+              onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
+              onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'">
+              <option value="">Select...</option>
+              <option value="Spouse">Spouse</option>
+              <option value="Parent">Parent</option>
+              <option value="Sibling">Sibling</option>
+              <option value="Child">Child</option>
+              <option value="Friend">Friend</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">Phone Number *</label>
+            <input id="reg-kin-phone" type="tel" placeholder="+234 800 000 0000"
+              style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-primary,#fff);color:var(--text-primary);font-family:var(--font-sans);font-size:.85rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
+              onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
+              onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'">
+          </div>
+        </div>
+      </div>
+
       <div style="margin-bottom:12px">
         <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Password *</label>
         <div style="position:relative">
@@ -3117,7 +3165,22 @@ function doRegister() {
   if (pass!==pass2) return showErr('Passwords do not match.');
   if (!agreed) return showErr('Please agree to the Terms of Service and Privacy Policy.');
   if (users.find(u=>u.email.toLowerCase()===email.toLowerCase())) return showErr('An account with this email already exists.');
-  pendingRegData={fname,lname,email,phone,pass,role:selectedRole};
+  // FIX 4: capture NIN + Next of Kin into pendingRegData
+  const nin = (document.getElementById('reg-nin')||{}).value||'';
+  const kinName  = (document.getElementById('reg-kin-name') ||{}).value||'';
+  const kinRel   = (document.getElementById('reg-kin-rel')  ||{}).value||'';
+  const kinPhone = (document.getElementById('reg-kin-phone')||{}).value||'';
+  if (!nin || nin.length < 11) return showErr('Please enter your 11-digit NIN.');
+  if (!kinName)  return showErr('Please enter your next of kin name.');
+  if (!kinRel)   return showErr('Please select your next of kin relationship.');
+  if (!kinPhone || kinPhone.length < 10) return showErr('Please enter your next of kin phone number.');
+  pendingRegData={
+    fname, lname, email, phone, pass, role: selectedRole,
+    nin,
+    next_of_kin:       kinName,
+    next_of_kin_rel:   kinRel,
+    next_of_kin_phone: kinPhone
+  };
   sendOTP(phone,'register'); switchAuthTab('otp');
   document.getElementById('otp-sub').textContent='We sent a 6-digit code to '+email+' (check your inbox)';
 }
@@ -3204,7 +3267,11 @@ async function verifyOTP() {
       if (pendingRegData.state)        regPayload.state = pendingRegData.state;
       if (pendingRegData.lga)          regPayload.lga = pendingRegData.lga;
       if (pendingRegData.address)      regPayload.address = pendingRegData.address;
-      if (pendingRegData.next_of_kin)  regPayload.next_of_kin = pendingRegData.next_of_kin;
+      // FIX 5: include NIN + full next of kin fields in payload
+      if (pendingRegData.nin)              regPayload.nin              = pendingRegData.nin;
+      if (pendingRegData.next_of_kin)      regPayload.next_of_kin      = pendingRegData.next_of_kin;
+      if (pendingRegData.next_of_kin_rel)  regPayload.next_of_kin_rel  = pendingRegData.next_of_kin_rel;
+      if (pendingRegData.next_of_kin_phone)regPayload.next_of_kin_phone= pendingRegData.next_of_kin_phone;
       // Upload documents to Cloudinary then save URLs to Neon
       (async () => {
         try {
@@ -4531,7 +4598,14 @@ async function loadFromDB() {
         phone: r.phone, state: r.state, lga: r.lga,
         idRef: r.nin, status: 'active', role: r.role || 'renter',
         initials: r.initials || (r.fname[0] + r.lname[0]),
-        verifiedDate: r.registeredAt, activeListing: 0, transactions: 0
+        verifiedDate: r.registeredAt, activeListing: 0, transactions: 0,
+        // FIX 6: include real Cloudinary URLs from backend
+        photo_url:     r.photoUrl     || r.photo_url     || '',
+        id_doc_url:    r.idDocUrl     || r.id_doc_url     || '',
+        other_doc_url: r.otherDocUrl  || r.other_doc_url  || '',
+        nin:           r.nin          || r.ninMasked      || '—',
+        next_of_kin_rel:   r.nextOfKinRel   || r.next_of_kin_rel   || '—',
+        next_of_kin_phone: r.nextOfKinPhone || r.next_of_kin_phone || '—'
       }));
     }
     if (propsRes.properties)     adminProperties = propsRes.properties;
@@ -4787,7 +4861,11 @@ function openIdModal(idx){
   const s=submissions[idx];
   document.getElementById('modal-id-title').textContent=s.name+' — '+s.id;
   document.getElementById('modal-id-sub').textContent='Submitted '+s.submitted+' · '+s.doc+' · '+(s.type==='owner'?'Property Owner':'Renter/Buyer');
-  const docImgs=['https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&q=70','https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=70'];
+  // FIX 1 & 2: Use real Cloudinary URLs from registration data
+  const idDocUrl   = s.id_doc_url   || s.idDocUrl   || '';
+  const photoUrl   = s.photo_url    || s.photoUrl   || '';
+  const otherDocUrl= s.other_doc_url|| s.otherDocUrl|| '';
+  const docLabel   = s.doc && s.doc !== 'Pending upload' ? s.doc : 'ID Document';
   document.getElementById('modal-id-body').innerHTML=`
     <div class="panel-section">
       <div class="panel-section-title">Status & SLA</div>
@@ -4810,12 +4888,22 @@ function openIdModal(idx){
     <div class="panel-section">
       <div class="panel-section-title">Identity Document</div>
       <div class="field-grid">
-        <div><div class="field-label">Document Type</div><div class="field-value">${s.doc}</div></div>
-        <div><div class="field-label">NIN (masked)</div><div class="field-value" style="font-family:monospace">${s.nin}</div></div>
+        <div><div class="field-label">Document Type</div><div class="field-value">${docLabel}</div></div>
+        <div><div class="field-label">NIN</div><div class="field-value" style="font-family:monospace">${s.nin||s.ninMasked||'—'}</div></div>
       </div>
       <div class="doc-grid">
-        <div class="doc-thumb" onclick="adminToast('Opening full document...','info')"><img src="${docImgs[0]}" alt="ID" onerror="this.style.display='none'"><div class="doc-thumb-label">${s.doc}</div></div>
-        <div class="doc-thumb" onclick="adminToast('Opening selfie...','info')"><img src="${docImgs[1]}" alt="Selfie" onerror="this.style.display='none'"><div class="doc-thumb-label">Live Selfie</div></div>
+        ${idDocUrl
+          ? `<div class="doc-thumb" onclick="window.open('${idDocUrl}','_blank')" title="Click to open full document"><img src="${idDocUrl}" alt="ID Document" onerror="this.src='';this.parentElement.innerHTML='<div style=&quot;padding:20px;text-align:center;font-size:.75rem;color:var(--a-muted)&quot;>📄 View ID Doc</div>'"><div class="doc-thumb-label">${docLabel}</div></div>`
+          : `<div class="doc-thumb" style="cursor:default"><div style="padding:20px;text-align:center;font-size:.75rem;color:var(--a-muted)">📄 No ID doc uploaded</div></div>`
+        }
+        ${photoUrl
+          ? `<div class="doc-thumb" onclick="window.open('${photoUrl}','_blank')" title="Click to open full photo"><img src="${photoUrl}" alt="Selfie" onerror="this.src='';this.parentElement.innerHTML='<div style=&quot;padding:20px;text-align:center;font-size:.75rem;color:var(--a-muted)&quot;>🤳 View Selfie</div>'"><div class="doc-thumb-label">Live Selfie</div></div>`
+          : `<div class="doc-thumb" style="cursor:default"><div style="padding:20px;text-align:center;font-size:.75rem;color:var(--a-muted)">🤳 No selfie uploaded</div></div>`
+        }
+        ${otherDocUrl
+          ? `<div class="doc-thumb" onclick="window.open('${otherDocUrl}','_blank')" title="Click to open supporting document"><img src="${otherDocUrl}" alt="Other Doc" onerror="this.src='';this.parentElement.innerHTML='<div style=&quot;padding:20px;text-align:center;font-size:.75rem;color:var(--a-muted)&quot;>📎 View Other Doc</div>'"><div class="doc-thumb-label">Supporting Doc</div></div>`
+          : ''
+        }
       </div>
     </div>
     <div class="panel-section">
