@@ -3089,45 +3089,42 @@ function geoHandleFileSelect(input, labelId, statusId) {
   if (label)  label.style.boxShadow = 'inset 0 0 0 2px var(--geo-green-400)';
 }
 
-async function geoUploadToCloudinary(fileInput, folder, tags) {
+async function geoUploadToSupabase(fileInput, folder) {
   const file = fileInput && fileInput.files && fileInput.files[0];
   if (!file) return null; // optional field — skip if empty
 
-  // Step 1: get signed params from our API
-  // NOTE: send only folder — backend signs folder+timestamp only (no tags in sig)
+  // Determine file extension
+  const ext = file.name.split('.').pop().toLowerCase() || 'bin';
+
+  // Step 1: get signed upload URL from our backend
   const signRes = await fetch('https://api.geoestate.com.ng/upload-sign', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ folder })
+    body: JSON.stringify({ folder, ext })
   });
   if (!signRes.ok) throw new Error('Could not get upload signature');
   const params = await signRes.json();
+  if (params.error) throw new Error(params.error);
 
-  // Step 2: upload directly to Cloudinary
-  // IMPORTANT: backend returns wrong cloud_name ("GeoEstate") — override with correct slug
-  // Backend env var CLOUDINARY_CLOUD_NAME should be updated to "dyxr2njxw" on Railway/Render
-  const CORRECT_CLOUD_NAME = 'dyxr2njxw';
-  const cloudName = CORRECT_CLOUD_NAME; // override params.cloud_name until backend is fixed
-  const uploadUrl = params.upload_url ||
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-
-  const fd = new FormData();
-  fd.append('file',      file);
-  fd.append('api_key',   params.api_key);
-  fd.append('timestamp', params.timestamp);
-  fd.append('signature', params.signature);
-  fd.append('folder',    params.folder);
-  // Only append tags if backend included them in signature (to avoid sig mismatch)
-  if (params.tags && params.tags_in_signature) fd.append('tags', params.tags);
-
-  const uploadRes = await fetch(uploadUrl, { method: 'POST', body: fd });
+  // Step 2: PUT file directly to Supabase Storage signed URL
+  const uploadRes = await fetch(params.signed_url, {
+    method:  'PUT',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert':     'false'
+    },
+    body: file
+  });
   if (!uploadRes.ok) {
-    const errBody = await uploadRes.json().catch(() => ({}));
-    throw new Error('Cloudinary upload failed: ' + (errBody.error?.message || uploadRes.status));
+    const errBody = await uploadRes.text().catch(() => '');
+    throw new Error('Supabase upload failed: ' + (errBody || uploadRes.status));
   }
-  const result = await uploadRes.json();
-  return result.secure_url; // ← this is what we save to Neon
+
+  // Step 3: return the public URL — this is what gets saved to Neon
+  return params.public_url;
 }
+// Alias — old name kept so geoUploadRegistrationDocs() still works
+const geoUploadToCloudinary = geoUploadToSupabase;
 
 async function geoUploadRegistrationDocs() {
   const progressEl = document.getElementById('reg-upload-progress');
