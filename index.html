@@ -355,13 +355,20 @@ YPE html>
 (function checkAPIHealth() {
   var API = 'https://api.geoestate.com.ng';
 
-  // ── Hoisted: auth modal opener (called from nav buttons before main scripts parse) ──
+  // Hoisted — called by nav buttons before main script block parses
   function openAuthModal(tab) {
     var modal = document.getElementById('auth-modal');
     if (!modal) return;
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     if (typeof switchAuthTab === 'function') switchAuthTab(tab || 'login');
+  }
+  function closeMobileNav() {
+    var nav = document.getElementById('geo-mobile-nav');
+    var btn = document.getElementById('geo-hamburger');
+    if (nav) { nav.classList.remove('open'); }
+    if (btn) { btn.classList.remove('open'); }
+    document.body.style.overflow = '';
   }
   fetch(API + '/', { method: 'GET' }).then(function(r) {
     return r.text();
@@ -3410,6 +3417,12 @@ async function verifyOTP() {
 
       if (!regRes.ok && regRes.status !== 200) {
         throw new Error(regData.error || 'Registration failed. Please try again.');
+      }
+
+      // Sync ID — use the server-confirmed submissionId if available
+      // This ensures verify-identity finds the correct DB row
+      if (regData.submissionId) {
+        newUser.id = regData.submissionId;
       }
 
       // Step 3: login + redirect to verify page

@@ -1,40 +1,55 @@
-# GeoEstate — Bug Fix Package
+# GeoEstate — Fix Package v2
 Date: June 2026
 
 ## Files
-- index.html   → GeoEstate2 repo root (replaces existing)
-- server.js    → GeoEstate repo root  (replaces existing)
+- index.html  → GeoEstate2 repo root
+- server.js   → GeoEstate repo root
 
-## Fixes Applied
+## Bugs Fixed This Round
 
-### Fix 1a — updateClock TypeError (index.html)
-`updateClock()` now guards against null before writing textContent.
-Eliminates the flood of console errors on non-admin pages.
+### BUG 1 — "User not found" on identity verification
+ROOT CAUSE (2-part):
+  a) Frontend generates newUser.id = 'USR-' + Date.now() client-side,
+     calls /register, then immediately calls /owner/verify-identity with
+     that same id as the token. If the user "already registered",
+     the server returned no submissionId, so the token id never matched
+     the real DB row → 404 → "User not found".
 
-### Fix 1b — Missing admin-root div (index.html)
-Added `<div id="admin-root">` to the HTML body before </body>.
-This container is required for the admin panel to mount.
+  b) Even for new users, the server returned { success: true, submissionId }
+     but the frontend never read regData.submissionId to update newUser.id.
 
-### Fix 2 — openAuthModal hoisted (index.html)
-`openAuthModal()` is now defined in the early script block (line ~358)
-so nav buttons can call it before the main 3000-line script block finishes parsing.
+FIX (index.html):
+  After /register succeeds, newUser.id is now overwritten with
+  regData.submissionId if present — guaranteeing the id the frontend
+  uses matches what's actually in the DB.
 
-### Fix 3 — Supabase upload error logging (server.js)
-`/upload-sign` now logs the exact Supabase error response to Railway console,
-making it easy to diagnose bucket/key issues.
+FIX (server.js):
+  /register now returns submissionId even on "Already registered",
+  so the frontend always gets the canonical DB id back.
 
-### Fix 4 — URL trailing slash normalisation (server.js)
-`req.url` is now stripped of trailing slashes before route matching,
-preventing POST /owner/verify-identity/ from falling through to 404.
+### BUG 2 — closeMobileNav not defined
+ROOT CAUSE:
+  Mobile nav buttons call closeMobileNav() at line 447, but the
+  function is defined far later in the script (line ~5377 as part
+  of toggleMobileNav logic). On fast taps before full parse, or
+  if any script error occurs before that point, the function
+  doesn't exist yet.
 
-## Still Required (env vars on Railway)
-Set these in Railway → Your Service → Variables:
-  SUPABASE_URL          = https://<your-project>.supabase.co
-  SUPABASE_SERVICE_KEY  = <service_role key>
-  SUPABASE_BUCKET       = geoestate-docs   (optional, this is the default)
+FIX (index.html):
+  closeMobileNav() hoisted into the early <script> block (~line 358)
+  alongside the openAuthModal() hoist from v1.
 
-The `geoestate-docs` bucket must exist in Supabase Storage and be set to public.
+### BUG 3 — /upload-sign 500
+(unchanged from v1 — requires env vars on Railway)
+Set: SUPABASE_URL, SUPABASE_SERVICE_KEY
+Create bucket: geoestate-docs (public, with INSERT policy)
+Railway logs will now show exact Supabase error after this deploy.
+
+## Carried Over from v1
+- updateClock null guard (no more console flood)
+- admin-root div added to HTML body
+- URL trailing-slash normalization in server.js
 
 ## Deploy Order
-1. Push server.js to GeoEstate repo (Render auto-deploys)
-2. Push index.html to GeoEstate2 repo
+1. Push server.js to GeoEstate (Render auto-deploys)
+2. Push index.html to GeoEstate2
