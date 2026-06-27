@@ -3159,11 +3159,12 @@ function doRegister() {
   const idocInput  = document.getElementById('reg-idoc');
   const errEl = document.getElementById('reg-error'); errEl.style.display='none';
   const showErr = msg => { errEl.textContent='❌ '+msg; errEl.style.display='block'; };
-  if (!photoInput || !photoInput.files || !photoInput.files[0]) {
-    return showErr('Please upload a selfie/profile photo.');
-  }
-  if (!idocInput || !idocInput.files || !idocInput.files[0]) {
-    return showErr('Please upload your government ID.');
+  // FIX 1: File uploads are now optional at registration — user can upload later from their profile
+  const hasPhoto = photoInput && photoInput.files && photoInput.files[0];
+  const hasIdoc  = idocInput  && idocInput.files  && idocInput.files[0];
+  if (!hasPhoto || !hasIdoc) {
+    // Soft warning — registration still proceeds, docs uploaded later
+    console.warn('No documents selected — registration will proceed without docs');
   }
   const pass=document.getElementById('reg-pass').value, pass2=document.getElementById('reg-pass2').value;
   const agreed=document.getElementById('reg-agree').checked;
@@ -3190,7 +3191,7 @@ function doRegister() {
     next_of_kin_rel:   kinRel,
     next_of_kin_phone: kinPhone
   };
-  sendOTP(phone,'register'); switchAuthTab('otp');
+  sendOTP(pendingRegData.email,'register'); switchAuthTab('otp'); // FIX 5: use email not phone
   document.getElementById('otp-sub').textContent='We sent a 6-digit code to '+email+' (check your inbox)';
 }
 async function doLogin() {
@@ -4635,6 +4636,15 @@ function saveState(){
 
 
 // ══ loadFromDB — called after admin login ══════════════════════════════════
+// FIX 4: SSE listener — auto-refresh admin dashboard when new registrations arrive
+function initAdminSSE() {
+  if (window._adminSSEInitialized) return;
+  window._adminSSEInitialized = true;
+  if (window.GeoAPI && window.GeoAPI.onSSE) {
+    GeoAPI.onSSE('registration_updated', function() { loadFromDB(); });
+    GeoAPI.onSSE('activity', function() { loadFromDB(); });
+  }
+}
 async function loadFromDB() {
   try {
     adminToast('🔄 Loading data from database...', 'info');
@@ -6492,6 +6502,7 @@ window.initApp = function(){
   updateBadges(); saveState();
   // Load everything from Neon DB
   loadFromDB();
+  initAdminSSE(); // FIX 4: start SSE real-time listener
   // Poll for new registrations every 30s
   setInterval(syncFromAPI, 30000);
 };
