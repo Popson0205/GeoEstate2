@@ -354,6 +354,15 @@ YPE html>
 <script>
 (function checkAPIHealth() {
   var API = 'https://api.geoestate.com.ng';
+
+  // ── Hoisted: auth modal opener (called from nav buttons before main scripts parse) ──
+  function openAuthModal(tab) {
+    var modal = document.getElementById('auth-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (typeof switchAuthTab === 'function') switchAuthTab(tab || 'login');
+  }
   fetch(API + '/', { method: 'GET' }).then(function(r) {
     return r.text();
   }).then(function(t) {
@@ -3629,7 +3638,7 @@ function nav(page,el){
 }
 
 // ══ CLOCK ══
-function updateClock(){const now=new Date();document.getElementById('clock').textContent=now.toLocaleDateString('en-NG',{weekday:'short',day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});}
+function updateClock(){const el=document.getElementById('clock');if(!el)return;const now=new Date();el.textContent=now.toLocaleDateString('en-NG',{weekday:'short',day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});}
 setInterval(updateClock,1000);
 
 // ══ TOAST ══
@@ -5855,5 +5864,9 @@ async function cloudinaryUpload(inputId, previewId) {
 </script>
 
 <script src="geo-api.js"></script>
+
+<!-- ── Admin Portal Root ── -->
+<div id="admin-root" style="display:none;position:fixed;inset:0;z-index:10000"></div>
+
 </body>
 </html>
