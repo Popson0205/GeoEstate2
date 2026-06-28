@@ -251,6 +251,16 @@ YPE html>
   #admin-root .modal-title{font-size:1.05rem;font-weight:800;color:var(--a-text)}
   #admin-root .modal-body{padding:24px}
   #admin-root .modal-footer{padding:16px 24px;border-top:1px solid var(--a-border);display:flex;gap:10px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--a-card);border-radius:0 0 16px 16px}
+  #admin-root .modal-box{background:var(--a-card);border-radius:16px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+  #admin-root .modal-sub{font-size:.8rem;color:var(--a-muted);margin-top:2px}
+  #admin-root .modal-close{background:none;border:none;font-size:1.1rem;color:var(--a-muted);cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;transition:background .15s}
+  #admin-root .modal-close:hover{background:var(--a-border)}
+  #admin-root .data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+  #admin-root .data-table th{padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:var(--a-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--a-border);white-space:nowrap}
+  #admin-root .data-table td{padding:11px 14px;border-bottom:1px solid var(--a-border2);color:var(--a-text);vertical-align:middle}
+  #admin-root .data-table tr:last-child td{border-bottom:none}
+  #admin-root .data-table tr:hover td{background:var(--a-card2)}
+  #admin-root .geo-card-adm{background:var(--a-card);border-radius:12px;overflow:hidden;box-shadow:var(--a-shadow)}
 
   /* FORM ELEMENTS */
   #admin-root .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
@@ -2249,7 +2259,7 @@ YPE html>
         <button onclick="switchAuthTab('forgot')" style="background:none;border:none;font-size:.78rem;color:var(--geo-green-600);cursor:pointer;font-family:var(--font-sans)">Forgot password?</button>
       </div>
 
-      <div id="login-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:14px;box-shadow:inset 0 0 0 1px #fca5a5"></div>
+      <div id="adm-login-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:14px;box-shadow:inset 0 0 0 1px #fca5a5"></div>
 
       <button id="login-submit-btn" onclick="doLogin()" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;font-size:.95rem">Sign In →</button>
 
@@ -3117,6 +3127,313 @@ function goToAdmin(e) {
   return false;
 }
 
+// ── Admin HTML Injector — builds the admin-root DOM on first open ──────────
+(function patchShowPageForAdmin() {
+  const _orig = window.showPage || function(){};
+  window.showPage = function(name) {
+    if (name === 'admin') {
+      const root = document.getElementById('admin-root');
+      if (!root) return;
+      // Inject HTML once
+      if (!root._geoAdminMounted) {
+        root._geoAdminMounted = true;
+        root.innerHTML = `
+<div id="adm-login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1f15,#1a3d25)">
+  <div class="login-box">
+    <div class="login-logo">📍 GeoEstate</div>
+    <div class="login-sub">Admin Portal — Authorised Access Only</div>
+    <label class="login-label">Email</label>
+    <input id="adm-login-email" class="login-input" type="email" placeholder="admin@geoestate.com.ng" autocomplete="username">
+    <label class="login-label">Password</label>
+    <input id="adm-login-pass" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')adminDoLogin()">
+    <button class="login-btn" onclick="adminDoLogin()">Sign In</button>
+    <div id="login-error" class="login-error"></div>
+    <div class="login-hint">GeoEstate staff only. Session expires in 8 hours.</div>
+    <button onclick="showPage('home');document.getElementById('admin-root').style.display='none';" style="display:block;margin-top:16px;background:none;border:none;color:rgba(255,255,255,.4);font-size:.78rem;cursor:pointer;font-family:var(--a-font)">← Back to Website</button>
+  </div>
+</div>
+
+<div id="adm-app" style="display:none;height:100vh;width:100%;overflow:hidden;flex-direction:row">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📍</div>
+      <div>
+        <div style="color:#fff;font-weight:800;font-size:.9rem">GeoEstate</div>
+        <div style="color:rgba(255,255,255,.4);font-size:.7rem">Admin Portal</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 0">
+      <div class="nav-item active" onclick="nav('overview',this)">📊 Overview</div>
+      <div style="padding:8px 20px 4px;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em">Verification</div>
+      <div class="nav-item" onclick="nav('id-queue',this)">🪪 ID Queue <span id="badge-id" style="margin-left:auto;background:#ef4444;color:#fff;border-radius:999px;padding:1px 7px;font-size:.7rem;font-weight:700;display:none"></span></div>
+      <div class="nav-item" onclick="nav('prop-queue',this)">🏠 Prop Queue <span id="badge-prop" style="margin-left:auto;background:#f59e0b;color:#fff;border-radius:999px;padding:1px 7px;font-size:.7rem;font-weight:700;display:none"></span></div>
+      <div class="nav-item" onclick="nav('registrations',this)">📋 Registrations</div>
+      <div class="nav-item" onclick="nav('users',this)">✅ Verified Users</div>
+      <div style="padding:8px 20px 4px;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em">Operations</div>
+      <div class="nav-item" onclick="nav('enquiries-mgmt',this)">📬 Enquiries <span id="badge-enquiries" style="margin-left:auto;background:#22c55e;color:#fff;border-radius:999px;padding:1px 7px;font-size:.7rem;font-weight:700;display:none"></span></div>
+      <div class="nav-item" onclick="nav('tenancy',this)">🏘 Tenancy <span id="badge-tenancy" style="margin-left:auto;background:#ef4444;color:#fff;border-radius:999px;padding:1px 7px;font-size:.7rem;font-weight:700;display:none"></span></div>
+      <div class="nav-item" onclick="nav('payments',this)">💳 Payments <span id="badge-payments" style="margin-left:auto;background:#ef4444;color:#fff;border-radius:999px;padding:1px 7px;font-size:.7rem;font-weight:700;display:none">0</span></div>
+      <div class="nav-item" onclick="nav('transactions',this)">💰 Transactions</div>
+      <div class="nav-item" onclick="nav('disputes',this)">⚠️ Disputes <span id="badge-disputes" style="margin-left:auto;background:#ef4444;color:#fff;border-radius:999px;padding:1px 7px;font-size:.7rem;font-weight:700;display:none"></span></div>
+      <div style="padding:8px 20px 4px;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em">Listings</div>
+      <div class="nav-item" onclick="nav('properties-mgmt',this)">🗂 Properties</div>
+      <div class="nav-item" onclick="nav('lawyers',this)">⚖️ Lawyers</div>
+      <div style="padding:8px 20px 4px;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em">Admin</div>
+      <div class="nav-item" onclick="nav('team',this)">👥 Team</div>
+      <div class="nav-item" onclick="nav('sync',this)">🔄 Sync</div>
+      <div class="nav-item" onclick="nav('settings',this)">⚙️ Settings</div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="color:#fff;font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Admin</div>
+        <div style="color:rgba(255,255,255,.4);font-size:.7rem">GeoEstate</div>
+      </div>
+      <button onclick="adminPanelLogout()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:.85rem" title="Logout">⏻</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div style="margin-left:240px;flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="topbar-title" style="font-weight:800;font-size:1rem">Overview</div>
+      </div>
+      <div class="topbar-right">
+        <div id="clock" style="font-size:.78rem;color:var(--a-muted)"></div>
+        <button onclick="syncFromAPI()" style="background:var(--a-green-l);color:var(--a-green);border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
+        <button onclick="showPage('home');document.getElementById('admin-root').style.display='none';" style="background:var(--a-border);color:var(--a-text);border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer">← Website</button>
+      </div>
+    </div>
+
+    <!-- Pages -->
+    <div style="flex:1;overflow-y:auto;padding:24px 28px">
+
+      <!-- Overview -->
+      <div id="adm-page-overview" class="page active">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-value" id="kpi-pending">—</div><div class="kpi-label">Pending Reviews</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-approved">—</div><div class="kpi-label">Approved Users</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-props">—</div><div class="kpi-label">Live Properties</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-verified">—</div><div class="kpi-label">Verified Owners</div></div>
+        </div>
+        <div class="two-col">
+          <div class="geo-card-adm"><div class="section-header"><span style="font-weight:700">Activity Feed</span></div><div id="activity-feed" style="padding:12px;max-height:340px;overflow-y:auto"><div style="text-align:center;padding:32px;color:var(--a-muted)">Loading…</div></div></div>
+          <div class="geo-card-adm"><div class="section-header"><span style="font-weight:700">Weekly Registrations</span></div><div id="bar-chart" style="padding:16px;display:flex;align-items:flex-end;gap:8px;height:120px"></div>
+          <div class="section-header" style="margin-top:8px"><span style="font-weight:700">Urgent Actions</span></div>
+          <table class="data-table" style="width:100%"><thead><tr><th>User</th><th>Role</th><th>SLA</th><th>Action</th></tr></thead><tbody id="urgent-table"><tr><td colspan="4" class="empty-state">Loading…</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ID Queue -->
+      <div id="adm-page-id-queue" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Identity Verification Queue</span><span id="queue-count-label" style="font-size:.78rem;color:var(--a-muted)"></span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Applicant</th><th>Role</th><th>Submitted</th><th>SLA</th><th>Reviewer</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="id-queue-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Prop Queue -->
+      <div id="adm-page-prop-queue" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Property Listing Queue</span><span id="prop-queue-count" style="font-size:.78rem;color:var(--a-muted);margin-left:8px"></span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Property</th><th>Owner</th><th>Type</th><th>Price</th><th>Location</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="prop-queue-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Registrations -->
+      <div id="adm-page-registrations" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">All Registrations</span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>User</th><th>Role</th><th>Email</th><th>Phone</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+          <tbody id="reg-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Verified Users -->
+      <div id="adm-page-users" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Verified Users</span><span id="verified-count-badge" style="background:var(--a-green-l);color:var(--a-green);border-radius:999px;padding:2px 10px;font-size:.72rem;font-weight:700;margin-left:8px"></span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>User</th><th>Role</th><th>Email</th><th>Phone</th><th>State</th><th>NIN</th><th>Doc</th><th>Since</th><th>Actions</th></tr></thead>
+          <tbody id="users-table"><tr><td colspan="9" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Enquiries -->
+      <div id="adm-page-enquiries-mgmt" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Property Enquiries</span></div>
+        <div id="admin-enq-list"><div style="text-align:center;padding:48px;color:var(--a-muted)">Loading…</div></div>
+      </div>
+
+      <!-- Tenancy -->
+      <div id="adm-page-tenancy" class="page">
+        <div id="tenancy-alerts" style="margin-bottom:16px"></div>
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Tenancy Tracker</span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Ref</th><th>Property</th><th>Tenant</th><th>Owner</th><th>Amount</th><th>End Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tenancy-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Payments -->
+      <div id="adm-page-payments" class="page">
+        <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+          <div class="kpi-card"><div class="kpi-value" id="pay-total-pending">—</div><div class="kpi-label">Pending</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="pay-total-confirmed">—</div><div class="kpi-label">Confirmed</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="pay-total-fees">—</div><div class="kpi-label">Total Fees</div></div>
+        </div>
+        <div class="section-header" style="margin-bottom:12px"><span style="font-weight:700">Pending Confirmation</span></div>
+        <table class="data-table" style="width:100%;margin-bottom:24px">
+          <thead><tr><th>Ref</th><th>Property</th><th>Buyer</th><th>Amount</th><th>Fee</th><th>Owner Amt</th><th>Actions</th></tr></thead>
+          <tbody id="pending-payments-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+        <div class="section-header" style="margin-bottom:12px"><span style="font-weight:700">Confirmed Payments</span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Ref</th><th>Property</th><th>Buyer</th><th>Amount</th><th>Fee</th><th>Owner Amt</th><th>Confirmed</th></tr></thead>
+          <tbody id="confirmed-payments-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Transactions -->
+      <div id="adm-page-transactions" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Transaction Ledger</span><span id="txn-total" style="font-size:.78rem;color:var(--a-muted);margin-left:8px"></span></div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>ID</th><th>Property</th><th>Buyer</th><th>Owner</th><th>Amount</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="txn-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Disputes -->
+      <div id="adm-page-disputes" class="page">
+        <div style="display:flex;gap:12px;margin-bottom:16px">
+          <span class="pill" style="background:var(--a-green-l);color:var(--a-green)">Active: <b id="disputes-active-badge">0</b></span>
+          <span class="pill" style="background:var(--a-border);color:var(--a-muted)">Resolved: <b id="disputes-resolved-badge">0</b></span>
+        </div>
+        <div id="disputes-list"><div style="text-align:center;padding:48px;color:var(--a-muted)">Loading…</div></div>
+      </div>
+
+      <!-- Properties Mgmt -->
+      <div id="adm-page-properties-mgmt" class="page">
+        <div class="section-header" style="margin-bottom:16px">
+          <span style="font-weight:700">Property Management</span>
+          <button class="btn btn-approve btn-sm" onclick="openAddPropertyModal()">+ Add Property</button>
+        </div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Title</th><th>Owner</th><th>Type</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="adminProperties-mgmt-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Lawyers -->
+      <div id="adm-page-lawyers" class="page">
+        <div class="section-header" style="margin-bottom:16px">
+          <span style="font-weight:700">Lawyer Panel</span>
+          <button class="btn btn-approve btn-sm" onclick="openAddLawyerModal()">+ Add Lawyer</button>
+        </div>
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Name</th><th>Bar #</th><th>Specialisation</th><th>State</th><th>Email</th><th>Cases</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="lawyers-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Team -->
+      <div id="adm-page-team" class="page">
+        <div class="section-header" style="margin-bottom:16px">
+          <span style="font-weight:700">Team Management</span>
+          <button class="btn btn-approve btn-sm" onclick="openAddTeamModal()">+ Add Member</button>
+        </div>
+        <div id="team-grid" class="team-grid"></div>
+      </div>
+
+      <!-- Sync -->
+      <div id="adm-page-sync" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Database Sync</span></div>
+        <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-approve" onclick="syncFromAPI()">🔄 Pull Registrations</button>
+          <button class="btn btn-approve" onclick="loadPropertiesFromDB()">🏠 Pull Properties</button>
+        </div>
+        <div id="sync-log" style="background:var(--a-card2);border-radius:10px;padding:16px;font-family:monospace;font-size:.78rem;color:var(--a-muted);min-height:120px;max-height:400px;overflow-y:auto">Sync log will appear here…</div>
+      </div>
+
+      <!-- Settings -->
+      <div id="adm-page-settings" class="page">
+        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Settings</span></div>
+        <div id="admin-token-setting" style="padding:16px;background:var(--a-card2);border-radius:10px"></div>
+        <div style="margin-top:24px">
+          <div style="font-weight:700;margin-bottom:8px">GeoEstate Bank Account</div>
+          <div style="font-size:.85rem;color:var(--a-muted);margin-bottom:8px">Account displayed to buyers/renters at payment step:</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div id="admin-acct-num" style="font-family:monospace;font-size:1rem;font-weight:700;background:var(--a-card2);padding:10px 16px;border-radius:8px">0123456789 — First Bank — GeoEstate Ltd</div>
+            <button class="btn btn-approve btn-sm" onclick="editAccountNum()">Edit</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /pages scroll area -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Toast -->
+<div id="admin-toast" style="position:fixed;bottom:24px;right:24px;background:var(--a-green);color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none;max-width:320px"></div>
+
+<!-- Modals -->
+<div id="modal-id" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="modal-id-title" class="modal-title"></div><div id="modal-id-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-id')">✕</button></div><div id="modal-id-body" class="modal-body"></div><div id="modal-id-footer" class="modal-footer"></div></div></div>
+<div id="modal-prop" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="modal-prop-title" class="modal-title"></div><div id="modal-prop-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-prop')">✕</button></div><div id="modal-prop-body" class="modal-body"></div><div id="modal-prop-footer" class="modal-footer"></div></div></div>
+<div id="modal-user" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="modal-user-title" class="modal-title"></div><div id="modal-user-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-user')">✕</button></div><div id="modal-user-body" class="modal-body"></div><div id="modal-user-footer" class="modal-footer"></div></div></div>
+<div id="modal-lawyer" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="modal-lawyer-title" class="modal-title"></div><div id="modal-lawyer-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-lawyer')">✕</button></div><div id="modal-lawyer-body" class="modal-body"></div><div id="modal-lawyer-footer" class="modal-footer"></div></div></div>
+<div id="modal-dispute" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="modal-dispute-title" class="modal-title"></div><div id="modal-dispute-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-dispute')">✕</button></div><div id="modal-dispute-body" class="modal-body"></div><div id="modal-dispute-footer" class="modal-footer"></div></div></div>
+<div id="modal-release" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div class="modal-title">Release Funds</div><button class="modal-close" onclick="closeModal('modal-release')">✕</button></div><div id="modal-release-body" class="modal-body"></div><div id="modal-release-footer" class="modal-footer"></div></div></div>
+<div id="modal-confirm-payment" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div class="modal-title">Confirm Payment</div><button class="modal-close" onclick="closeModal('modal-confirm-payment')">✕</button></div><div id="modal-confirm-payment-body" class="modal-body"></div><div id="modal-confirm-payment-footer" class="modal-footer"></div></div></div>
+<div id="modal-tenancy-detail" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="tn-detail-title" class="modal-title"></div></div><button class="modal-close" onclick="closeModal('modal-tenancy-detail')">✕</button></div><div id="tn-detail-body" class="modal-body"></div><div id="tn-detail-footer" class="modal-footer"></div></div></div>
+<div id="modal-pick-lawyer" class="modal-overlay"><div class="modal-box" style="max-width:520px"><div class="modal-header"><div><div class="modal-title">Assign Lawyer</div><div id="pick-lawyer-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-pick-lawyer')">✕</button></div><div class="modal-body"><input id="lawyer-picker-search" type="text" placeholder="Search by name, specialisation, state…" oninput="filterLawyerPicker(this.value)" style="width:100%;padding:10px 14px;border:none;border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.88rem;outline:none;box-shadow:0 0 0 1px var(--a-input-border);margin-bottom:14px;box-sizing:border-box"><div id="lawyer-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div></div></div></div>
+`;
+        // Check for existing JWT and auto-login
+        const tok = localStorage.getItem('geo_admin_token');
+        if (tok) {
+          const parts = tok.split('.');
+          if (parts.length === 3) {
+            try {
+              const payload = JSON.parse(atob(parts[1]));
+              if (payload.exp > Math.floor(Date.now()/1000)) {
+                // Token still valid — skip login screen
+                document.getElementById('adm-login-screen').style.display = 'none';
+                const appEl = document.getElementById('adm-app');
+                appEl.style.display = 'flex';
+                if (typeof initApp === 'function') initApp();
+              }
+            } catch(e) {}
+          }
+        }
+        // Attach modal overlay click-to-close
+        root.addEventListener('click', function(e) {
+          if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+        });
+      }
+      root.style.display = 'block';
+      return;
+    }
+    // For all non-admin pages, hide admin overlay and run original
+    const root = document.getElementById('admin-root');
+    if (root) root.style.display = 'none';
+    _orig(name);
+  };
+  // Mark as patched AND incorporate the type-page side-effect so the later
+  // DOMContentLoaded patcher skips us (it checks !showPage._geoPatched)
+  window.showPage._geoPatched = true;
+  // Also wire in loadTypePageIfNeeded so rent/buy/lease pages still work
+  const _adminWrapped = window.showPage;
+  window.showPage = function(name) {
+    _adminWrapped(name);
+    if (typeof loadTypePageIfNeeded === 'function') loadTypePageIfNeeded(name);
+  };
+  window.showPage._geoPatched = true;
+})();
+
 let currentSlide = 0;
 let slideshowTimer = null;
 function goToSlide(n) {
@@ -3262,19 +3579,24 @@ function switchAuthTab(tab) {
 // ── Role selector ─────────────────────────────────────────────────────────────
 function selectRole(role) {
   selectedRole = role;
-  const oc = document.getElementById('role-owner-card');
-  const rc = document.getElementById('role-renter-card');
+  // Support both old card IDs and current button IDs
+  const oc = document.getElementById('role-owner-card') || document.getElementById('role-owner-btn');
+  const rc = document.getElementById('role-renter-card') || document.getElementById('role-renter-btn');
   if (!oc || !rc) return;
   if (role === 'owner') {
-    oc.style.boxShadow  = 'inset 0 0 0 2px var(--geo-green-500)';
-    oc.style.background = 'var(--geo-green-50)';
-    rc.style.boxShadow  = 'inset 0 0 0 1px var(--border-default)';
-    rc.style.background = 'var(--surface-secondary)';
+    oc.style.background = 'var(--geo-green-600)';
+    oc.style.color      = '#fff';
+    oc.style.border     = '2px solid var(--geo-green-600)';
+    rc.style.background = 'transparent';
+    rc.style.color      = 'var(--text-secondary)';
+    rc.style.border     = '2px solid var(--border-default)';
   } else {
-    rc.style.boxShadow  = 'inset 0 0 0 2px var(--geo-green-500)';
-    rc.style.background = 'var(--geo-green-50)';
-    oc.style.boxShadow  = 'inset 0 0 0 1px var(--border-default)';
-    oc.style.background = 'var(--surface-secondary)';
+    rc.style.background = 'var(--geo-green-600)';
+    rc.style.color      = '#fff';
+    rc.style.border     = '2px solid var(--geo-green-600)';
+    oc.style.background = 'transparent';
+    oc.style.color      = 'var(--text-secondary)';
+    oc.style.border     = '2px solid var(--border-default)';
   }
 }
 
@@ -3719,8 +4041,10 @@ async function loadFromDB() {
 
 // ══ AUTH ══
 function adminDoLogin(){
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const pass  = document.getElementById('login-pass').value;
+  const email = (document.getElementById('adm-login-email')||{}).value.trim().toLowerCase();
+  const pass  = (document.getElementById('adm-login-pass')||{}).value;
+  const errEl = document.getElementById('adm-login-error');
+  if (!email || !pass) { if(errEl){errEl.style.display='block';errEl.textContent='❌ Email and password required';} return; }
   // POST /admin/login — server validates, returns JWT. Never compare password client-side.
   fetch('https://api.geoestate.com.ng/admin/login', {
     method: 'POST',
@@ -3730,23 +4054,27 @@ function adminDoLogin(){
     if (data.success && data.token) {
       localStorage.setItem('geo_admin_token', data.token);
       if (window.GeoAPI) GeoAPI.setAdminToken(data.token);
-      document.getElementById('login-error').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
+      if(errEl) errEl.style.display = 'none';
+      const ls = document.getElementById('adm-login-screen');
+      const ap = document.getElementById('adm-app');
+      if(ls) ls.style.display = 'none';
+      if(ap) ap.style.display = 'flex';
       initApp();
     } else {
-      document.getElementById('login-error').style.display = 'block';
-      document.getElementById('login-error').textContent = '❌ ' + (data.error || 'Invalid email or password');
+      if(errEl){ errEl.style.display = 'block'; errEl.textContent = '❌ ' + (data.error || 'Invalid email or password'); }
     }
   }).catch(() => {
-    document.getElementById('login-error').style.display = 'block';
-    document.getElementById('login-error').textContent = '❌ Could not reach API. Check your connection.';
+    if(errEl){ errEl.style.display = 'block'; errEl.textContent = '❌ Could not reach API. Check your connection.'; }
   });
 }
 function adminPanelLogout(){
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('login-pass').value='';
+  const ap = document.getElementById('adm-app');
+  const ls = document.getElementById('adm-login-screen');
+  const lp = document.getElementById('adm-login-pass');
+  if(ap) ap.style.display='none';
+  if(ls) ls.style.display='flex';
+  if(lp) lp.value='';
+  localStorage.removeItem('geo_admin_token');
 }
 
 // ══ NAV ══
