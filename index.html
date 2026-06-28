@@ -425,7 +425,7 @@ YPE html>
       <div style="display:flex;align-items:center;gap:0;border-left:1px solid var(--border-subtle);margin-left:4px;padding-left:8px">
         <a href="/owner-dashboard" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Owner Portal">🏠 Owner</a>
         <a href="/sales" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Sales Portal">📊 Sales</a>
-        <a href="#admin" onclick="return goToAdmin(event)" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Admin Portal">🔐 Admin</a>
+        <a href="#admin" onclick="showPage('admin');return false;" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Admin Portal">🔐 Admin</a>
       </div>
       <!-- Hamburger — mobile only -->
       <button class="geo-hamburger" id="geo-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
@@ -458,7 +458,7 @@ YPE html>
     <button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>
     <a href="/owner-dashboard" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🏠 Owner Portal</a>
     <a href="/sales" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">📊 Sales Portal</a>
-    <a href="#admin" onclick="return goToAdmin(event)" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🔐 Admin Portal</a>
+    <a href="#admin" onclick="showPage('admin');return false;" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🔐 Admin Portal</a>
   </div>
 </div>
 
@@ -3110,6 +3110,13 @@ document.addEventListener('click', function(e) {
 
 // ── HERO SLIDESHOW ──────────────────────────────────────────────────────────
 const slideLabels = ['📍 Lekki Phase 1, Lagos','📍 Maitama, Abuja','📍 Victoria Island, Lagos','📍 GRA, Port Harcourt','📍 Asokoro, Abuja','📍 Ikeja GRA, Lagos'];
+// ── Admin navigation helper (used by header links) ────────────────────────
+function goToAdmin(e) {
+  if (e) e.preventDefault();
+  showPage('admin');
+  return false;
+}
+
 let currentSlide = 0;
 let slideshowTimer = null;
 function goToSlide(n) {
