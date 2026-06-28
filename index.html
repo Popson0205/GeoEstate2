@@ -355,7 +355,8 @@ YPE html>
 (function checkAPIHealth() {
   var API = 'https://api.geoestate.com.ng';
 
-  // Hoisted — called by nav buttons before main script block parses
+  // Hoisted — these functions are called by nav buttons before the main
+  // script block parses. Keep them minimal; full versions defined later.
   function openAuthModal(tab) {
     var modal = document.getElementById('auth-modal');
     if (!modal) return;
@@ -370,13 +371,15 @@ YPE html>
     if (btn) { btn.classList.remove('open'); }
     document.body.style.overflow = '';
   }
-  fetch(API + '/', { method: 'GET' }).then(function(r) {
+
+  // API health check
+  fetch(API + '/', { method: 'GET' }).then(function (r) {
     return r.text();
-  }).then(function(t) {
+  }).then(function (t) {
     if (t.indexOf('suspended') !== -1 || t.indexOf('Service Suspended') !== -1) {
       document.getElementById('api-down-banner').style.display = 'block';
     }
-  }).catch(function() {
+  }).catch(function () {
     document.getElementById('api-down-banner').style.display = 'block';
   });
 })();
@@ -2863,10 +2866,10 @@ function submitListing() {
   window.scrollTo(0, 0);
 }
 
-// ── VERIFY ─────────────────────────────────────────────────────────────────
+// ── IDENTITY VERIFICATION ────────────────────────────────────────────────────
 async function submitVerification() {
-  // Guard: must be logged in
-  if (!currentUser) {
+  // Must be logged in
+  if (!currentUser || !currentUser.id) {
     openAuthModal('login');
     return;
   }
@@ -2874,112 +2877,139 @@ async function submitVerification() {
   const errEl  = document.getElementById('vi-error');
   const progEl = document.getElementById('vi-progress');
   const btn    = document.getElementById('vi-submit-btn');
-  errEl.style.display  = 'none';
-  progEl.style.display = 'none';
-  const showErr  = msg => { errEl.textContent  = '❌ ' + msg; errEl.style.display  = 'block'; };
-  const showProg = msg => { progEl.textContent = '⏳ ' + msg; progEl.style.display = 'block'; };
 
-  // Read all fields
-  const dob      = (document.getElementById('vi-dob')        || {}).value || '';
-  const gender   = (document.getElementById('vi-gender')     || {}).value || '';
-  const occ      = (document.getElementById('vi-occupation') || {}).value.trim() || '';
-  const employer = (document.getElementById('vi-employer')   || {}).value.trim() || '';
-  const state    = (document.getElementById('vi-state')      || {}).value || '';
-  const lga      = (document.getElementById('vi-lga')        || {}).value.trim() || '';
-  const address  = (document.getElementById('vi-address')    || {}).value.trim() || '';
-  const nin      = (document.getElementById('vi-nin')        || {}).value.trim() || '';
-  const kinName  = (document.getElementById('vi-kin-name')   || {}).value.trim() || '';
-  const kinRel   = (document.getElementById('vi-kin-rel')    || {}).value || '';
-  const kinPhone = (document.getElementById('vi-kin-phone')  || {}).value.trim() || '';
+  if (errEl)  errEl.style.display  = 'none';
+  if (progEl) progEl.style.display = 'none';
+
+  function showErr(msg) {
+    if (errEl)  { errEl.textContent  = '❌ ' + msg; errEl.style.display  = 'block'; }
+  }
+  function showProg(msg) {
+    if (progEl) { progEl.textContent = '⏳ ' + msg; progEl.style.display = 'block'; }
+  }
+
+  // Read every field by ID
+  const dob      = (document.getElementById('vi-dob')        || {}).value        || '';
+  const gender   = (document.getElementById('vi-gender')     || {}).value        || '';
+  const occ      = ((document.getElementById('vi-occupation') || {}).value || '').trim();
+  const employer = ((document.getElementById('vi-employer')   || {}).value || '').trim();
+  const state    = (document.getElementById('vi-state')      || {}).value        || '';
+  const lga      = ((document.getElementById('vi-lga')        || {}).value || '').trim();
+  const address  = ((document.getElementById('vi-address')    || {}).value || '').trim();
+  const nin      = ((document.getElementById('vi-nin')        || {}).value || '').trim();
+  const kinName  = ((document.getElementById('vi-kin-name')   || {}).value || '').trim();
+  const kinRel   = (document.getElementById('vi-kin-rel')    || {}).value        || '';
+  const kinPhone = ((document.getElementById('vi-kin-phone')  || {}).value || '').trim();
   const agreed   = (document.getElementById('vi-agree')      || {}).checked;
   const selfieInput = document.getElementById('vi-selfie');
   const idocInput   = document.getElementById('vi-idoc');
 
-  // Validate required fields
-  if (!dob)          return showErr('Please enter your date of birth.');
-  if (!gender)       return showErr('Please select your gender.');
-  if (!occ)          return showErr('Please enter your occupation.');
-  if (!state)        return showErr('Please select your state.');
-  if (!lga)          return showErr('Please enter your LGA.');
-  if (!address)      return showErr('Please enter your residential address.');
-  if (!nin || nin.length < 11) return showErr('Please enter your valid 11-digit NIN.');
-  if (!kinName)      return showErr('Please enter your next of kin name.');
-  if (!kinRel)       return showErr('Please select your next of kin relationship.');
+  // Validate
+  if (!dob)                              return showErr('Please enter your date of birth.');
+  if (!gender)                           return showErr('Please select your gender.');
+  if (!occ)                              return showErr('Please enter your occupation.');
+  if (!state)                            return showErr('Please select your state.');
+  if (!lga)                              return showErr('Please enter your LGA.');
+  if (!address)                          return showErr('Please enter your residential address.');
+  if (!nin || nin.length < 11)           return showErr('Please enter your valid 11-digit NIN.');
+  if (!kinName)                          return showErr('Please enter your next of kin name.');
+  if (!kinRel)                           return showErr('Please select your next of kin relationship.');
   if (!kinPhone || kinPhone.length < 10) return showErr('Please enter a valid next of kin phone number.');
-  if (!selfieInput || !selfieInput.files || !selfieInput.files[0]) return showErr('Please upload your selfie photo.');
-  if (!idocInput   || !idocInput.files   || !idocInput.files[0])   return showErr('Please upload your government ID document.');
-  if (!agreed) return showErr('Please agree to the consent statement.');
+  if (!selfieInput || !selfieInput.files || !selfieInput.files[0])
+    return showErr('Please upload your selfie photo.');
+  if (!idocInput || !idocInput.files || !idocInput.files[0])
+    return showErr('Please upload your government ID document.');
+  if (!agreed)
+    return showErr('Please agree to the consent statement.');
 
-  btn.disabled = true;
-  btn.textContent = '⏳ Uploading documents…';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading documents…'; }
 
   try {
-    // Step 1: Upload selfie + ID doc to Supabase Storage
+    // 1. Upload selfie (fatal — we warn but continue)
     showProg('Uploading selfie…');
-    let selfie_url = null, id_doc_url = null;
+    let selfie_url = null;
     try {
       selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
-    } catch(e) { console.warn('Selfie upload failed:', e.message); }
+    } catch (e) {
+      console.warn('Selfie upload failed:', e.message);
+    }
 
+    // 2. Upload ID document
     showProg('Uploading ID document…');
+    let id_doc_url = null;
     try {
       id_doc_url = await geoUploadToSupabase(idocInput, 'geoestate-docs/registrations/id-docs');
-    } catch(e) { console.warn('ID doc upload failed:', e.message); }
+    } catch (e) {
+      console.warn('ID doc upload failed:', e.message);
+    }
 
-    // Step 2: POST to /owner/verify-identity
-    showProg('Saving your information…');
-    btn.textContent = '⏳ Saving…';
-
-    // Build token (owner token format)
+    // 3. Build owner token — format: owner:<userId>:<timestamp>
+    //    requireOwner() on server validates this exact format
     const ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
 
+    // 4. POST to /owner/verify-identity
+    showProg('Saving your information…');
+    if (btn) btn.textContent = '⏳ Saving…';
+
     const payload = {
-      nin, dob, gender,
-      occupation: occ, employer,
-      state, lga, address,
-      next_of_kin: kinName, next_of_kin_rel: kinRel, next_of_kin_phone: kinPhone,
-      doc_type: 'Government ID',
-      doc_url:  id_doc_url  || '',
-      selfie_url: selfie_url || '',
-      photo_url:  selfie_url || '',  // also save as profile photo
-      id_doc_url: id_doc_url || ''
+      nin,
+      dob,
+      gender,
+      occupation:        occ,
+      employer,
+      state,
+      lga,
+      address,
+      next_of_kin:       kinName,
+      next_of_kin_rel:   kinRel,
+      next_of_kin_phone: kinPhone,
+      doc_type:          'Government ID',
+      selfie_url:        selfie_url  || '',
+      photo_url:         selfie_url  || '',   // also stored as profile photo
+      id_doc_url:        id_doc_url  || '',
+      doc_url:           id_doc_url  || ''
     };
 
-    const r = await fetch('https://api.geoestate.com.ng/owner/verify-identity', {
-      method: 'POST',
+    const res  = await fetch(GEO_API_BASE + '/owner/verify-identity', {
+      method:  'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + ownerToken
       },
       body: JSON.stringify(payload)
     });
-    const d = await r.json();
+    const data = await res.json();
 
-    if (!r.ok && r.status !== 200) throw new Error(d.error || 'Submission failed. Please try again.');
+    if (!res.ok) throw new Error(data.error || 'Submission failed. Please try again.');
 
-    // Success
-    progEl.style.display = 'none';
-    document.getElementById('verify-form-wrap').style.display = 'none';
-    document.getElementById('verify-success').style.display   = 'block';
-    // Update local user object
-    if (currentUser) { currentUser.verificationPending = true; }
-    // Hide the verification banner
-    const banner = document.getElementById('verify-banner');
-    if (banner) banner.style.display = 'none';
+    // 5. Success — update session, hide form, show success panel
+    if (progEl) progEl.style.display = 'none';
+    if (currentUser) {
+      currentUser.verificationPending = true;
+      localStorage.setItem('geo_session', JSON.stringify(currentUser));
+    }
+    const formWrap = document.getElementById('verify-form-wrap');
+    const successEl = document.getElementById('verify-success');
+    if (formWrap)  formWrap.style.display  = 'none';
+    if (successEl) successEl.style.display = 'block';
+    const vBanner = document.getElementById('verify-banner');
+    if (vBanner)   vBanner.style.display = 'none';
 
-  } catch(err) {
-    btn.disabled = false;
-    btn.textContent = 'Submit Verification →';
-    progEl.style.display = 'none';
+  } catch (err) {
+    if (btn)   { btn.disabled = false; btn.textContent = 'Submit Verification →'; }
+    if (progEl) progEl.style.display = 'none';
     showErr(err.message);
   }
 }
 
-// Keep old name as alias for any remaining references
+// Legacy alias
 function verifySuccess() {
-  document.getElementById('verify-form-wrap').style.display = 'none';
-  document.getElementById('verify-success').style.display   = 'block';
+  const formWrap  = document.getElementById('verify-form-wrap');
+  const successEl = document.getElementById('verify-success');
+  if (formWrap)  formWrap.style.display  = 'none';
+  if (successEl) successEl.style.display = 'block';
 }
+
 
 // ── CONTACT / DISPUTE ───────────────────────────────────────────────────────
 function contactSuccess() { document.getElementById('contact-success').style.display = 'block'; }
@@ -3106,345 +3136,492 @@ function startSlideshow() { slideshowTimer = setInterval(nextSlide, 6000); }
 
 
 // ── AUTH SYSTEM ─────────────────────────────────────────────────────────────
-let currentUser = null;
-let currentOTPCode = '';
-let pendingRegData = null;
-let otpTimerInterval = null;
-let selectedRole = 'owner';
+const GEO_API_BASE = 'https://api.geoestate.com.ng';
 
+let currentUser     = null;
+let currentOTPCode  = '';
+let pendingRegData  = null;
+let otpTimerInterval = null;
+let selectedRole    = 'owner';
+
+// ── Session ──────────────────────────────────────────────────────────────────
 function initAuth() {
   const saved = localStorage.getItem('geo_session');
-  if (saved) { try { currentUser = JSON.parse(saved); renderNavAuth(); } catch(e) { localStorage.removeItem('geo_session'); } }
+  if (!saved) return;
+  try {
+    currentUser = JSON.parse(saved);
+    renderNavAuth();
+    const vBanner = document.getElementById('verify-banner');
+    if (vBanner) {
+      vBanner.style.display =
+        (currentUser && !currentUser.verified && !currentUser.verificationPending)
+          ? 'block' : 'none';
+    }
+  } catch (e) {
+    localStorage.removeItem('geo_session');
+  }
 }
+
+function loginSuccess(user) {
+  currentUser = user;
+  localStorage.setItem('geo_session', JSON.stringify(user));
+  renderNavAuth();
+  const vBanner = document.getElementById('verify-banner');
+  if (vBanner) {
+    vBanner.style.display =
+      (user && !user.verified && !user.verificationPending) ? 'block' : 'none';
+  }
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem('geo_session');
+  renderNavAuth();
+  const vBanner = document.getElementById('verify-banner');
+  if (vBanner) vBanner.style.display = 'none';
+  showAuthToast('Signed out successfully.');
+  showPage('home');
+}
+
+// ── Nav rendering ─────────────────────────────────────────────────────────────
 function renderNavAuth() {
   const area = document.getElementById('nav-auth-area');
   if (!area) return;
   if (currentUser) {
-    const initials = (currentUser.fname[0] + currentUser.lname[0]).toUpperCase();
-    area.innerHTML = `<button onclick="toggleDropdown()" style="display:flex;align-items:center;gap:8px;background:var(--surface-secondary);border:none;border-radius:10px;padding:6px 12px 6px 6px;cursor:pointer;font-family:var(--font-sans);box-shadow:var(--shadow-lifted-card)"><div style="width:28px;height:28px;border-radius:50%;background:var(--geo-green-600);color:white;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">${initials}</div><div style="text-align:left"><div style="font-size:.78rem;font-weight:700;color:var(--text-primary)">${currentUser.fname}</div><div style="font-size:.65rem;color:var(--text-muted)">${currentUser.role === 'owner' ? 'Property Owner' : 'Renter/Buyer'}</div></div></button>`;
-    const dname = document.getElementById('dropdown-name'); if (dname) dname.textContent = currentUser.fname + ' ' + currentUser.lname;
-    const demail = document.getElementById('dropdown-email'); if (demail) demail.textContent = currentUser.email;
+    const initials = ((currentUser.fname || '?')[0] + (currentUser.lname || '?')[0]).toUpperCase();
+    area.innerHTML =
+      `<button onclick="toggleDropdown()" style="display:flex;align-items:center;gap:8px;background:var(--surface-secondary);border:none;border-radius:10px;padding:6px 12px 6px 6px;cursor:pointer;font-family:var(--font-sans);box-shadow:var(--shadow-lifted-card)">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--geo-green-600);color:white;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">${initials}</div>
+        <div style="text-align:left">
+          <div style="font-size:.78rem;font-weight:700;color:var(--text-primary)">${currentUser.fname}</div>
+          <div style="font-size:.65rem;color:var(--text-muted)">${currentUser.role === 'owner' ? 'Property Owner' : 'Renter/Buyer'}</div>
+        </div>
+      </button>`;
+    const dname  = document.getElementById('dropdown-name');
+    const demail = document.getElementById('dropdown-email');
+    if (dname)  dname.textContent  = currentUser.fname + ' ' + currentUser.lname;
+    if (demail) demail.textContent = currentUser.email;
   } else {
-    area.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="openAuthModal('login')">Sign In</button><button class="btn btn-primary btn-sm" onclick="openAuthModal('register')">Register</button>`;
+    area.innerHTML =
+      `<button class="btn btn-secondary btn-sm" onclick="openAuthModal('login')">Sign In</button>` +
+      `<button class="btn btn-primary btn-sm"   onclick="openAuthModal('register')">Register</button>`;
   }
 }
-function openAuthModal(tab) { document.getElementById('auth-modal').style.display = 'flex'; document.body.style.overflow = 'hidden'; switchAuthTab(tab || 'login'); }
-function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; document.body.style.overflow = ''; }
-function toggleDropdown() { const dd = document.getElementById('user-dropdown'); dd.style.display = dd.style.display === 'block' ? 'none' : 'block'; }
-function closeDropdown() { document.getElementById('user-dropdown').style.display = 'none'; }
-document.addEventListener('click', function(e) {
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openAuthModal(tab) {
+  const modal = document.getElementById('auth-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  switchAuthTab(tab || 'login');
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById('auth-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function toggleDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  if (dd) dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+}
+
+function closeDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+document.addEventListener('click', function (e) {
   if (e.target.id === 'auth-modal') closeAuthModal();
   if (!e.target.closest('#user-dropdown') && !e.target.closest('#nav-auth-area')) closeDropdown();
 });
+
 function switchAuthTab(tab) {
-  ['login','register','otp','forgot'].forEach(t => { const el = document.getElementById('auth-' + t); if (el) el.style.display = t === tab ? 'block' : 'none'; });
-  ['login','register'].forEach(t => {
-    const btn = document.getElementById('tab-' + t); if (!btn) return;
-    btn.style.color = t === tab ? 'var(--geo-green-600)' : 'var(--text-muted)';
+  ['login', 'register', 'otp', 'forgot'].forEach(function (t) {
+    const el = document.getElementById('auth-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  ['login', 'register'].forEach(function (t) {
+    const btn = document.getElementById('tab-' + t);
+    if (!btn) return;
+    btn.style.color            = t === tab ? 'var(--geo-green-600)' : 'var(--text-muted)';
     btn.style.borderBottomColor = t === tab ? 'var(--geo-green-600)' : 'transparent';
-    btn.style.fontWeight = t === tab ? '700' : '600';
+    btn.style.fontWeight       = t === tab ? '700' : '600';
   });
 }
+
+// ── Role selector ─────────────────────────────────────────────────────────────
 function selectRole(role) {
   selectedRole = role;
   const oc = document.getElementById('role-owner-card');
   const rc = document.getElementById('role-renter-card');
   if (!oc || !rc) return;
-  if (role === 'owner') { oc.style.boxShadow='inset 0 0 0 2px var(--geo-green-500)'; oc.style.background='var(--geo-green-50)'; rc.style.boxShadow='inset 0 0 0 1px var(--border-default)'; rc.style.background='var(--surface-secondary)'; }
-  else { rc.style.boxShadow='inset 0 0 0 2px var(--geo-green-500)'; rc.style.background='var(--geo-green-50)'; oc.style.boxShadow='inset 0 0 0 1px var(--border-default)'; oc.style.background='var(--surface-secondary)'; }
+  if (role === 'owner') {
+    oc.style.boxShadow  = 'inset 0 0 0 2px var(--geo-green-500)';
+    oc.style.background = 'var(--geo-green-50)';
+    rc.style.boxShadow  = 'inset 0 0 0 1px var(--border-default)';
+    rc.style.background = 'var(--surface-secondary)';
+  } else {
+    rc.style.boxShadow  = 'inset 0 0 0 2px var(--geo-green-500)';
+    rc.style.background = 'var(--geo-green-50)';
+    oc.style.boxShadow  = 'inset 0 0 0 1px var(--border-default)';
+    oc.style.background = 'var(--surface-secondary)';
+  }
 }
-function checkPassStrength(pass) {
-  const bar = document.getElementById('pass-strength-bar'); const lbl = document.getElementById('pass-strength-label'); if (!bar||!lbl) return;
-  let score = 0;
-  if (pass.length >= 8) score++; if (/[A-Z]/.test(pass)) score++; if (/[0-9]/.test(pass)) score++; if (/[^A-Za-z0-9]/.test(pass)) score++;
-  const levels = [{pct:'25%',color:'#ef4444',label:'Weak'},{pct:'50%',color:'#f59e0b',label:'Fair'},{pct:'75%',color:'#3b82f6',label:'Good'},{pct:'100%',color:'#22c55e',label:'Strong ✓'}];
-  const lvl = levels[Math.max(0,score-1)] || levels[0];
-  bar.style.width = pass.length ? lvl.pct : '0%'; bar.style.background = lvl.color;
-  lbl.textContent = pass.length ? lvl.label : ''; lbl.style.color = lvl.color;
-}
-function togglePassVis(fieldId, btn) { const field = document.getElementById(fieldId); if (!field) return; field.type = field.type === 'password' ? 'text' : 'password'; btn.textContent = field.type === 'password' ? '👁' : '🙈'; }
 
-// ── Cloudinary Upload Helpers ────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showAuthToast(msg, type) {
+  const existing = document.getElementById('auth-toast-banner');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'auth-toast-banner';
+  const bg = type === 'error' ? '#b91c1c' : '#15803d';
+  el.style.cssText =
+    'position:fixed;bottom:24px;right:24px;background:' + bg +
+    ';color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;' +
+    'z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:320px;line-height:1.4';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function () { if (el.parentNode) el.remove(); }, 4000);
+}
+
+// ── Password helpers ──────────────────────────────────────────────────────────
+function checkPassStrength(pass) {
+  const bar = document.getElementById('pass-strength-bar');
+  const lbl = document.getElementById('pass-strength-label');
+  if (!bar || !lbl) return;
+  let score = 0;
+  if (pass.length >= 8)         score++;
+  if (/[A-Z]/.test(pass))       score++;
+  if (/[0-9]/.test(pass))       score++;
+  if (/[^A-Za-z0-9]/.test(pass)) score++;
+  const levels = [
+    { pct: '25%', color: '#ef4444', label: 'Weak' },
+    { pct: '50%', color: '#f59e0b', label: 'Fair' },
+    { pct: '75%', color: '#3b82f6', label: 'Good' },
+    { pct: '100%', color: '#22c55e', label: 'Strong ✓' }
+  ];
+  const lvl = levels[Math.max(0, score - 1)] || levels[0];
+  bar.style.width      = pass.length ? lvl.pct   : '0%';
+  bar.style.background = lvl.color;
+  lbl.textContent      = pass.length ? lvl.label  : '';
+  lbl.style.color      = lvl.color;
+}
+
+function togglePassVis(fieldId, btn) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.type  = field.type === 'password' ? 'text' : 'password';
+  btn.textContent = field.type === 'password' ? '👁' : '🙈';
+}
+
+// ── OTP timer ─────────────────────────────────────────────────────────────────
+function startOTPTimer(seconds) {
+  clearInterval(otpTimerInterval);
+  const timerEl = document.getElementById('otp-timer');
+  let remaining = seconds;
+  function tick() {
+    if (!timerEl) return;
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    timerEl.textContent = 'Code expires in ' + m + ':' + (s < 10 ? '0' : '') + s;
+    if (remaining <= 0) {
+      clearInterval(otpTimerInterval);
+      timerEl.textContent = 'Code expired — request a new one.';
+    }
+    remaining--;
+  }
+  tick();
+  otpTimerInterval = setInterval(tick, 1000);
+}
+
+// ── File select helper ────────────────────────────────────────────────────────
 function geoHandleFileSelect(input, labelId, statusId) {
-  const file = input.files && input.files[0];
+  const file   = input.files && input.files[0];
   const label  = document.getElementById(labelId);
   const status = document.getElementById(statusId);
   if (!file) return;
-  const kb = (file.size / 1024).toFixed(0);
   if (file.size > 10 * 1024 * 1024) {
-    if (status) status.textContent = '❌ File too large (max 10MB)';
+    if (status) status.textContent = '❌ File too large (max 10 MB)';
     if (label)  label.style.boxShadow = 'inset 0 0 0 2px #ef4444';
     input.value = '';
     return;
   }
-  if (status) status.textContent = '✅ ' + file.name + ' (' + kb + 'KB) — ready to upload';
+  const kb = (file.size / 1024).toFixed(0);
+  if (status) status.textContent = '✅ ' + file.name + ' (' + kb + ' KB) — ready to upload';
   if (label)  label.style.boxShadow = 'inset 0 0 0 2px var(--geo-green-400)';
 }
 
+// ── Supabase upload ───────────────────────────────────────────────────────────
+// Returns the public URL string, or null if no file selected, or throws on error.
 async function geoUploadToSupabase(fileInput, folder) {
   const file = fileInput && fileInput.files && fileInput.files[0];
-  if (!file) return null; // optional field — skip if empty
+  if (!file) return null;
 
-  // Determine file extension
-  const ext = file.name.split('.').pop().toLowerCase() || 'bin';
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
 
-  // Step 1: get signed upload URL from our backend
-  const signRes = await fetch('https://api.geoestate.com.ng/upload-sign', {
-    method: 'POST',
+  // 1. Get signed upload URL from our backend
+  const signRes = await fetch(GEO_API_BASE + '/upload-sign', {
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ folder, ext })
+    body:    JSON.stringify({ folder, ext })
   });
-  if (!signRes.ok) throw new Error('Could not get upload signature');
+  if (!signRes.ok) {
+    const errBody = await signRes.text().catch(() => '');
+    throw new Error('Upload signature failed (' + signRes.status + '): ' + errBody);
+  }
   const params = await signRes.json();
   if (params.error) throw new Error(params.error);
 
-  // Step 2: PUT file directly to Supabase Storage signed URL
+  // 2. PUT file directly to Supabase signed URL
   const uploadRes = await fetch(params.signed_url, {
     method:  'PUT',
-    headers: {
-      'Content-Type': file.type || 'application/octet-stream',
-      'x-upsert':     'false'
-    },
-    body: file
+    headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+    body:    file
   });
   if (!uploadRes.ok) {
     const errBody = await uploadRes.text().catch(() => '');
-    throw new Error('Supabase upload failed: ' + (errBody || uploadRes.status));
+    throw new Error('Supabase upload failed (' + uploadRes.status + '): ' + errBody);
   }
 
-  // Step 3: return the public URL — this is what gets saved to Neon
   return params.public_url;
 }
-// Alias — old name kept so geoUploadRegistrationDocs() still works
+// Legacy alias
 const geoUploadToCloudinary = geoUploadToSupabase;
 
-async function geoUploadRegistrationDocs() {
-  const progressEl = document.getElementById('reg-upload-progress');
-  if (progressEl) { progressEl.style.display = 'block'; progressEl.textContent = '⏳ Uploading documents…'; }
+// ── REGISTER ─────────────────────────────────────────────────────────────────
+// Step 1: Validate form → store pendingRegData → fire OTP
+function doRegister() {
+  const fname  = (document.getElementById('reg-fname')  || {}).value.trim();
+  const lname  = (document.getElementById('reg-lname')  || {}).value.trim();
+  const email  = (document.getElementById('reg-email')  || {}).value.trim();
+  const phone  = (document.getElementById('reg-phone')  || {}).value.trim();
+  const pass   = (document.getElementById('reg-pass')   || {}).value;
+  const pass2  = (document.getElementById('reg-pass2')  || {}).value;
+  const agreed = (document.getElementById('reg-agree')  || {}).checked;
+  const errEl  = document.getElementById('reg-error');
 
-  const photoInput = document.getElementById('reg-photo');
-  const idocInput  = document.getElementById('reg-idoc');
-  const odocInput  = document.getElementById('reg-odoc');
+  if (errEl) errEl.style.display = 'none';
+  function showErr(msg) {
+    if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+  }
+
+  if (!fname || !lname)               return showErr('Please enter your full name.');
+  if (!email || !email.includes('@'))  return showErr('Please enter a valid email address.');
+  if (!phone || phone.length < 10)     return showErr('Please enter a valid phone number.');
+  if (pass.length < 8)                 return showErr('Password must be at least 8 characters.');
+  if (pass !== pass2)                  return showErr('Passwords do not match.');
+  if (!agreed)                         return showErr('Please agree to the Terms of Service and Privacy Policy.');
+
+  pendingRegData = { fname, lname, email, phone, pass: btoa(pass), role: selectedRole };
+
+  sendOTP(email, 'register');
+  switchAuthTab('otp');
+  const otpSub = document.getElementById('otp-sub');
+  if (otpSub) otpSub.textContent = 'We sent a 6-digit code to ' + email + ' — check your inbox.';
+}
+
+// ── SEND OTP ──────────────────────────────────────────────────────────────────
+async function sendOTP(emailOrPhone, context) {
+  const email  = pendingRegData ? pendingRegData.email : emailOrPhone;
+  const name   = pendingRegData ? pendingRegData.fname : '';
+  const devNote = document.getElementById('otp-dev-code');
+
+  // Clear boxes
+  document.querySelectorAll('.otp-box').forEach(function (b) {
+    b.value = '';
+    b.style.boxShadow = 'inset 0 0 0 1.5px var(--border-default)';
+  });
+  if (devNote) { devNote.textContent = 'Sending code to ' + email + '…'; devNote.style.display = 'block'; }
 
   try {
-    const [photo_url, id_doc_url, other_doc_url] = await Promise.all([
-      geoUploadToCloudinary(photoInput, 'geoestate/registrations/photos', 'geoestate,registration,photo'),
-      geoUploadToCloudinary(idocInput,  'geoestate/registrations/id-docs', 'geoestate,registration,id-doc'),
-      geoUploadToCloudinary(odocInput,  'geoestate/registrations/other-docs', 'geoestate,registration,other-doc')
-    ]);
-    if (progressEl) { progressEl.textContent = '✅ Documents uploaded'; }
-    return { photo_url, id_doc_url, other_doc_url };
-  } catch(e) {
-    if (progressEl) { progressEl.textContent = '❌ Upload failed: ' + e.message; progressEl.style.color = '#ef4444'; }
-    throw e;
+    const res  = await fetch(GEO_API_BASE + '/send-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, name, purpose: context || 'register' })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      if (devNote) { devNote.textContent = '❌ Failed to send: ' + (data.error || 'Unknown error'); }
+      return;
+    }
+
+    startOTPTimer(600);
+    setTimeout(function () { const first = document.querySelector('.otp-box'); if (first) first.focus(); }, 100);
+
+    if (devNote) {
+      if (data.testMode && data.devCode) {
+        devNote.textContent = '⚠️ Test mode — code: ' + data.devCode + ' (add your domain to Resend to send real emails)';
+      } else {
+        devNote.textContent = '✅ Code sent to ' + email + ' — check your inbox';
+      }
+      devNote.style.display = 'block';
+    }
+  } catch (err) {
+    if (devNote) { devNote.textContent = '❌ Could not reach email server. Check your connection.'; devNote.style.display = 'block'; }
   }
 }
 
-function doRegister() {
-  const fname = document.getElementById('reg-fname').value.trim();
-  const lname = document.getElementById('reg-lname').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const phone = document.getElementById('reg-phone').value.trim();
-  const pass  = document.getElementById('reg-pass').value;
-  const pass2 = document.getElementById('reg-pass2').value;
-  const agreed = document.getElementById('reg-agree').checked;
-  const errEl  = document.getElementById('reg-error');
-  errEl.style.display = 'none';
-  const showErr = msg => { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; };
-
-  if (!fname || !lname)              return showErr('Please enter your full name.');
-  if (!email || !email.includes('@')) return showErr('Please enter a valid email address.');
-  if (!phone || phone.length < 10)   return showErr('Please enter a valid phone number.');
-  if (pass.length < 8)               return showErr('Password must be at least 8 characters.');
-  if (pass !== pass2)                return showErr('Passwords do not match.');
-  if (!agreed)                       return showErr('Please agree to the Terms of Service and Privacy Policy.');
-
-  pendingRegData = { fname, lname, email, phone, pass, role: selectedRole };
-
-  sendOTP(pendingRegData.email, 'register');
-  switchAuthTab('otp');
-  document.getElementById('otp-sub').textContent = 'We sent a 6-digit code to ' + email + ' — check your inbox';
+// OTP box keyboard helpers
+function otpNext(input, idx) {
+  input.value = input.value.replace(/[^0-9]/g, '');
+  if (input.value) {
+    input.style.boxShadow = 'inset 0 0 0 2px var(--geo-green-500)';
+    const boxes = document.querySelectorAll('.otp-box');
+    if (idx < 5) boxes[idx + 1].focus(); else verifyOTP();
+  }
 }
-async function doLogin() {
-  const email = document.getElementById('login-email-field').value.trim();
-  const pass  = document.getElementById('login-pass-field').value;
-  const errEl = document.getElementById('login-error'); errEl.style.display = 'none';
-  const showErr = msg => { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; };
-  if (!email) return showErr('Please enter your email address.');
-  if (!pass)  return showErr('Please enter your password.');
+function otpBack(e, input, idx) {
+  if (e.key === 'Backspace' && !input.value && idx > 0) {
+    const boxes = document.querySelectorAll('.otp-box');
+    boxes[idx - 1].focus();
+    boxes[idx - 1].value = '';
+    boxes[idx - 1].style.boxShadow = 'inset 0 0 0 1.5px var(--border-default)';
+  }
+}
 
-  // Disable button while we wait
+// ── VERIFY OTP → REGISTER USER ───────────────────────────────────────────────
+async function verifyOTP() {
+  const boxes   = document.querySelectorAll('.otp-box');
+  const entered = Array.from(boxes).map(function (b) { return b.value; }).join('');
+  const errEl   = document.getElementById('otp-error');
+  if (errEl) errEl.style.display = 'none';
+
+  if (entered.length < 6) {
+    if (errEl) { errEl.textContent = '❌ Please enter the complete 6-digit code.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!pendingRegData || !pendingRegData.email) {
+    if (errEl) { errEl.textContent = '❌ Session expired. Please register again.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  const otpBtn = document.querySelector('[onclick="verifyOTP()"]') || document.querySelector('.otp-submit-btn');
+  if (otpBtn) { otpBtn.disabled = true; otpBtn.textContent = '⏳ Verifying…'; }
+
+  try {
+    // 1. Verify OTP code with backend
+    const otpRes  = await fetch(GEO_API_BASE + '/verify-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: pendingRegData.email, code: entered })
+    });
+    const otpData = await otpRes.json();
+
+    if (!otpData.success) {
+      boxes.forEach(function (b) { b.style.boxShadow = 'inset 0 0 0 2px #ef4444'; });
+      if (errEl) { errEl.textContent = '❌ ' + (otpData.error || 'Incorrect code. Please try again.'); errEl.style.display = 'block'; }
+      if (otpBtn) { otpBtn.disabled = false; otpBtn.textContent = 'Verify Code'; }
+      return;
+    }
+
+    // 2. Build registration payload
+    if (otpBtn) otpBtn.textContent = '⏳ Creating account…';
+
+    const regPayload = {
+      fname:         pendingRegData.fname,
+      lname:         pendingRegData.lname,
+      email:         pendingRegData.email,
+      phone:         pendingRegData.phone,
+      role:          pendingRegData.role,
+      pass:          pendingRegData.pass,       // already btoa'd
+      registeredAt:  new Date().toISOString()
+    };
+
+    // 3. Upload profile photo (non-fatal — proceeds even if upload fails)
+    const photoInput = document.getElementById('reg-photo');
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+      try {
+        const photoUrl = await geoUploadToSupabase(photoInput, 'geoestate-docs/registrations/photos');
+        if (photoUrl) regPayload.photo_url = photoUrl;
+      } catch (uploadErr) {
+        console.warn('Profile photo upload skipped:', uploadErr.message);
+      }
+    }
+
+    // 4. POST to /register — this MUST succeed
+    const regRes  = await fetch(GEO_API_BASE + '/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(regPayload)
+    });
+    const regData = await regRes.json();
+
+    if (!regRes.ok && regRes.status !== 200) {
+      throw new Error(regData.error || 'Registration failed. Please try again.');
+    }
+
+    // 5. Build session — use the server-confirmed ID so verify-identity can find the row
+    const sessionUser = {
+      id:           regData.submissionId || ('USR-' + Date.now()),
+      fname:        pendingRegData.fname,
+      lname:        pendingRegData.lname,
+      email:        pendingRegData.email,
+      phone:        pendingRegData.phone,
+      role:         pendingRegData.role,
+      verified:     false,
+      registeredAt: regPayload.registeredAt
+    };
+
+    // 6. Success — log in and redirect to identity verification
+    pendingRegData = null;
+    clearInterval(otpTimerInterval);
+    loginSuccess(sessionUser);
+    showAuthToast('Account created! 🎉 Complete your identity verification to unlock full access.');
+    setTimeout(function () { closeAuthModal(); showPage('verify'); }, 800);
+
+  } catch (err) {
+    if (otpBtn) { otpBtn.disabled = false; otpBtn.textContent = 'Verify Code'; }
+    if (errEl)  { errEl.textContent = '❌ ' + err.message; errEl.style.display = 'block'; }
+  }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = (document.getElementById('login-email-field') || {}).value.trim();
+  const pass     = (document.getElementById('login-pass-field')  || {}).value;
+  const errEl    = document.getElementById('login-error');
   const loginBtn = document.getElementById('login-submit-btn');
+
+  if (errEl) errEl.style.display = 'none';
+  function showErr(msg) {
+    if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+  }
+
+  if (!email)  return showErr('Please enter your email address.');
+  if (!pass)   return showErr('Please enter your password.');
+
   if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
 
   try {
-    const res = await fetch('https://api.geoestate.com.ng/user/login', {
-      method: 'POST',
+    const res  = await fetch(GEO_API_BASE + '/user/login', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass })
+      body:    JSON.stringify({ email, password: pass })
     });
     const data = await res.json();
+
     if (data.success && data.user) {
-      // Merge password into local session (never sent back from server)
-      const sessionUser = { ...data.user, pass: btoa(pass) };
-      loginSuccess(sessionUser);
+      loginSuccess(data.user);
+      closeAuthModal();
+      showAuthToast('Welcome back, ' + data.user.fname + '! 👋');
+      if (!data.user.verified) {
+        setTimeout(function () {
+          if (confirm('Verify your identity to unlock full access?')) showPage('verify');
+        }, 1000);
+      }
     } else {
       showErr(data.error || 'Login failed. Please try again.');
     }
-  } catch(err) {
+  } catch (err) {
     showErr('Could not reach server. Check your connection.');
   } finally {
     if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
   }
 }
-function loginSuccess(user) {
-  currentUser=user; localStorage.setItem('geo_session',JSON.stringify(user));
-  closeAuthModal(); renderNavAuth(); showAuthToast('Welcome back, '+user.fname+'! 👋');
-  if (!user.verified) setTimeout(()=>{ if(confirm('Verify your identity to unlock full access?')) showPage('verify'); },1000);
-  // Show verification banner if user is not yet verified
-  const vBanner = document.getElementById('verify-banner');
-  if (vBanner) vBanner.style.display = (user && !user.verified && !user.verificationPending) ? 'block' : 'none';
-
-}
-async function sendOTP(emailOrPhone, context) {
-  const email = pendingRegData ? pendingRegData.email : emailOrPhone;
-  const name  = pendingRegData ? pendingRegData.fname : '';
-  // Clear boxes and show loading
-  document.querySelectorAll('.otp-box').forEach(b=>{b.value='';b.style.boxShadow='inset 0 0 0 1.5px var(--border-default)';});
-  const devNote = document.getElementById('otp-dev-code');
-  if(devNote){ devNote.textContent='Sending code to '+email+'...'; devNote.style.display='block'; }
-  try {
-    const res = await fetch('https://api.geoestate.com.ng/send-otp', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, name, purpose: context||'register' })
-    });
-    const data = await res.json();
-    if(data.success){
-      startOTPTimer(600);
-      setTimeout(()=>{const first=document.querySelector('.otp-box');if(first)first.focus();},100);
-      if(devNote){
-        if(data.testMode && data.devCode){
-          devNote.textContent='⚠️ Test mode — code: '+data.devCode+' (verify domain at resend.com/domains to send to real users)';
-          devNote.style.display='block';
-        } else {
-          devNote.textContent='✅ Code sent to '+email+' — check your inbox';
-          devNote.style.display='block';
-        }
-      }
-    } else {
-      if(devNote){ devNote.textContent='❌ Failed to send: '+(data.error||'Unknown error'); devNote.style.display='block'; }
-    }
-  } catch(err) {
-    if(devNote){ devNote.textContent='❌ Could not reach email server. Check connection.'; devNote.style.display='block'; }
-  }
-}
-function otpNext(input,idx) { input.value=input.value.replace(/[^0-9]/g,''); if(input.value){input.style.boxShadow='inset 0 0 0 2px var(--geo-green-500)';const boxes=document.querySelectorAll('.otp-box');if(idx<5)boxes[idx+1].focus();else verifyOTP();} }
-function otpBack(e,input,idx) { if(e.key==='Backspace'&&!input.value&&idx>0){const boxes=document.querySelectorAll('.otp-box');boxes[idx-1].focus();boxes[idx-1].value='';boxes[idx-1].style.boxShadow='inset 0 0 0 1.5px var(--border-default)';} }
-async function verifyOTP() {
-  const boxes   = document.querySelectorAll('.otp-box');
-  const entered = Array.from(boxes).map(b => b.value).join('');
-  const errEl   = document.getElementById('otp-error');
-  errEl.style.display = 'none';
-
-  if (entered.length < 6) {
-    errEl.textContent = '❌ Please enter the complete 6-digit code.';
-    errEl.style.display = 'block';
-    return;
-  }
-  const email = pendingRegData ? pendingRegData.email : '';
-  if (!email) {
-    errEl.textContent = '❌ Session expired. Please register again.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  try {
-    // Verify OTP with backend
-    const res  = await fetch('https://api.geoestate.com.ng/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code: entered })
-    });
-    const data = await res.json();
-
-    if (!data.success) {
-      errEl.textContent = '❌ ' + (data.error || 'Incorrect code. Please try again.');
-      errEl.style.display = 'block';
-      boxes.forEach(b => { b.style.boxShadow = 'inset 0 0 0 2px #ef4444'; });
-      return;
-    }
-
-    // OTP verified — build payload
-    const newUser = {
-      id: 'USR-' + Date.now(),
-      fname: pendingRegData.fname, lname: pendingRegData.lname,
-      email: pendingRegData.email, phone: pendingRegData.phone,
-      role: pendingRegData.role,   verified: false,
-      registeredAt: new Date().toISOString()
-    };
-
-    const regPayload = {
-      id: newUser.id, fname: newUser.fname, lname: newUser.lname,
-      email: newUser.email, phone: newUser.phone, role: newUser.role,
-      registeredAt: newUser.registeredAt,
-      pass: pendingRegData.pass || ''
-    };
-
-    // Disable button while saving
-    const otpBtn = document.querySelector('[onclick="verifyOTP()"]') || document.querySelector('.otp-submit-btn');
-    if (otpBtn) { otpBtn.disabled = true; otpBtn.textContent = '⏳ Creating account…'; }
-
-    try {
-      // Step 1: upload profile photo if provided (non-fatal)
-      try {
-        const photoInput = document.getElementById('reg-photo');
-        if (photoInput && photoInput.files && photoInput.files[0]) {
-          const url = await geoUploadToSupabase(photoInput, 'geoestate-docs/registrations/photos');
-          if (url) regPayload.photo_url = url;
-        }
-      } catch(uploadErr) {
-        console.warn('Profile photo upload failed (proceeding):', uploadErr.message);
-      }
-
-      // Step 2: save to DB — MUST succeed
-      const regRes  = await fetch('https://api.geoestate.com.ng/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(regPayload)
-      });
-      const regData = await regRes.json();
-
-      if (!regRes.ok && regRes.status !== 200) {
-        throw new Error(regData.error || 'Registration failed. Please try again.');
-      }
-
-      // Sync ID — use the server-confirmed submissionId if available
-      // This ensures verify-identity finds the correct DB row
-      if (regData.submissionId) {
-        newUser.id = regData.submissionId;
-      }
-
-      // Step 3: login + redirect to verify page
-      pendingRegData = null;
-      clearInterval(otpTimerInterval);
-      loginSuccess(newUser);
-      showAuthToast('Account created! 🎉 Complete your identity verification to unlock full access.');
-      // Prompt verification after short delay
-      setTimeout(() => { closeAuthModal(); showPage('verify'); }, 800);
-
-    } catch(saveErr) {
-      if (otpBtn) { otpBtn.disabled = false; otpBtn.textContent = 'Verify Code'; }
-      errEl.textContent = '❌ ' + saveErr.message;
-      errEl.style.display = 'block';
-    }
-
-  } catch(err) {
-    errEl.textContent = '❌ Could not verify — check your connection and try again.';
-    errEl.style.display = 'block';
-  }
-}
-
 
 async function loadFromDB() {
   try {
@@ -5386,45 +5563,44 @@ function manualSync() {
 
 
 <script>
-// ── Mobile Navigation ───────────────────────────────────────────────────────
-function toggleMobileNav() {
-  var nav   = document.getElementById('geo-mobile-nav');
-  var btn   = document.getElementById('geo-hamburger');
-  if (!nav) return;
-  var isOpen = nav.classList.contains('open');
-  if (isOpen) {
-    nav.classList.remove('open');
-    btn && btn.classList.remove('open');
-    document.body.style.overflow = '';
-  } else {
-    nav.classList.add('open');
-    btn && btn.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-}
-
-function navTo(page) {
-  // Close mobile nav
+// ── Mobile Navigation ────────────────────────────────────────────────────────
+function closeMobileNav() {
   var nav = document.getElementById('geo-mobile-nav');
   var btn = document.getElementById('geo-hamburger');
   if (nav) { nav.classList.remove('open'); }
   if (btn) { btn.classList.remove('open'); }
   document.body.style.overflow = '';
-  // Navigate
+}
+
+function toggleMobileNav() {
+  var nav    = document.getElementById('geo-mobile-nav');
+  var btn    = document.getElementById('geo-hamburger');
+  if (!nav) return;
+  var isOpen = nav.classList.contains('open');
+  if (isOpen) {
+    closeMobileNav();
+  } else {
+    nav.classList.add('open');
+    if (btn) btn.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function navTo(page) {
+  closeMobileNav();
   showPage(page);
 }
 
 // Close mobile nav on outside tap
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
   var nav = document.getElementById('geo-mobile-nav');
   var btn = document.getElementById('geo-hamburger');
   if (!nav || !nav.classList.contains('open')) return;
-  if (!nav.contains(e.target) && !btn.contains(e.target)) {
-    nav.classList.remove('open');
-    btn && btn.classList.remove('open');
-    document.body.style.overflow = '';
+  if (!nav.contains(e.target) && btn && !btn.contains(e.target)) {
+    closeMobileNav();
   }
 });
+
 </script>
 
 
