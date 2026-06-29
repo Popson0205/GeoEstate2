@@ -219,6 +219,9 @@
   #admin-root .doc-thumb{height:130px;border-radius:8px;overflow:hidden;background:var(--a-card2);display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;cursor:pointer;box-shadow:inset 0 0 0 1px var(--a-border)}
   #admin-root .doc-thumb img{width:100%;height:100%;object-fit:cover}
   #admin-root .doc-thumb-label{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:600}
+  #admin-root .doc-thumb-link{text-decoration:none;cursor:pointer}
+  #admin-root .doc-thumb-link:hover{box-shadow:inset 0 0 0 2px var(--a-green),0 0 0 2px rgba(22,163,74,.15)}
+  #admin-root .doc-thumb-empty{opacity:.5}
 
   /* ACTIVITY / DISPUTES */
   #admin-root .feed-item{display:flex;gap:12px;padding:12px 20px;border-bottom:1px solid var(--a-border2);font-size:.83rem;color:var(--a-text)}
@@ -1341,7 +1344,11 @@ function openIdModal(idx){
   const s=submissions[idx];
   document.getElementById('modal-id-title').textContent=s.name+' — '+s.id;
   document.getElementById('modal-id-sub').textContent='Submitted '+s.submitted+' · '+s.doc+' · '+(s.type==='owner'?'Property Owner':'Renter/Buyer');
-  const docImgs=['https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&q=70','https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=70'];
+  // Parse real document URL — s.doc may be stored as "DocType|https://..." or just a URL
+  const _docParts = (s.doc||'').split('|');
+  const _docLabel = _docParts.length > 1 ? _docParts[0] : (s.doc||'Government ID');
+  const _docUrl   = s.id_doc_url || (_docParts.length > 1 ? _docParts[1] : null);
+  const _selfieUrl = s.photo_url || null;
   document.getElementById('modal-id-body').innerHTML=`
     <div class="panel-section">
       <div class="panel-section-title">Status & SLA</div>
@@ -1368,8 +1375,19 @@ function openIdModal(idx){
         <div><div class="field-label">NIN (masked)</div><div class="field-value" style="font-family:monospace">${s.nin}</div></div>
       </div>
       <div class="doc-grid">
-        <div class="doc-thumb" onclick="adminToast('Opening full document...','info')"><img src="${docImgs[0]}" alt="ID" onerror="this.style.display='none'"><div class="doc-thumb-label">${s.doc}</div></div>
-        <div class="doc-thumb" onclick="adminToast('Opening selfie...','info')"><img src="${docImgs[1]}" alt="Selfie" onerror="this.style.display='none'"><div class="doc-thumb-label">Live Selfie</div></div>
+        ${_docUrl
+          ? `<a class="doc-thumb doc-thumb-link" href="${_docUrl}" download target="_blank" title="Download ID document">
+               <img src="${_docUrl}" alt="ID Document" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
+               <div class="doc-thumb-fallback" style="display:none;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:6px;font-size:.8rem;color:var(--adm-text-subtle)">📄<span>Download ID</span></div>
+               <div class="doc-thumb-label">${_docLabel} ⬇</div>
+             </a>`
+          : `<div class="doc-thumb doc-thumb-empty"><div style="color:var(--adm-text-subtle);font-size:.8rem;text-align:center">No document<br>uploaded</div></div>`}
+        ${_selfieUrl
+          ? `<div class="doc-thumb">
+               <img src="${_selfieUrl}" alt="Live Selfie" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">
+               <div class="doc-thumb-label">Live Selfie</div>
+             </div>`
+          : `<div class="doc-thumb doc-thumb-empty"><div style="color:var(--adm-text-subtle);font-size:.8rem;text-align:center">No selfie<br>uploaded</div></div>`}
       </div>
     </div>
     <div class="panel-section">
