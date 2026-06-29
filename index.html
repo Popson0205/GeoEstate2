@@ -3942,6 +3942,10 @@ async function verifyOTP() {
     pendingRegData = null;
     clearInterval(otpTimerInterval);
     loginSuccess(sessionUser);
+    // Store JWT token from /register as owner session so ownerFetch works immediately
+    if (regData.token && window.GeoAPI) {
+      GeoAPI.setOwnerSession({ token: regData.token, owner: sessionUser, loginTime: Date.now() });
+    }
     showAuthToast('Account created! 🎉 Complete your identity verification to unlock full access.');
     setTimeout(function () { closeAuthModal(); showPage('verify'); }, 800);
 
@@ -3984,6 +3988,10 @@ async function doLogin() {
 
     if (data.success && data.user) {
       loginSuccess(data.user);
+      // Store JWT token as owner session so submitListing (and ownerFetch) work immediately
+      if (data.token && window.GeoAPI) {
+        GeoAPI.setOwnerSession({ token: data.token, owner: data.user, loginTime: Date.now() });
+      }
       closeAuthModal();
       showAuthToast('Welcome back, ' + data.user.fname + '! 👋');
       if (!data.user.verified) {
