@@ -1020,7 +1020,7 @@ YPE html>
         </div>
         <div class="geo-form-group">
           <label class="geo-label">LGA *</label>
-          <input class="geo-input" type="text" placeholder="Local Government Area">
+          <input class="geo-input" id="lp-lga" type="text" placeholder="Local Government Area">
         </div>
       </div>
       <div class="geo-form-group">
@@ -1078,9 +1078,13 @@ YPE html>
       <div class="geo-card" style="padding:var(--space-6);">
         <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-6)">🏠 Step 2 — Property Details</h2>
         <div class="geo-form-group">
+          <label class="geo-label">Property Title *</label>
+          <input class="geo-input" id="lp-title" type="text" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
+        </div>
+        <div class="geo-form-group">
           <label class="geo-label">Transaction Type *</label>
-          <select class="geo-select">
-            <option>Rent</option><option>Lease</option><option>Buy / Sale</option>
+          <select class="geo-select" id="lp-type">
+            <option value="rent">Rent</option><option value="lease">Lease</option><option value="buy">Buy / Sale</option>
           </select>
         </div>
         <div class="geo-form-group">
@@ -1091,12 +1095,12 @@ YPE html>
         </div>
         <div class="geo-form-group">
           <label class="geo-label">Property Address *</label>
-          <input class="geo-input" type="text" placeholder="Full address of the property">
+          <input class="geo-input" id="lp-address" type="text" placeholder="Full address of the property">
         </div>
         <div class="grid-2">
           <div class="geo-form-group">
             <label class="geo-label">State *</label>
-            <select class="geo-select">
+            <select class="geo-select" id="lp-state">
               <option>Lagos</option><option>Abuja (FCT)</option><option>Rivers</option><option>Kano</option><option>Oyo</option>
             </select>
           </div>
@@ -1117,7 +1121,7 @@ YPE html>
         </div>
         <div class="geo-form-group">
           <label class="geo-label">Price (₦) *</label>
-          <input class="geo-input" type="number" placeholder="e.g. 2500000">
+          <input class="geo-input" id="lp-price" type="number" placeholder="e.g. 2500000">
         </div>
         <div class="geo-form-group">
           <label class="geo-label">Property Description *</label>
@@ -2895,7 +2899,8 @@ async function submitListing() {
 
   // Client-side guard - server also validates, but fail fast here
   if (!listData.title) {
-    alert('Please enter a property title before submitting.');
+    showAuthToast('Please enter a property title before submitting.', 'error');
+    document.getElementById('lp-title') && document.getElementById('lp-title').focus();
     return;
   }
 
@@ -2906,11 +2911,11 @@ async function submitListing() {
       body: listData
     });
     if (result.error) {
-      alert(result.message || result.error);
+      showAuthToast(result.message || result.error, 'error');
       return;
     }
   } catch(e) {
-    alert('Submission failed. Please check your connection and try again.');
+    showAuthToast('Submission failed. Please check your connection and try again.', 'error');
     return;
   }
 
