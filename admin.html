@@ -363,7 +363,7 @@
     <div class="topbar">
       <div class="topbar-title" id="topbar-title">Overview</div>
       <div class="topbar-right">
-        <div style="font-size:.78rem;color:var(--adm-text-subtle);cursor:pointer" onclick="manualSync()" title="Click to sync now"><span class="sync-dot"></span>Website Synced</div>
+        <div style="font-size:.78rem;color:var(--adm-text-subtle);cursor:pointer" onclick="manualSync()" title="Click to sync now"><span class="sync-dot"></span>Live — Supabase</div>
         <div class="topbar-time" id="clock"></div>
         <button class="theme-btn" onclick="toggleThemeManual()" title="Toggle dark/light mode" id="admin-theme-btn">🌙</button>
       </div>
@@ -1139,7 +1139,7 @@
   }
 })();
 
-let lawyers = []; // loaded from Neon DB on init
+let lawyers = []; // loaded from Supabase DB on init
 
 // Team members (loaded from localStorage)
 let teamMembers = JSON.parse(localStorage.getItem('pgs_team')||'null') || [
@@ -1152,7 +1152,7 @@ let teamMembers = JSON.parse(localStorage.getItem('pgs_team')||'null') || [
 ];
 
 // Tenancy tracker (loaded from localStorage)
-let tenancies = []; // loaded from Neon DB on init
+let tenancies = []; // loaded from Supabase DB on init
 
 const activityFeed = [
   {dot:'green', text:'<strong>GeoEstate Platform launched</strong> — identity queue open, ready for first submissions', time:'Today'},
@@ -1167,7 +1167,7 @@ let submissions = [];
 let adminProperties  = [];
 let checkStates = {};
 let syncLog = [];
-let disputes = []; // loaded from Neon DB — POST /submit-dispute
+let disputes = []; // loaded from Supabase DB — POST /submit-dispute
 
 // Derived list of verified/approved users — always computed from submissions
 // so it stays in sync without a separate array that can go undefined.
@@ -1190,7 +1190,7 @@ function getVerifiedUsers() {
 }
 
 function saveState(){
-  // Submissions, adminProperties, lawyers, team, tenancies now live in Neon DB
+  // Submissions, adminProperties, lawyers, team, tenancies live in Supabase DB
   // Only keep syncLog and manual payments in localStorage as cache
   localStorage.setItem('pgs_synclog', JSON.stringify(syncLog));
   // Write sync data for website to read
@@ -2048,7 +2048,6 @@ function initApp(){
   renderTeam();
   renderRegistrations();
   updateBadges();saveState();
-  // Load from Neon DB
   // Initial sync handled by override below
 }
 
@@ -2893,25 +2892,32 @@ function geoHeaders(extra={}) {
 }
 const GEO_API = 'https://api.geoestate.com.ng';
 
+// Track last full-sync time so we only re-fetch changed records on polls
+let _lastSyncTime = 0;
+let _syncIsInitial = true;
+
 async function syncFromAPI() {
   const btn = document.querySelector('[onclick="syncFromAPI()"]');
   if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
   try {
+    // First load: fetch everything. Subsequent polls: only records newer than last sync
+    const sinceParam = _syncIsInitial ? '' : '?since=' + _lastSyncTime;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000); // 45s for Render cold start
-    const res = await fetch(GEO_API + '/admin/registrations', { headers: geoHeaders(), signal: controller.signal });
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    const res = await fetch(GEO_API + '/admin/registrations' + sinceParam, { headers: geoHeaders(), signal: controller.signal });
     clearTimeout(timeout);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
 
+    const syncedAt = Date.now();
     let added = 0;
+
     if (data.success && data.registrations && data.registrations.length) {
       data.registrations.forEach(reg => {
-        // Normalise name field (API may return fname/lname separately)
         if (!reg.name && (reg.fname || reg.lname)) {
           reg.name = ((reg.fname||'') + ' ' + (reg.lname||'')).trim();
         }
-        // Check not already in submissions
         const exists = submissions.find(s => s.id === reg.id || s.email === reg.email);
         if (!exists) {
           submissions.unshift(reg);
@@ -2922,14 +2928,18 @@ async function syncFromAPI() {
             time: 'Just now'
           });
         } else {
-          // Merge latest DB data — status changes (approved/rejected) from DB override local
+          // Always merge — DB is source of truth for status (approved/rejected/info)
           const i = submissions.findIndex(s => s.id === reg.id || s.email === reg.email);
           if (i >= 0) submissions[i] = {...submissions[i], ...reg, name: reg.name || submissions[i].name};
         }
       });
     }
 
-    // Always re-render all views so status changes (approve/reject) are reflected everywhere
+    // Update sync timestamp AFTER processing
+    _lastSyncTime = syncedAt;
+    _syncIsInitial = false;
+
+    // Always re-render — ensures approve/reject status shows immediately everywhere
     saveState();
     updateBadges();
     renderIdQueue();
@@ -2942,12 +2952,15 @@ async function syncFromAPI() {
       const syncIndicator = document.querySelector('.topbar-right div');
       if (syncIndicator) {
         syncIndicator.innerHTML = '<span class="sync-dot"></span>' + added + ' new submission' + (added > 1 ? 's' : '') + ' synced';
-        setTimeout(() => { if(syncIndicator) syncIndicator.innerHTML = '<span class="sync-dot"></span>Website Synced'; }, 4000);
+        setTimeout(() => { if(syncIndicator) syncIndicator.innerHTML = '<span class="sync-dot"></span>Live — Supabase'; }, 4000);
       }
-      adminToast(added + ' new registration' + (added > 1 ? 's' : '') + ' pulled from website ✓', 'success');
-      addSyncLog('API sync: ' + added + ' new registration(s)');
+      adminToast(added + ' new registration' + (added > 1 ? 's' : '') + ' synced from Supabase ✓', 'success');
+      addSyncLog('Supabase sync: ' + added + ' new registration(s)');
+    } else if (_syncIsInitial === false && sinceParam === '') {
+      // Silent background poll — no toast
     }
-    // Also fetch disputes from API
+
+    // Fetch disputes from Supabase via API
     try {
       const dresp = await fetch(GEO_API + '/admin/disputes', { headers: geoHeaders() });
       if (dresp.ok) {
@@ -2968,7 +2981,9 @@ async function syncFromAPI() {
     } catch(e2) { /* disputes endpoint optional */ }
 
   } catch(e) {
-    console.warn('API sync failed:', e.message);
+    if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
+    console.warn('Supabase sync failed:', e.message);
+    if (_syncIsInitial) adminToast('Could not connect to Supabase API', 'error');
   }
 }
 
