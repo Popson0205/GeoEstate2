@@ -1182,19 +1182,36 @@ function saveState(){
 }
 
 // ══ AUTH ══
-function adminDoLogin(){
+async function adminDoLogin(){
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value;
-  const validEmail = 'popson0205@gmail.com';
-  const validPass  = 'Admin@GeoEstate_2026';
-  if(email === validEmail && pass === validPass){
-    document.getElementById('login-error').style.display='none';
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='flex';
-    initApp();
-  } else {
-    document.getElementById('login-error').style.display='block';
-    document.getElementById('login-error').textContent='❌ Invalid email or password';
+  const btn   = document.querySelector('.login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    const res  = await fetch(GEO_API + '/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (res.ok && data.token) {
+      sessionStorage.setItem('geo_admin_token', data.token);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      initApp();
+    } else {
+      errEl.style.display = 'block';
+      errEl.textContent = '❌ ' + (data.error || 'Invalid email or password');
+    }
+  } catch(e) {
+    errEl.style.display = 'block';
+    errEl.textContent = '❌ Could not reach server. Check your connection.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In →';
   }
 }
 function adminDoLogout(){
@@ -1636,7 +1653,7 @@ function approveId(idx){
   saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
   adminToast(submissions[idx].name+' approved ✓','success');
   addSyncLog('Identity approved: '+submissions[idx].name);
-  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
+  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'approved',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
 function rejectId(idx){
   saveNotes(idx);
@@ -1644,7 +1661,7 @@ function rejectId(idx){
   saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
   adminToast(submissions[idx].name+' rejected','error');
   addSyncLog('Identity rejected: '+submissions[idx].name);
-  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
+  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
 function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Tom K.';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
 function approveProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='live';saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' is now live ✓','success');addSyncLog('Property approved: '+adminProperties[idx].title);}
@@ -1698,7 +1715,7 @@ function addLawyer(){
   const dbPayload = {name, bar, spec, state, email, phone, bio, status:'active'};
   fetch(GEO_API + '/admin/save-lawyer', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: geoHeaders(),
     body: JSON.stringify(dbPayload)
   }).then(r => r.json()).then(d => {
     if(d.success){
@@ -2591,7 +2608,7 @@ function saveTeamMember(){
   renderTeam();
   closeModal('modal-add-team');
   addSyncLog('Team updated: ' + member.name);
-  fetch(GEO_API+'/admin/save-team',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(member)}).catch(()=>{});
+  fetch(GEO_API+'/admin/save-team',{method:'POST',headers:geoHeaders(),body:JSON.stringify(member)}).catch(()=>{});
 }
 
 function removeTeamMember(idx){
@@ -2732,7 +2749,7 @@ function addTenancy(){
   closeModal('modal-add-tenancy');
   adminToast('Tenancy record added ✓','success');
   addSyncLog('Tenancy added: ' + t.ref + ' — ' + t.property);
-  fetch(GEO_API+'/admin/save-tenancy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)}).catch(()=>{});
+  fetch(GEO_API+'/admin/save-tenancy',{method:'POST',headers:geoHeaders(),body:JSON.stringify(t)}).catch(()=>{});
 }
 
 function removeTenancy(idx){
@@ -2830,6 +2847,10 @@ window.initApp = function(){
 };
 
 // ══ API SYNC ══
+function geoHeaders(extra={}) {
+  const tok = sessionStorage.getItem('geo_admin_token');
+  return Object.assign({'Content-Type':'application/json'}, tok ? {'Authorization':'Bearer '+tok} : {}, extra);
+}
 const GEO_API = 'https://api.geoestate.com.ng';
 
 async function syncFromAPI() {
@@ -2838,7 +2859,7 @@ async function syncFromAPI() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000); // 45s for Render cold start
-    const res = await fetch(GEO_API + '/admin/registrations', { signal: controller.signal });
+    const res = await fetch(GEO_API + '/admin/registrations', { headers: geoHeaders(), signal: controller.signal });
     clearTimeout(timeout);
     const data = await res.json();
     if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
