@@ -1165,6 +1165,26 @@ let adminProperties  = [];
 let checkStates = {};
 let syncLog = [];
 
+// Derived list of verified/approved users — always computed from submissions
+// so it stays in sync without a separate array that can go undefined.
+function getVerifiedUsers() {
+  return submissions
+    .filter(s => s.status === 'approved')
+    .map(s => ({
+      ...s,
+      name:     s.name || ((s.fname||'') + ' ' + (s.lname||'')).trim(),
+      initials: ((s.fname||s.name||'?')[0] + (s.lname||s.name||'?').split(' ').pop()[0]).toUpperCase(),
+      role:     s.type === 'owner' ? 'Property Owner' : (s.role || 'Renter/Buyer'),
+      state:    s.state || s.location || '—',
+      phone:    s.phone || '—',
+      verified: s.reviewed_at || s.created_at || '—',
+      listings: s.listings || 0,
+      txns:     s.txns || 0,
+      idRef:    s.id,
+      status:   s.suspended ? 'suspended' : 'active'
+    }));
+}
+
 function saveState(){
   // Submissions, adminProperties, lawyers, team, tenancies now live in Neon DB
   // Only keep syncLog and manual payments in localStorage as cache
@@ -1175,7 +1195,7 @@ function saveState(){
     pendingProps: adminProperties.filter(p=>['pending','review','info'].includes(p.status)).map(p=>p.id),
     rejectedProps: adminProperties.filter(p=>p.status==='rejected').map(p=>p.id),
     approvedUsers: submissions.filter(s=>s.status==='approved').map(s=>s.id),
-    suspendedUsers: verifiedUsers.filter(u=>u.status==='suspended').map(u=>u.idRef),
+    suspendedUsers: getVerifiedUsers().filter(u=>u.status==='suspended').map(u=>u.idRef),
     lastSync: new Date().toLocaleTimeString('en-NG')
   };
   localStorage.setItem('pgs_sync', JSON.stringify(syncData));
@@ -1435,6 +1455,7 @@ function openPropModal(idx){
 
 // ══ USER MODAL ══
 function openUserModal(idx){
+  const verifiedUsers = getVerifiedUsers();
   const u=verifiedUsers[idx];
   document.getElementById('modal-user-title').textContent=u.name;
   document.getElementById('modal-user-sub').textContent=u.role+' · '+u.state+' · Verified: '+u.verified;
@@ -1669,8 +1690,8 @@ function rejectProp(idx){const el=document.getElementById('prop-notes-'+idx);if(
 function requestPropInfo(idx){adminProperties[idx].status='info';saveState();renderPropQueue();closeModal('modal-prop');adminToast('Info requested for '+adminProperties[idx].title,'info');}
 function fileNPF(idx){disputes[idx].npfFiled=true;renderDisputes();adminToast('NPF CID case file submitted for '+disputes[idx].id,'success');addSyncLog('NPF report filed: '+disputes[idx].id);}
 function resolveDispute(idx){disputes[idx].status='resolved';renderDisputes();closeModal('modal-dispute');adminToast('Dispute '+disputes[idx].id+' marked resolved','success');addSyncLog('Dispute resolved: '+disputes[idx].id);}
-function suspendUser(idx){verifiedUsers[idx].status='suspended';renderUsers();closeModal('modal-user');adminToast(verifiedUsers[idx].name+' suspended','error');addSyncLog('User suspended: '+verifiedUsers[idx].name);}
-function reinstateUser(idx){verifiedUsers[idx].status='active';renderUsers();closeModal('modal-user');adminToast(verifiedUsers[idx].name+' reinstated','success');addSyncLog('User reinstated: '+verifiedUsers[idx].name);}
+function suspendUser(idx){const verifiedUsers=getVerifiedUsers();const sub=submissions.find(s=>s.id===verifiedUsers[idx]?.idRef);if(sub)sub.suspended=true;renderUsers();closeModal('modal-user');adminToast((verifiedUsers[idx]?.name||'User')+' suspended','error');addSyncLog('User suspended: '+(verifiedUsers[idx]?.name||'User'));}
+function reinstateUser(idx){const verifiedUsers=getVerifiedUsers();const sub=submissions.find(s=>s.id===verifiedUsers[idx]?.idRef);if(sub)sub.suspended=false;renderUsers();closeModal('modal-user');adminToast((verifiedUsers[idx]?.name||'User')+' reinstated','success');addSyncLog('User reinstated: '+(verifiedUsers[idx]?.name||'User'));}
 function openAddLawyerModal(){
   ['nl-name','nl-bar','nl-email','nl-phone','nl-notes'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
@@ -1903,6 +1924,7 @@ function renderPropQueue(){
     </tr>`).join('');
 }
 function renderUsers(){
+  const verifiedUsers = getVerifiedUsers();
   if (!verifiedUsers.length) {
     document.getElementById('users-table').innerHTML='<tr><td colspan="9" class="empty-state">No verified users yet — submissions will appear here after identity review</td></tr>';
     return;
