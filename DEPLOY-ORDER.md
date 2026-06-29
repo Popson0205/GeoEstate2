@@ -1,71 +1,100 @@
-# GeoEstate — Full Form Rewrite (v3)
-Date: June 2026
+# GeoEstate — Supabase v2 Deploy Guide
+## Registration & Verification Redesign
 
-## Files
-- index.html  → GeoEstate2 repo root
-- server.js   → GeoEstate repo root
+---
 
-## What changed
+## What Changed in This Version
 
-All form logic was rewritten from scratch (not patched).
-Four blocks replaced in index.html:
+### Registration Form (Step 1)
+Now collects **only**:
+- First name, Last name
+- Email *(OTP sent here)*
+- Phone
+- Password
+- Profile photo *(optional)*
 
-### 1. Early script block (~line 354)
-Hoisted closeMobileNav() and openAuthModal() stubs.
-These must exist before the full JS parses so nav button
-onclick handlers never hit ReferenceError on fast clicks.
+NIN, ID documents, Next of Kin, address — all moved to Step 2.
 
-### 2. submitVerification block (~line 2867)
-Full rewrite of submitVerification(). Clean field reads,
-proper validation, Supabase uploads (non-fatal), correct
-owner token format (owner:<id>:<timestamp>), error/progress
-state properly reset on retry. verifySuccess() kept as alias.
+### Verify Identity Page (Step 2 — post-login)
+Full form with proper IDs wired to `/owner/verify-identity`:
+- DOB, Gender, Occupation, Employer
+- State, LGA, Residential Address
+- NIN (11-digit)
+- Selfie photo upload → Supabase Storage
+- Government ID document upload → Supabase Storage
+- Next of Kin (name, relationship, phone)
 
-### 3. Auth system block (~line 3108)
-Complete rewrite of all auth functions:
-  - initAuth()          — restore session from localStorage
-  - loginSuccess()      — set session + update banner
-  - logoutUser()        — clear session, redirect home
-  - renderNavAuth()     — show user pill or Sign In/Register buttons
-  - openAuthModal()     — full def (replaces hoisted stub)
-  - closeAuthModal()
-  - toggleDropdown() / closeDropdown()
-  - switchAuthTab()
-  - selectRole()
-  - checkPassStrength() / togglePassVis()
-  - showAuthToast()     — self-creating toast div, no missing element dep
-  - startOTPTimer()     — proper countdown with clearInterval
-  - geoHandleFileSelect() — file picker feedback
-  - geoUploadToSupabase() — clean fetch with proper error messages
-  - doRegister()        — validate → pendingRegData → sendOTP
-  - sendOTP()           — POST /send-otp, handle testMode devCode
-  - otpNext() / otpBack()
-  - verifyOTP()         — verify OTP → POST /register → use
-                          regData.submissionId → loginSuccess → /verify page
-  - doLogin()           — POST /user/login → loginSuccess
+### Backend (`server.js`)
+- `handleOwnerVerifyIdentity` now saves `photo_url` + `id_doc_url` (Supabase Storage URLs)
+- All 15 fields updated in a single SQL UPDATE with COALESCE (safe to re-submit)
 
-### 4. Mobile nav block (~line 5389)
-toggleMobileNav, closeMobileNav, navTo rewritten as one clean block.
-closeMobileNav() extracted so buttons can call it directly.
+### Post-login Banner
+Amber banner appears after login for unverified users → links to Verify Identity page.
 
-### server.js
-- /register returns submissionId even on "Already registered"
-- URL trailing slash stripped before route matching
-- Supabase error details logged to Railway console
+---
 
-## Key fixes carried through
-- verifyOTP now uses regData.submissionId returned from server
-  so /owner/verify-identity always gets the real DB row ID
-- showAuthToast() creates its own DOM element — never fails from
-  a missing element in the page
-- All API calls use GEO_API_BASE constant
+## Files in This Zip
 
-## Still needed (env vars on Railway)
-  SUPABASE_URL         = https://<project>.supabase.co
-  SUPABASE_SERVICE_KEY = <service_role key>
-  SUPABASE_BUCKET      = geoestate-docs   (optional, default)
-  Bucket must exist in Supabase Storage and be set to public.
+| File | Repo | Notes |
+|------|------|-------|
+| `server.js` | GeoEstate (backend) | All fixes + Supabase storage + verify-identity fix |
+| `index.html` | GeoEstate2 (frontend) | Simplified registration + full verify page + banner |
+| `geo-api.js` | GeoEstate2 | Unchanged |
+| `owner-dashboard.html` | GeoEstate2 | Unchanged |
+| `sales.html` | GeoEstate2 | Unchanged |
+| `supabase-schema.sql` | Supabase SQL Editor | Run once if not already done |
 
-## Deploy order
-  1. Push server.js to GeoEstate repo (Render auto-deploys)
-  2. Push index.html to GeoEstate2 repo
+---
+
+## Deploy Steps
+
+### 1. Supabase SQL (only if not already run)
+Run `supabase-schema.sql` in Supabase SQL Editor.
+Confirm 13 tables + all columns including `photo_url`, `id_doc_url`, `nin`, `pass_hash`.
+
+### 2. Supabase Storage Bucket (only if not already created)
+Create bucket named exactly **`geoestate-docs`** → set to **Public**.
+
+### 3. Railway Environment Variables (if not already set)
+```
+SUPABASE_DB_URL       = postgresql://postgres.REF:PASS@aws-0-REGION.pooler.supabase.com:5432/postgres
+SUPABASE_URL          = https://YOURREF.supabase.co
+SUPABASE_SERVICE_KEY  = eyJhbGci... (service_role key)
+SUPABASE_BUCKET       = geoestate-docs
+ADMIN_EMAIL           = (keep existing)
+ADMIN_PASSWORD        = (keep existing)
+JWT_SECRET            = (keep existing)
+SECRET_RESEND_API_KEY = (keep existing)
+```
+
+### 4. Push `server.js` → GeoEstate repo → Railway auto-deploys
+
+### 5. Push all frontend files → GeoEstate2 repo
+
+---
+
+## User Flow After Deploy
+
+```
+Visit site
+  → Click Register
+  → Enter: name + email + phone + password + optional photo
+  → OTP sent to email
+  → Enter OTP → Account created ✅
+  → Automatically redirected to Verify Identity page
+  → Fill: bio, NIN, selfie, ID doc, next of kin
+  → Submit → status set to "review"
+  → Admin reviews and approves
+  → User gets full platform access
+```
+
+---
+
+## Admin Dashboard After Verification
+Once user submits verification, admin profile card will show:
+- ✅ All personal bio data filled (not "—")
+- ✅ NIN populated
+- ✅ Selfie image displayed
+- ✅ ID doc image/PDF displayed
+- ✅ Next of kin filled
+- Status: "review" (pending admin approval)

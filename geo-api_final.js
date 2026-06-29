@@ -169,21 +169,13 @@
 
   async function ownerFetch(path, opts) {
     opts = opts || {};
-    const hasBody = !!(opts.body);
-    const headers = ownerHeaders();
-    // Only set Content-Type on requests that carry a body (GET never should)
-    if (!hasBody) delete headers['Content-Type'];
     try {
       const r = await fetch(GEO_API + path, {
         method: opts.method || 'GET',
-        headers: headers,
-        body: hasBody ? JSON.stringify(opts.body) : undefined
+        headers: ownerHeaders(),
+        body: opts.body ? JSON.stringify(opts.body) : undefined
       });
-      if (!r.ok) {
-        // Try to surface the server error message
-        try { const d = await r.json(); return { error: d.error || 'HTTP ' + r.status }; } catch(e2) {}
-        return { error: 'HTTP ' + r.status };
-      }
+      if (!r.ok) return { error: 'HTTP ' + r.status };
       return await r.json();
     } catch(e) { return { error: e.message }; }
   }
@@ -191,8 +183,6 @@
   // ── SSE Real-time sync ─────────────────────────────────────────
   let sseSource = null;
   const sseHandlers = {};
-  let sseRetryDelay = 2000;
-  const SSE_MAX_DELAY = 60000;
 
   function startSSE() {
     if (sseSource) return;
@@ -214,11 +204,10 @@
         });
       });
       sseSource.onerror = function() {
-        // Reconnect with exponential backoff to reduce HTTP/2 protocol error noise
+        // Reconnect after 5s
         if (sseSource) { sseSource.close(); sseSource = null; }
-        setTimeout(function() { sseRetryDelay = Math.min(sseRetryDelay * 2, SSE_MAX_DELAY); startSSE(); }, sseRetryDelay);
+        setTimeout(startSSE, 5000);
       };
-      sseSource.onopen = function() { sseRetryDelay = 2000; }; // reset on success
     } catch(e) {}
   }
 
