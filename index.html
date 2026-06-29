@@ -6213,99 +6213,95 @@ document.addEventListener('click', function(e) {
 </script>
 
 <script>
-// ── Property photos upload (multi-file → Cloudinary) ────────────────────────
+// ── Supabase upload helpers (replaces legacy Cloudinary functions) ────────────
+// All uploads go via /upload-sign (server creates a Supabase signed PUT URL).
+// The browser then PUTs the file directly to Supabase Storage — file bytes
+// never touch the Railway server.
+
+const API_BASE = window.GEO_API_BASE || window.GEO_API || window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
+
+// ── Multi-file property photo upload ─────────────────────────────────────────
 let _uploadedImgUrls = [];
 
 async function handlePropPhotosUpload(input) {
   const files = Array.from(input.files);
   if (!files.length) return;
-  const statusEl = document.getElementById('prop-upload-status');
+  const statusEl  = document.getElementById('prop-upload-status');
   const previewEl = document.getElementById('prev-prop-photos');
   if (statusEl) { statusEl.textContent = '⏳ Uploading ' + files.length + ' image(s)…'; statusEl.style.display = 'block'; }
-
-  const API = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
-  let signData = null;
-  try {
-    const s = await fetch(API + '/upload-sign', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ folder: 'geoestate/properties' })
-    });
-    if (!s.ok) throw new Error('Upload service not available');
-    signData = await s.json();
-  } catch(e) {
-    // Fallback: use local preview + data URLs (no cloud storage)
-    if (statusEl) { statusEl.textContent = '⚠️ Cloud upload unavailable — using local preview'; statusEl.style.display = 'block'; }
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        _uploadedImgUrls.push(ev.target.result);
-        document.getElementById('list-img-main').value = _uploadedImgUrls[0] || '';
-        document.getElementById('list-images-json').value = JSON.stringify(_uploadedImgUrls);
-        if (previewEl) previewEl.innerHTML += `<img src="${ev.target.result}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
-      };
-      reader.readAsDataURL(file);
-    });
-    return;
-  }
 
   let uploaded = 0;
   for (const file of files) {
     try {
-      const form = new FormData();
-      form.append('file', file);
-      form.append('api_key', signData.api_key);
-      form.append('timestamp', signData.timestamp);
-      form.append('signature', signData.signature);
-      form.append('folder', signData.folder);
-      const _propCloudUrl = signData.upload_url || `https://api.cloudinary.com/v1_1/dyxr2njxw/auto/upload`;
-      const r = await fetch(_propCloudUrl, { method: 'POST', body: form });
-      const d = await r.json();
-      if (d.secure_url) {
-        _uploadedImgUrls.push(d.secure_url);
-        if (previewEl) previewEl.innerHTML += `<img src="${d.secure_url}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
-        uploaded++;
-      }
-    } catch(e) {}
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const signRes = await fetch(API_BASE + '/upload-sign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'geoestate/properties', ext })
+      });
+      if (!signRes.ok) throw new Error('Upload service unavailable');
+      const sign = await signRes.json();
+
+      // PUT directly to Supabase signed URL
+      const upRes = await fetch(sign.upload_url || sign.signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+        body: file
+      });
+      if (!upRes.ok) throw new Error('Upload failed: ' + upRes.status);
+
+      const publicUrl = sign.public_url;
+      _uploadedImgUrls.push(publicUrl);
+      if (previewEl) previewEl.innerHTML += `<img src="${publicUrl}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
+      uploaded++;
+    } catch(e) {
+      // Fallback to local data URL for preview
+      await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          _uploadedImgUrls.push(ev.target.result);
+          if (previewEl) previewEl.innerHTML += `<img src="${ev.target.result}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
     if (statusEl) statusEl.textContent = `⏳ Uploaded ${uploaded}/${files.length}…`;
   }
 
-  document.getElementById('list-img-main').value = _uploadedImgUrls[0] || '';
-  document.getElementById('list-images-json').value = JSON.stringify(_uploadedImgUrls);
+  const mainEl = document.getElementById('list-img-main');
+  const jsonEl = document.getElementById('list-images-json');
+  if (mainEl) mainEl.value = _uploadedImgUrls[0] || '';
+  if (jsonEl) jsonEl.value = JSON.stringify(_uploadedImgUrls);
   if (statusEl) statusEl.textContent = `✅ ${uploaded} photo(s) uploaded`;
 }
 
+// ── Single image upload for admin fields (was adminCloudinaryUpload) ──────────
 async function adminCloudinaryUpload(inputId) {
-  const API = window.GEO_API || 'https://api.geoestate.com.ng';
   const fileInput = document.createElement('input');
   fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
   fileInput.onchange = async function() {
     const file = fileInput.files[0];
-    if (!file) return;
+    if (!file) { document.body.removeChild(fileInput); return; }
     document.body.removeChild(fileInput);
     if (typeof adminToast === 'function') adminToast('⏳ Uploading image…', 'info');
     try {
-      const s = await fetch(API + '/upload-sign', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ folder: 'geoestate/properties' })
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const signRes = await fetch(API_BASE + '/upload-sign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'geoestate/properties', ext })
       });
-      if (!s.ok) throw new Error('Upload service not configured');
-      const sign = await s.json();
-      const form = new FormData();
-      form.append('file', file);
-      form.append('api_key', sign.api_key);
-      form.append('timestamp', sign.timestamp);
-      form.append('signature', sign.signature);
-      form.append('folder', sign.folder);
-      const _signUrl2 = sign.upload_url || `https://api.cloudinary.com/v1_1/dyxr2njxw/auto/upload`;
-      const r = await fetch(_signUrl2, { method: 'POST', body: form });
-      const d = await r.json();
-      if (d.secure_url) {
-        document.getElementById(inputId).value = d.secure_url;
-        if (typeof adminToast === 'function') adminToast('✅ Image uploaded to Cloudinary!', 'success');
-      } else {
-        throw new Error(d.error?.message || 'Upload failed');
-      }
+      if (!signRes.ok) throw new Error('Upload service not configured');
+      const sign = await signRes.json();
+      const upRes = await fetch(sign.upload_url || sign.signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+        body: file
+      });
+      if (!upRes.ok) throw new Error('Upload failed');
+      const inputEl = document.getElementById(inputId);
+      if (inputEl) inputEl.value = sign.public_url;
+      if (typeof adminToast === 'function') adminToast('✅ Image uploaded!', 'success');
     } catch(e) {
       if (typeof adminToast === 'function') adminToast('⚠️ ' + e.message, 'warn');
     }
@@ -6313,14 +6309,11 @@ async function adminCloudinaryUpload(inputId) {
   fileInput.click();
 }
 
-// ── Cloudinary Direct Upload Helper ─────────────────────────────────────────
+// ── Single image upload for property/profile forms (was cloudinaryUpload) ─────
 async function cloudinaryUpload(inputId, previewId) {
-  const API = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
   try {
-    // 1. Get signed params from our backend
-    const signRes = await fetch(API + '/upload-sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const signRes = await fetch(API_BASE + '/upload-sign', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folder: 'geoestate/properties' })
     });
     if (!signRes.ok) {
@@ -6329,53 +6322,32 @@ async function cloudinaryUpload(inputId, previewId) {
       return;
     }
     const sign = await signRes.json();
-
-    // 2. Create a hidden file input and trigger click
     const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.style.display = 'none';
+    fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
-
     fileInput.onchange = async function() {
       const file = fileInput.files[0];
-      if (!file) return;
+      if (!file) { document.body.removeChild(fileInput); return; }
       document.body.removeChild(fileInput);
-
       const btnEl = document.querySelector(`[onclick*="${inputId}"]`);
       if (btnEl) { btnEl.textContent = '⏳ Uploading…'; btnEl.disabled = true; }
-
       try {
-        const form = new FormData();
-        form.append('file', file);
-        form.append('api_key', sign.api_key);
-        form.append('timestamp', sign.timestamp);
-        form.append('signature', sign.signature);
-        form.append('folder', sign.folder);
-
-        const _adminCloudUrl = sign.upload_url || `https://api.cloudinary.com/v1_1/dyxr2njxw/auto/upload`;
-        const upRes = await fetch(_adminCloudUrl, { method: 'POST', body: form });
-        const upData = await upRes.json();
-
-        if (upData.secure_url) {
-          const inputEl = document.getElementById(inputId);
-          if (inputEl) inputEl.value = upData.secure_url;
-
-          // Show preview
-          const previewEl = document.getElementById(previewId);
-          const previewImg = document.getElementById(previewId + '-img');
-          if (previewEl && previewImg) {
-            previewImg.src = upData.secure_url;
-            previewEl.style.display = 'block';
-          }
-          if (typeof showAuthToast === 'function') showAuthToast('✅ Image uploaded!', 'success');
-        } else {
-          if (typeof showAuthToast === 'function') showAuthToast('Upload failed: ' + (upData.error?.message || 'unknown error'), 'error');
-        }
+        const upRes = await fetch(sign.upload_url || sign.signed_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+          body: file
+        });
+        if (!upRes.ok) throw new Error('Upload failed: ' + upRes.status);
+        const publicUrl = sign.public_url;
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) inputEl.value = publicUrl;
+        const previewEl  = document.getElementById(previewId);
+        const previewImg = document.getElementById(previewId + '-img');
+        if (previewEl && previewImg) { previewImg.src = publicUrl; previewEl.style.display = 'block'; }
+        if (btnEl) { btnEl.textContent = '✅ Uploaded'; btnEl.disabled = false; }
       } catch(e) {
-        if (typeof showAuthToast === 'function') showAuthToast('Upload error: ' + e.message, 'error');
-      } finally {
-        if (btnEl) { btnEl.textContent = '📸 Upload Photo'; btnEl.disabled = false; }
+        if (btnEl) { btnEl.textContent = '⚠️ Upload failed'; btnEl.disabled = false; }
+        if (typeof showAuthToast === 'function') showAuthToast(e.message, 'error');
       }
     };
     fileInput.click();
@@ -6384,7 +6356,6 @@ async function cloudinaryUpload(inputId, previewId) {
     else alert('Could not reach upload server.');
   }
 }
-
 </script>
 
 <script src="geo-api.js"></script>

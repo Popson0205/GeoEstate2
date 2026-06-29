@@ -1210,41 +1210,39 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-  // ── Cloudinary upload helper (owner dashboard) ─────────────────────────────
+  // ── Supabase upload helper (owner dashboard) ─────────────────────────────
   async function ownerCloudinaryUpload(inputId, previewId) {
     const API = 'https://api.geoestate.com.ng';
     const fileInput = document.createElement('input');
-    fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+    fileInput.type = 'file'; fileInput.accept = 'image/*,application/pdf'; fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
     fileInput.onchange = async function() {
       const file = fileInput.files[0];
       if (!file) { document.body.removeChild(fileInput); return; }
       document.body.removeChild(fileInput);
-      toast('⏳ Uploading image…');
+      toast('⏳ Uploading…');
       try {
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
         const s = await fetch(API + '/upload-sign', {
           method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ folder: 'geoestate/properties' })
+          body: JSON.stringify({ folder: 'geoestate/owner-docs', ext })
         });
         if (!s.ok) throw new Error('Upload not configured on server yet');
         const sign = await s.json();
-        const form = new FormData();
-        form.append('file', file);
-        form.append('api_key', sign.api_key);
-        form.append('timestamp', sign.timestamp);
-        form.append('signature', sign.signature);
-        form.append('folder', sign.folder);
-        const r = await fetch(sign.upload_url, { method: 'POST', body: form });
-        const d = await r.json();
-        if (d.secure_url) {
-          document.getElementById(inputId).value = d.secure_url;
-          const prev = document.getElementById(previewId);
-          const prevImg = document.getElementById(previewId + '-img');
-          if (prev && prevImg) { prevImg.src = d.secure_url; prev.style.display = 'block'; }
-          toast('✅ Image uploaded!');
-        } else {
-          throw new Error(d.error?.message || 'Upload failed');
-        }
+        // PUT directly to Supabase (file bytes never hit Railway)
+        const upRes = await fetch(sign.upload_url || sign.signed_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+          body: file
+        });
+        if (!upRes.ok) throw new Error('Upload failed: ' + upRes.status);
+        const publicUrl = sign.public_url;
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) inputEl.value = publicUrl;
+        const prev = document.getElementById(previewId);
+        const prevImg = document.getElementById(previewId + '-img');
+        if (prev && prevImg) { prevImg.src = publicUrl; prev.style.display = 'block'; }
+        toast('✅ Uploaded!');
       } catch(e) {
         // Fallback: use local FileReader preview
         const reader = new FileReader();
