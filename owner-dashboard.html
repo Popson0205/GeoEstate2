@@ -1218,50 +1218,67 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
   // ── Supabase upload helper (owner dashboard) ─────────────────────────────
+  // Accepts ALL images — geotagged and non-geotagged alike.
+  // Falls back to a base64 data URL so the image is always captured and shown.
   async function ownerCloudinaryUpload(inputId, previewId) {
     const API = 'https://api.geoestate.com.ng';
     const fileInput = document.createElement('input');
-    fileInput.type = 'file'; fileInput.accept = 'image/*,application/pdf'; fileInput.style.display = 'none';
+    fileInput.type = 'file';
+    // Accept any image format; no geotag or EXIF required
+    fileInput.accept = 'image/*,application/pdf';
+    fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
     fileInput.onchange = async function() {
       const file = fileInput.files[0];
       if (!file) { document.body.removeChild(fileInput); return; }
       document.body.removeChild(fileInput);
       toast('⏳ Uploading…');
+
+      // Helper: show image in preview and store URL in input
+      function _setResult(url) {
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) inputEl.value = url;
+        const prev   = document.getElementById(previewId);
+        const prevImg = document.getElementById(previewId + '-img');
+        if (prev && prevImg) { prevImg.src = url; prev.style.display = 'block'; }
+      }
+
       try {
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
         const s = await fetch(API + '/upload-sign', {
-          method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ folder: 'geoestate/owner-docs', ext })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder: 'geoestate/property-images', ext })
         });
         if (!s.ok) throw new Error('Upload not configured on server yet');
         const sign = await s.json();
-        // PUT directly to Supabase (file bytes never hit Railway)
+        if (sign.error) throw new Error(sign.error);
+
+        // PUT file bytes directly to Supabase — never hits Railway
         const upRes = await fetch(sign.upload_url || sign.signed_url, {
           method: 'PUT',
-          headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'x-upsert': 'true'   // allow re-upload of same filename
+          },
           body: file
         });
-        if (!upRes.ok) throw new Error('Upload failed: ' + upRes.status);
-        const publicUrl = sign.public_url;
-        const inputEl = document.getElementById(inputId);
-        if (inputEl) inputEl.value = publicUrl;
-        const prev = document.getElementById(previewId);
-        const prevImg = document.getElementById(previewId + '-img');
-        if (prev && prevImg) { prevImg.src = publicUrl; prev.style.display = 'block'; }
-        toast('✅ Uploaded!');
+        if (!upRes.ok) throw new Error('Storage upload failed: HTTP ' + upRes.status);
+
+        _setResult(sign.public_url);
+        toast('✅ Image uploaded successfully!');
       } catch(e) {
-        // Fallback: use local FileReader preview
+        // Fallback: read as base64 data URL so the image is never lost.
+        // The data URL will be stored in the DB and displayed correctly.
         const reader = new FileReader();
         reader.onload = function(ev) {
-          document.getElementById(inputId).value = '';
-          document.getElementById(inputId).placeholder = '(Local preview — cloud upload unavailable)';
-          const prev = document.getElementById(previewId);
-          const prevImg = document.getElementById(previewId + '-img');
-          if (prev && prevImg) { prevImg.src = ev.target.result; prev.style.display = 'block'; }
+          _setResult(ev.target.result);
+          toast('⚠️ Cloud storage unavailable — image saved locally. It will display correctly.');
+        };
+        reader.onerror = function() {
+          toast('❌ Could not read image file: ' + e.message, 'error');
         };
         reader.readAsDataURL(file);
-        toast('⚠️ Cloud upload unavailable: ' + e.message);
       }
     };
     fileInput.click();

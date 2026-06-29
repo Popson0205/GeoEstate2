@@ -6316,6 +6316,53 @@ function loadTypePageIfNeeded(name) {
   }
 }
 
+// ── SSE: instant public refresh when admin approves a property ─────────────
+// When the server broadcasts property_updated or property_created we:
+//  1. Invalidate the type-page cache for all types
+//  2. Re-fetch and re-render whichever type page is currently visible
+//  3. Also refresh the homepage hero grid (properties array)
+(function _wirePublicSSE() {
+  // Run after GeoAPI is available (geo-api.js loads before this block)
+  function _attachSSE() {
+    if (!window.GeoAPI || !window.GeoAPI.onSSE) return;
+
+    function _refreshPublicListings() {
+      // Clear all cached type pages so next visit fetches fresh data
+      typePageCache = { rent: [], buy: [], lease: [] };
+
+      // Re-render whatever type page is currently active
+      ['rent', 'buy', 'lease'].forEach(function(type) {
+        const page = document.getElementById('page-' + type);
+        if (page && page.classList.contains('active')) {
+          loadTypePage(type).then(function(props) {
+            typePageCache[type] = props;
+            renderTypePage(type, props);
+          });
+        }
+      });
+
+      // Refresh homepage grid (first 6 properties across all types)
+      var baseUrl = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
+      fetch(baseUrl + '/properties').then(function(r) { return r.json(); }).then(function(d) {
+        if (!d.properties) return;
+        var mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p) { return p; };
+        properties = d.properties.map(mapper);
+        if (typeof renderProps === 'function') renderProps(currentFilter || 'all');
+      }).catch(function() {});
+    }
+
+    window.GeoAPI.onSSE('property_updated', _refreshPublicListings);
+    window.GeoAPI.onSSE('property_created', _refreshPublicListings);
+  }
+
+  // GeoAPI may not be defined yet at parse time — wait briefly
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(_attachSSE, 500); });
+  } else {
+    setTimeout(_attachSSE, 500);
+  }
+})();
+
 // Patch showPage safely — preserve original fully, just add side effect
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof window._geoShowPagePatched === 'undefined') {
