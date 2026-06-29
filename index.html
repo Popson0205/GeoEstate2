@@ -4479,7 +4479,7 @@ function openPropModal(idx){
       <div class="panel-section-title">Property Details</div>
       <div class="field-grid">
         <div><div class="field-label">Type</div><div class="field-value">${(p.listing_type||p.type||'rent').toUpperCase()}</div></div>
-        <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price}</div></div>
+        <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</div></div>
         <div><div class="field-label">State</div><div class="field-value">${p.state}</div></div>
         <div><div class="field-label">LGA</div><div class="field-value">${p.lga}</div></div>
       </div>
@@ -4488,8 +4488,8 @@ function openPropModal(idx){
     <div class="panel-section">
       <div class="panel-section-title">Owner</div>
       <div class="field-grid">
-        <div><div class="field-label">Owner Name</div><div class="field-value name-link" onclick="openIdByRef('${p.ownerId}');closeModal('modal-prop')">${p.owner} ↗</div></div>
-        <div><div class="field-label">Owner ID</div><div class="field-value" style="font-family:monospace">${p.ownerId}</div></div>
+        <div><div class="field-label">Owner Name</div><div class="field-value name-link" onclick="openIdByRef('${p.owner_id||p.ownerId}');closeModal('modal-prop')">${p.owner||'—'} ↗</div></div>
+        <div><div class="field-label">Owner ID</div><div class="field-value" style="font-family:monospace">${p.owner_id||p.ownerId||'—'}</div></div>
       </div>
     </div>
     <div class="panel-section">
@@ -5010,6 +5010,7 @@ function renderPropQueue(filterStatus){
       <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
       <td style="font-size:.78rem">${[p.lga,p.state].filter(Boolean).join(', ')||p.address||'—'}</td>
       <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split('T')[0]}</td>
+      <td>${statusPill(p.status)}</td>
       <td>${statusPill(p.status)}</td>
       <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
     </tr>`; }).join('');
