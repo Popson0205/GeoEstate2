@@ -1690,7 +1690,7 @@ function saveNotes(idx){const el=document.getElementById('notes-'+idx);if(el) su
 function approveId(idx){
   saveNotes(idx);
   submissions[idx].status='approved';submissions[idx].reviewer='Tom K.';
-  saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
+  saveState();updateBadges();renderIdQueue();renderUrgent();renderUsers();renderRegistrations();closeModal('modal-id');
   adminToast(submissions[idx].name+' approved ✓','success');
   addSyncLog('Identity approved: '+submissions[idx].name);
   fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'approved',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
@@ -1698,7 +1698,7 @@ function approveId(idx){
 function rejectId(idx){
   saveNotes(idx);
   submissions[idx].status='rejected';submissions[idx].reviewer='Tom K.';
-  saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
+  saveState();updateBadges();renderIdQueue();renderUrgent();renderRegistrations();closeModal('modal-id');
   adminToast(submissions[idx].name+' rejected','error');
   addSyncLog('Identity rejected: '+submissions[idx].name);
   fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
@@ -2049,7 +2049,7 @@ function initApp(){
   renderRegistrations();
   updateBadges();saveState();
   // Load from Neon DB
-  if(typeof loadFromDB === 'function') loadFromDB();
+  // Initial sync handled by override below
 }
 
 // ══ LAWYER PICKER ══
@@ -2881,9 +2881,8 @@ window.initApp = function(){
   renderTeam();
   renderTenancy();
   updateBadges(); saveState();
-  // Load everything from Neon DB
-  loadFromDB();
-  // Poll for new registrations every 30s
+  // Initial load from Neon DB then poll every 30s
+  syncFromAPI();
   setInterval(syncFromAPI, 30000);
 };
 
@@ -2904,42 +2903,42 @@ async function syncFromAPI() {
     clearTimeout(timeout);
     const data = await res.json();
     if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
-    if (!data.success || !data.registrations.length) {
-      adminToast('No new registrations found', 'info');
-      return;
-    }
 
     let added = 0;
-    data.registrations.forEach(reg => {
-      // Normalise name field (API may return fname/lname separately)
-      if (!reg.name && (reg.fname || reg.lname)) {
-        reg.name = ((reg.fname||'') + ' ' + (reg.lname||'')).trim();
-      }
-      // Check not already in submissions
-      const exists = submissions.find(s => s.id === reg.id || s.email === reg.email);
-      if (!exists) {
-        submissions.unshift(reg);
-        added++;
-        activityFeed.unshift({
-          dot: 'blue',
-          text: '<strong>New registration</strong> — ' + (reg.name||reg.email) + ' (' + (reg.type === 'owner' ? 'Property Owner' : 'Renter/Buyer') + ')',
-          time: 'Just now'
-        });
-      } else {
-        // Update existing record with latest data from DB
-        const idx = submissions.findIndex(s => s.id === reg.id || s.email === reg.email);
-        if (idx >= 0) submissions[idx] = {...submissions[idx], ...reg, name: reg.name || submissions[idx].name};
-      }
-    });
+    if (data.success && data.registrations && data.registrations.length) {
+      data.registrations.forEach(reg => {
+        // Normalise name field (API may return fname/lname separately)
+        if (!reg.name && (reg.fname || reg.lname)) {
+          reg.name = ((reg.fname||'') + ' ' + (reg.lname||'')).trim();
+        }
+        // Check not already in submissions
+        const exists = submissions.find(s => s.id === reg.id || s.email === reg.email);
+        if (!exists) {
+          submissions.unshift(reg);
+          added++;
+          activityFeed.unshift({
+            dot: 'blue',
+            text: '<strong>New registration</strong> — ' + (reg.name||reg.email) + ' (' + (reg.type === 'owner' ? 'Property Owner' : 'Renter/Buyer') + ')',
+            time: 'Just now'
+          });
+        } else {
+          // Merge latest DB data — status changes (approved/rejected) from DB override local
+          const i = submissions.findIndex(s => s.id === reg.id || s.email === reg.email);
+          if (i >= 0) submissions[i] = {...submissions[i], ...reg, name: reg.name || submissions[i].name};
+        }
+      });
+    }
+
+    // Always re-render all views so status changes (approve/reject) are reflected everywhere
+    saveState();
+    updateBadges();
+    renderIdQueue();
+    renderRegistrations();
+    renderUsers();
+    renderUrgent();
+    renderFeed();
 
     if (added > 0) {
-      adminToast(added + ' new registration(s) loaded', 'success');
-      saveState();
-      updateBadges();
-      renderIdQueue();
-      renderRegistrations();
-      renderUrgent();
-      renderFeed();
       const syncIndicator = document.querySelector('.topbar-right div');
       if (syncIndicator) {
         syncIndicator.innerHTML = '<span class="sync-dot"></span>' + added + ' new submission' + (added > 1 ? 's' : '') + ' synced';
