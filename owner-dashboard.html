@@ -443,9 +443,9 @@
                 <textarea class="form-textarea" id="fp-desc" placeholder="Describe the property — features, neighbourhood, access..." rows="4"></textarea>
               </div>
               <div class="form-group">
-                <label class="form-label">Main Image URL</label>
+                <label class="form-label">Main Image URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
                 <div style="display:flex;gap:8px;align-items:center">
-                <input class="form-input" id="fp-img" placeholder="https://... or use Upload button" style="flex:1">
+                <input class="form-input" id="fp-img" placeholder="https://... or use Upload button (optional)" style="flex:1">
                 <button type="button" onclick="ownerCloudinaryUpload('fp-img','fp-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
               </div>
               <div id="fp-img-preview" style="display:none;margin-top:6px">
@@ -757,21 +757,28 @@ async function checkVerificationForAdd() {
   const profile = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
   const warning = document.getElementById('add-verify-warning');
   const form = document.getElementById('add-prop-form-wrap');
-  if (!profile.profile?.is_verified) {
+  // Show the warning banner but never block the form — the submit handler
+  // catches unverified owners and shows a clear error instead.
+  if (profile.profile && !profile.profile.is_verified) {
     warning.style.display = 'block';
-    form.style.opacity = '.4';
-    form.style.pointerEvents = 'none';
   } else {
     warning.style.display = 'none';
-    form.style.opacity = '1';
-    form.style.pointerEvents = 'auto';
   }
+  // Always keep form interactive
+  if (form) { form.style.opacity = '1'; form.style.pointerEvents = 'auto'; }
 }
 
 async function submitAddProperty() {
   const lt = document.getElementById('fp-listing-type').value;
   const title = document.getElementById('fp-title').value.trim();
-  if (!title) { toast('Property title is required', 'error'); return; }
+  if (!title) { toast('Please enter a property title before submitting', 'error'); return; }
+  // Verification guard at submit time — gives a clear action path
+  const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  if (_vp.profile && !_vp.profile.is_verified) {
+    toast('Please complete identity verification before listing a property.', 'error');
+    setTimeout(() => navTo('verification', null), 1500);
+    return;
+  }
   const payload = {
     title, listing_type: lt,
     monthly_rent: lt === 'rent' ? (parseFloat(document.getElementById('fp-monthly-rent').value)||null) : null,

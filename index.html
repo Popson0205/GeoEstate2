@@ -3994,11 +3994,8 @@ async function doLogin() {
       }
       closeAuthModal();
       showAuthToast('Welcome back, ' + data.user.fname + '! 👋');
-      if (!data.user.verified) {
-        setTimeout(function () {
-          if (confirm('Verify your identity to unlock full access?')) showPage('verify');
-        }, 1000);
-      }
+      // Identity verification is only required at registration.
+      // The sticky verify-banner already nudges unverified users — no forced dialog needed.
     } else {
       const noAccount = (data.error || '').toLowerCase().includes('no account');
       showErr(data.error || 'Login failed. Please try again.', noAccount);
