@@ -215,8 +215,8 @@
   #admin-root .check-box.unchecked{box-shadow:inset 0 0 0 1.5px var(--a-border)}
 
   /* DOC THUMBS */
-  #admin-root .doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-  #admin-root .doc-thumb{height:130px;border-radius:8px;overflow:hidden;background:var(--a-card2);display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;cursor:pointer;box-shadow:inset 0 0 0 1px var(--a-border)}
+  #admin-root .doc-grid{display:grid;grid-template-columns:140px 1fr;gap:12px;margin-bottom:16px;align-items:start}
+  #admin-root .doc-thumb{height:160px;border-radius:10px;overflow:hidden;background:var(--a-card2);display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;cursor:pointer;box-shadow:inset 0 0 0 1px var(--a-border)}
   #admin-root .doc-thumb img{width:100%;height:100%;object-fit:cover}
   #admin-root .doc-thumb-label{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:600}
   #admin-root .doc-thumb-link{text-decoration:none;cursor:pointer}
@@ -1375,19 +1375,19 @@ function openIdModal(idx){
         <div><div class="field-label">NIN (masked)</div><div class="field-value" style="font-family:monospace">${s.nin}</div></div>
       </div>
       <div class="doc-grid">
+        ${_selfieUrl
+          ? `<div class="doc-thumb doc-thumb-selfie">
+               <img src="${_selfieUrl}" alt="Live Selfie" style="width:100%;height:100%;object-fit:cover;object-position:center top;border-radius:10px" onerror="this.style.display='none'">
+               <div class="doc-thumb-label">Live Selfie</div>
+             </div>`
+          : `<div class="doc-thumb doc-thumb-empty"><div style="color:var(--adm-text-subtle);font-size:.8rem;text-align:center">No selfie<br>uploaded</div></div>`}
         ${_docUrl
           ? `<a class="doc-thumb doc-thumb-link" href="${_docUrl}" download target="_blank" title="Download ID document">
-               <img src="${_docUrl}" alt="ID Document" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
+               <img src="${_docUrl}" alt="ID Document" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">
                <div class="doc-thumb-fallback" style="display:none;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:6px;font-size:.8rem;color:var(--adm-text-subtle)">📄<span>Download ID</span></div>
                <div class="doc-thumb-label">${_docLabel} ⬇</div>
              </a>`
           : `<div class="doc-thumb doc-thumb-empty"><div style="color:var(--adm-text-subtle);font-size:.8rem;text-align:center">No document<br>uploaded</div></div>`}
-        ${_selfieUrl
-          ? `<div class="doc-thumb">
-               <img src="${_selfieUrl}" alt="Live Selfie" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">
-               <div class="doc-thumb-label">Live Selfie</div>
-             </div>`
-          : `<div class="doc-thumb doc-thumb-empty"><div style="color:var(--adm-text-subtle);font-size:.8rem;text-align:center">No selfie<br>uploaded</div></div>`}
       </div>
     </div>
     <div class="panel-section">
