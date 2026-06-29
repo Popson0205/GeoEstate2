@@ -1181,7 +1181,11 @@ function getVerifiedUsers() {
       role:     s.type === 'owner' ? 'Property Owner' : (s.role || 'Renter/Buyer'),
       state:    s.state || s.location || '—',
       phone:    s.phone || '—',
-      verified: s.reviewed_at || s.created_at || '—',
+      verified: s.verified_at
+        ? new Date(s.verified_at).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})
+        : (s.updated_at && s.status==='approved'
+          ? new Date(s.updated_at).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})
+          : (s.submitted || '—')),
       listings: s.listings || 0,
       txns:     s.txns || 0,
       idRef:    s.id,
@@ -1690,6 +1694,7 @@ function saveNotes(idx){const el=document.getElementById('notes-'+idx);if(el) su
 function approveId(idx){
   saveNotes(idx);
   submissions[idx].status='approved';submissions[idx].reviewer='Tom K.';
+  submissions[idx].verified_at = new Date().toISOString(); // stamp locally for immediate display
   saveState();updateBadges();renderIdQueue();renderUrgent();renderUsers();renderRegistrations();closeModal('modal-id');
   adminToast(submissions[idx].name+' approved ✓','success');
   addSyncLog('Identity approved: '+submissions[idx].name);
