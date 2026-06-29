@@ -2417,6 +2417,8 @@ YPE html>
           onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
           onkeydown="if(event.key==='Enter')doForgot()">
       </div>
+      <div id="forgot-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:12px;text-align:left;box-shadow:inset 0 0 0 1px #fca5a5"></div>
+      <div id="forgot-msg" style="display:none;background:#f0fdf4;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#166534;margin-bottom:12px;text-align:left;box-shadow:inset 0 0 0 1px #bbf7d0"></div>
       <button onclick="doForgot()" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-bottom:14px">Send Reset Link →</button>
       <button onclick="switchAuthTab('login')" style="background:none;border:none;color:var(--geo-green-600);font-weight:600;cursor:pointer;font-family:var(--font-sans);font-size:.82rem">← Back to Sign In</button>
     </div>
@@ -3932,14 +3934,20 @@ async function verifyOTP() {
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 async function doLogin() {
-  const email    = (document.getElementById('login-email-field') || {}).value.trim();
+  const email    = (document.getElementById('login-email-field') || {}).value.trim().toLowerCase();
   const pass     = (document.getElementById('login-pass-field')  || {}).value;
   const errEl    = document.getElementById('login-error');
   const loginBtn = document.getElementById('login-submit-btn');
 
   if (errEl) errEl.style.display = 'none';
-  function showErr(msg) {
-    if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+  function showErr(msg, isNoAccount) {
+    if (!errEl) return;
+    if (isNoAccount) {
+      errEl.innerHTML = '❌ ' + msg + ' <a href="#" onclick="switchAuthTab(\'register\');return false;" style="color:var(--geo-green-600);text-decoration:underline">Create one now →</a>';
+    } else {
+      errEl.textContent = '❌ ' + msg;
+    }
+    errEl.style.display = 'block';
   }
 
   if (!email)  return showErr('Please enter your email address.');
@@ -3965,12 +3973,55 @@ async function doLogin() {
         }, 1000);
       }
     } else {
-      showErr(data.error || 'Login failed. Please try again.');
+      const noAccount = (data.error || '').toLowerCase().includes('no account');
+      showErr(data.error || 'Login failed. Please try again.', noAccount);
     }
   } catch (err) {
     showErr('Could not reach server. Check your connection.');
   } finally {
     if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
+  }
+}
+
+// ── FORGOT PASSWORD ──────────────────────────────────────────────────────────
+async function doForgot() {
+  const emailEl  = document.getElementById('forgot-email');
+  const errEl    = document.getElementById('forgot-error');
+  const msgEl    = document.getElementById('forgot-msg');
+  const btn      = document.querySelector('#auth-forgot .btn');
+
+  const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
+  if (errEl) errEl.style.display = 'none';
+  if (msgEl) msgEl.style.display = 'none';
+
+  if (!email) {
+    if (errEl) { errEl.textContent = '❌ Please enter your email address.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  try {
+    // Reuse the OTP send endpoint — user can log in with OTP as a reset path
+    const res  = await fetch(GEO_API_BASE + '/send-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, name: '' })
+    });
+    const data = await res.json();
+    if (data.success || data.sent) {
+      if (msgEl) {
+        msgEl.textContent = '✅ A one-time code was sent to ' + email + '. Use it to verify your account, then set a new password.';
+        msgEl.style.display = 'block';
+      }
+    } else {
+      const msg = data.error || 'Could not send reset email.';
+      if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+    }
+  } catch (e) {
+    if (errEl) { errEl.textContent = '❌ Could not reach server. Check your connection.'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Reset Link →'; }
   }
 }
 
