@@ -3252,7 +3252,7 @@ function goToAdmin(e) {
       </div>
       <div class="topbar-right">
         <div id="clock" style="font-size:.78rem;color:var(--a-muted)"></div>
-        <button onclick="syncFromAPI()" style="background:var(--a-green-l);color:var(--a-green);border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
+        <button onclick="loadFromDB()" style="background:var(--a-green-l);color:var(--a-green);border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer">🔄 Refresh All</button>
         <button onclick="showPage('home');document.getElementById('admin-root').style.display='none';" style="background:var(--a-border);color:var(--a-text);border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer">← Website</button>
       </div>
     </div>
@@ -4086,16 +4086,18 @@ function saveState(){
 async function loadFromDB() {
   try {
     adminToast('🔄 Loading data from database...', 'info');
-    const [regsRes, propsRes, lawyersRes, teamRes, tenanciesRes, txnRes, disputesRes, paymentsRes, actRes] = await Promise.all([
-      fetch(GEO_API + '/admin/registrations', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({registrations:[]})),
-      fetch(GEO_API + '/admin/properties', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({properties:[]})),
-      fetch(GEO_API + '/admin/lawyers', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({lawyers:[]})),
-      fetch(GEO_API + '/admin/team', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({team:[]})),
-      fetch(GEO_API + '/admin/tenancies', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({tenancies:[]})),
-      fetch(GEO_API + '/admin/transactions', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({transactions:[]})),
-      fetch(GEO_API + '/admin/disputes', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({disputes:[]})),
-      fetch(GEO_API + '/admin/payments', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({payments:[]})),
-      fetch(GEO_API + '/admin/activity', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}}).then(r=>r.json()).catch(()=>({log:[]})),
+    const _admH = () => ({'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')});
+    const [regsRes, propsRes, lawyersRes, teamRes, tenanciesRes, txnRes, disputesRes, paymentsRes, actRes, enqRes] = await Promise.all([
+      fetch(GEO_API + '/admin/registrations', {headers:_admH()}).then(r=>r.json()).catch(()=>({registrations:[]})),
+      fetch(GEO_API + '/admin/properties',    {headers:_admH()}).then(r=>r.json()).catch(()=>({properties:[]})),
+      fetch(GEO_API + '/admin/lawyers',       {headers:_admH()}).then(r=>r.json()).catch(()=>({lawyers:[]})),
+      fetch(GEO_API + '/admin/team',          {headers:_admH()}).then(r=>r.json()).catch(()=>({team:[]})),
+      fetch(GEO_API + '/admin/tenancies',     {headers:_admH()}).then(r=>r.json()).catch(()=>({tenancies:[]})),
+      fetch(GEO_API + '/admin/transactions',  {headers:_admH()}).then(r=>r.json()).catch(()=>({transactions:[]})),
+      fetch(GEO_API + '/admin/disputes',      {headers:_admH()}).then(r=>r.json()).catch(()=>({disputes:[]})),
+      fetch(GEO_API + '/admin/payments',      {headers:_admH()}).then(r=>r.json()).catch(()=>({payments:[]})),
+      fetch(GEO_API + '/admin/activity',      {headers:_admH()}).then(r=>r.json()).catch(()=>({log:[]})),
+      fetch(GEO_API + '/admin/enquiries',     {headers:_admH()}).then(r=>r.json()).catch(()=>({enquiries:[]})),
     ]);
 
     if (regsRes.registrations) {
@@ -4152,6 +4154,14 @@ async function loadFromDB() {
           time: new Date(entry.logged_at).toLocaleString('en-NG', {dateStyle:'short',timeStyle:'short'})
         });
       });
+    }
+
+    // Process enquiries from DB
+    if (enqRes.enquiries) {
+      window._adminEnquiries = enqRes.enquiries;
+      const newEnqs = enqRes.enquiries.filter(e => e.status === 'new').length;
+      const badge = document.getElementById('badge-enquiries');
+      if (badge) { badge.textContent = newEnqs; badge.style.display = newEnqs ? 'inline-flex' : 'none'; }
     }
 
     // Re-render everything with live data
@@ -4226,12 +4236,14 @@ function nav(page,el){
   const adminRoot = document.getElementById('admin-root');
   // Load enquiries on demand
   if (page === 'enquiries-mgmt') {
+    if (window._adminEnquiries) renderEnquiriesFromData(window._adminEnquiries);
     const apiBase = window.GEO_API || 'https://api.geoestate.com.ng';
     fetch(apiBase + '/admin/enquiries', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||window.GEO_ADMIN_TOKEN||'')}})
       .then(r=>r.json()).then(d => {
         const el2 = document.getElementById('admin-enq-list');
         if (!el2) return;
         const enqs = d.enquiries || [];
+        window._adminEnquiries = enqs;
         if (!enqs.length) { el2.innerHTML = '<div style="text-align:center;padding:48px;color:var(--a-muted)">No enquiries yet</div>'; return; }
         const badge = document.getElementById('badge-enquiries');
         if (badge) { badge.textContent = enqs.filter(e=>e.status==='new').length; badge.style.display = enqs.filter(e=>e.status==='new').length ? 'inline-flex' : 'none'; }
@@ -4288,8 +4300,9 @@ function nav(page,el){
   // If switching to data-heavy page and data seems empty, reload from DB
   const dataDependentPages = ['registrations','id-queue','prop-queue','users','disputes','transactions','lawyers','payments','properties-mgmt','tenancy'];
   if (dataDependentPages.includes(page)) {
-    const isEmpty = (submissions.length === 0 && adminProperties.length === 0);
-    if (isEmpty) { adminToast('Loading data...', 'info'); loadFromDB(); }
+    const needsProps = ['prop-queue','properties-mgmt'].includes(page) && adminProperties.length === 0;
+    const needsAll   = submissions.length === 0 && adminProperties.length === 0;
+    if (needsAll || needsProps) { adminToast('Loading data...', 'info'); loadFromDB(); }
   }
 }
 
@@ -4992,11 +5005,11 @@ function renderPropQueue(filterStatus){
   document.getElementById('prop-queue-table').innerHTML=filtered.map((p)=>{ const i=adminProperties.indexOf(p); return `
     <tr class="clickable-row" onclick="openPropModal(${i})">
       <td><div class="name-link" style="font-weight:700">${p.title}</div><div style="font-size:.75rem;color:var(--adm-text-subtle)">${p.id}</div></td>
-      <td style="font-size:.82rem">${p.owner}</td>
+      <td style="font-size:.82rem">${p.owner||'—'}</td>
       <td><span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span></td>
-      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price}</td>
-      <td>${(Array.isArray(p.docs)?p.docs:(typeof p.docs==='string'?[]:[])).map(d=>`<span class="tag">📄 ${d}</span>`).join('')}${p.lawyer_req||p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️</span>':''}${p.geo!==false?'<span class="tag" style="color:#16a34a">📍</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo</span>'}</td>
-      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split(' ')[0]}</td>
+      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
+      <td style="font-size:.78rem">${[p.lga,p.state].filter(Boolean).join(', ')||p.address||'—'}</td>
+      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split('T')[0]}</td>
       <td>${statusPill(p.status)}</td>
       <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
     </tr>`; }).join('');
@@ -5950,6 +5963,75 @@ window.initApp = function(){
   // Poll for new registrations every 30s
   setInterval(syncFromAPI, 30000);
 };
+
+// ══ MISSING FUNCTIONS ══
+
+async function loadPropertiesFromDB() {
+  const btn = document.querySelector('[onclick="loadPropertiesFromDB()"]');
+  if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
+  try {
+    const r = await fetch(GEO_API + '/admin/properties', {
+      headers: {'Authorization': 'Bearer ' + (localStorage.getItem('geo_admin_token') || window.GEO_ADMIN_TOKEN || '')}
+    });
+    const d = await r.json();
+    if (d.properties) {
+      adminProperties = d.properties;
+      renderPropQueue(); renderPropertiesMgmt(); updateBadges();
+      addSyncLog('Properties pulled from DB: ' + d.properties.length + ' records');
+      adminToast('✅ ' + d.properties.length + ' properties loaded', 'success');
+    }
+  } catch(e) { adminToast('⚠️ Failed to load properties: ' + e.message, 'error'); }
+  finally { if (btn) { btn.textContent = '🏠 Pull Properties'; btn.disabled = false; } }
+}
+
+function renderEnquiriesFromData(enqs) {
+  const el2 = document.getElementById('admin-enq-list');
+  if (!el2) return;
+  if (!enqs || !enqs.length) { el2.innerHTML = '<div style="text-align:center;padding:48px;color:var(--a-muted)">No enquiries yet</div>'; return; }
+  const badge = document.getElementById('badge-enquiries');
+  const newCount = enqs.filter(e => e.status === 'new').length;
+  if (badge) { badge.textContent = newCount; badge.style.display = newCount ? 'inline-flex' : 'none'; }
+  el2.innerHTML = enqs.map(e => {
+    const phone = (e.phone||'').replace(/[^0-9+]/g,'');
+    const waNum = phone.startsWith('+') ? phone.slice(1) : (phone.startsWith('0') ? '234'+phone.slice(1) : phone);
+    const propRef = (e.property_title||'our property') + (e.property_id ? ' (ID: '+e.property_id+')' : '');
+    const waMsg = encodeURIComponent("Hi " + e.name + ", I'm from the GeoEstate Sales Team. I saw your enquiry about \"" + propRef + "\" and I'd love to help. When is a good time to talk?");
+    const waLink = 'https://wa.me/' + waNum + '?text=' + waMsg;
+    const isNew = e.status === 'new';
+    return '<div style="background:var(--a-card);border-radius:12px;padding:16px;box-shadow:var(--a-shadow);margin-bottom:4px;border-left:3px solid '+(isNew?'var(--a-green)':'var(--a-border)')+'">' +
+      '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">' +
+      '<div style="width:38px;height:38px;border-radius:50%;background:var(--a-green-bg);color:var(--a-green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+(e.name[0]||'?').toUpperCase()+'</div>' +
+      '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<span style="font-weight:800;font-size:.9rem">'+e.name+'</span>' +
+      (isNew?'<span style="background:var(--a-green);color:#fff;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:999px">NEW</span>':'') +
+      '</div>' +
+      '<div style="font-size:.75rem;color:var(--a-muted);margin-top:2px">📍 '+(e.property_title||'Property')+'</div>' +
+      '<div style="font-size:.75rem;color:var(--a-muted)">✉️ '+e.email+(e.phone?' · 📞 '+e.phone:'')+'</div>' +
+      (e.message?'<div style="font-size:.8rem;color:var(--a-muted);margin-top:6px;font-style:italic;background:var(--a-card2);border-radius:6px;padding:6px 10px">"'+e.message+'"</div>':'') +
+      '</div>' +
+      '<div style="font-size:.72rem;color:var(--a-subtle);white-space:nowrap">'+new Date(e.created_at).toLocaleDateString('en-NG')+'</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      (phone?'<a href="'+waLink+'" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:700">💬 WhatsApp</a>':'') +
+      (phone?'<a href="tel:'+e.phone+'" style="display:inline-flex;align-items:center;gap:5px;background:var(--a-green);color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:700">📞 Call</a>':'') +
+      '<a href="mailto:'+e.email+'" style="display:inline-flex;align-items:center;gap:5px;background:var(--a-card2);color:var(--a-text);text-decoration:none;padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:700;border:1px solid var(--a-border)">✉️ Email</a>' +
+      '</div></div>';
+  }).join('');
+}
+
+function initAdminSSE() {
+  if (window._adminSSE) return;
+  try {
+    window._adminSSE = new EventSource(GEO_API + '/events');
+    window._adminSSE.addEventListener('property_created', function() { loadPropertiesFromDB().catch(()=>{}); });
+    window._adminSSE.addEventListener('property_updated', function() { loadPropertiesFromDB().catch(()=>{}); });
+    window._adminSSE.addEventListener('registration_updated', function() { syncFromAPI().catch(()=>{}); });
+    window._adminSSE.addEventListener('new_enquiry', function() {
+      fetch(GEO_API + '/admin/enquiries', {headers:{'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')}})
+        .then(r=>r.json()).then(d => { if(d.enquiries){renderEnquiriesFromData(d.enquiries);window._adminEnquiries=d.enquiries;} }).catch(()=>{});
+    });
+  } catch(e) {}
+}
 
 // ══ API SYNC ══
 const GEO_API = 'https://api.geoestate.com.ng';
