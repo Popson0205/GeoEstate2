@@ -1484,7 +1484,11 @@ function openUserModal(idx){
   document.getElementById('modal-user-sub').textContent=u.role+' · '+u.state+' · Verified: '+u.verified;
   document.getElementById('modal-user-body').innerHTML=`
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--adm-surface-2);border-radius:10px">
-      <div class="row-avatar" style="width:52px;height:52px;font-size:1.2rem">${u.initials}</div>
+      <div class="row-avatar" style="width:52px;height:52px;font-size:1.2rem;padding:0;overflow:hidden">
+        ${u.photo_url
+          ? `<img src="${u.photo_url}" alt="${u.initials}" style="width:100%;height:100%;object-fit:cover;object-position:center top;border-radius:50%" onerror="this.style.display='none';this.parentNode.textContent='${u.initials}'">`
+          : u.initials}
+      </div>
       <div>
         <div style="font-weight:800;font-size:1.1rem">${u.name}</div>
         <div style="font-size:.82rem;color:var(--adm-text-subtle);margin-top:2px">${u.email} · ${u.phone}</div>
@@ -1955,7 +1959,7 @@ function renderUsers(){
   }
   document.getElementById('users-table').innerHTML=verifiedUsers.map((u,i)=>`
     <tr class="clickable-row" onclick="openUserModal(${i})">
-      <td><div class="avatar-cell"><div class="row-avatar">${u.initials}</div><div><div class="name-link">${u.name}</div><div class="row-sub">${u.email}</div></div></div></td>
+      <td><div class="avatar-cell"><div class="row-avatar" style="overflow:hidden;padding:0">${u.photo_url ? `<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;object-position:center top;border-radius:50%" onerror="this.style.display='none';this.parentNode.textContent='${u.initials}'">` : u.initials}</div><div><div class="name-link">${u.name}</div><div class="row-sub">${u.email}</div></div></div></td>
       <td><span class="tag">${u.role}</span></td>
       <td style="font-size:.82rem">${u.phone}</td>
       <td style="font-size:.82rem">${u.state}</td>
