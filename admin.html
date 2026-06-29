@@ -1164,6 +1164,7 @@ let submissions = [];
 let adminProperties  = [];
 let checkStates = {};
 let syncLog = [];
+let disputes = []; // loaded from Neon DB — POST /submit-dispute
 
 // Derived list of verified/approved users — always computed from submissions
 // so it stays in sync without a separate array that can go undefined.
@@ -2929,6 +2930,26 @@ async function syncFromAPI() {
       adminToast(added + ' new registration' + (added > 1 ? 's' : '') + ' pulled from website ✓', 'success');
       addSyncLog('API sync: ' + added + ' new registration(s)');
     }
+    // Also fetch disputes from API
+    try {
+      const dresp = await fetch(GEO_API + '/admin/disputes', { headers: geoHeaders() });
+      if (dresp.ok) {
+        const dd = await dresp.json();
+        if (dd.success && Array.isArray(dd.disputes)) {
+          dd.disputes.forEach(d => {
+            const exists = disputes.find(x => x.id === d.id);
+            if (!exists) disputes.unshift(d);
+            else {
+              const i = disputes.findIndex(x => x.id === d.id);
+              if (i >= 0) disputes[i] = {...disputes[i], ...d};
+            }
+          });
+          updateBadges();
+          renderDisputes();
+        }
+      }
+    } catch(e2) { /* disputes endpoint optional */ }
+
   } catch(e) {
     console.warn('API sync failed:', e.message);
   }
