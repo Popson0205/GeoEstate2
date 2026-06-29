@@ -285,6 +285,8 @@
   #admin-root .theme-btn{background:var(--a-card2);border:1px solid var(--a-border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1rem;color:var(--a-text);transition:all .15s}
   #admin-root .theme-btn:hover{background:var(--a-card)}
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 <!-- ═══════════════════════ ADMIN PORTAL ═══════════════════════ -->
@@ -1426,46 +1428,85 @@ function openIdModal(idx){
 function openPropModal(idx){
   const p=adminProperties[idx];
   document.getElementById('modal-prop-title').textContent=p.title;
-  document.getElementById('modal-prop-sub').textContent=p.id+' · Submitted '+p.submitted.split(' ')[0]+' · Owner: '+p.owner;
+  const subDate = p.submitted ? String(p.submitted).split(' ')[0] : '—';
+  document.getElementById('modal-prop-sub').textContent=p.id+' · Submitted '+subDate+' · Owner: '+(p.owner||'—');
+
+  // Build image gallery
+  let allImgs = [];
+  try { allImgs = Array.isArray(p.images) ? p.images : (p.images ? JSON.parse(p.images) : []); } catch(e){}
+  if (p.img && !allImgs.includes(p.img)) allImgs.unshift(p.img);
+  allImgs = allImgs.filter(Boolean);
+
+  const galleryHtml = allImgs.length ? `
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:4px">
+      ${allImgs.map((src,gi)=>`<img src="${src}" data-gi="${gi}" onclick="propImgSelect(${idx},${gi})" style="height:60px;width:80px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid ${gi===0?'#1a6b3c':'transparent'};flex-shrink:0" onerror="this.style.display='none'">`).join('')}
+    </div>` : '';
+
+  const mainImgSrc = allImgs[0] || '';
+
+  // Safe docs array
+  const docs = Array.isArray(p.docs) ? p.docs : [];
+
+  // Map placeholder — will be initialised after innerHTML is set
+  const mapId = 'prop-map-'+idx;
+
   document.getElementById('modal-prop-body').innerHTML=`
-    <div style="height:180px;border-radius:10px;overflow:hidden;margin-bottom:20px;background:var(--adm-surface-2)">
-      <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+    <div id="prop-main-img-wrap-${idx}" style="height:200px;border-radius:10px;overflow:hidden;margin-bottom:8px;background:var(--adm-surface-2)">
+      <img id="prop-main-img-${idx}" src="${mainImgSrc}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
     </div>
+    ${galleryHtml}
     <div class="panel-section">
       <div class="panel-section-title">Status</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${statusPill(p.status)}<span class="tag">${p.type.toUpperCase()}</span>${p.geo?'<span class="tag" style="color:#16a34a">📍 Geo-tagged</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo-tag</span>'}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️ Lawyer Required</span>':''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${statusPill(p.status)}<span class="tag">${(p.type||'rent').toUpperCase()}</span>${p.geo?'<span class="tag" style="color:#16a34a">📍 Geo-tagged</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo-tag</span>'}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️ Lawyer Required</span>':''}</div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Property Details</div>
       <div class="field-grid">
-        <div><div class="field-label">Type</div><div class="field-value">${p.type.toUpperCase()}</div></div>
-        <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price}</div></div>
-        <div><div class="field-label">State</div><div class="field-value">${p.state}</div></div>
-        <div><div class="field-label">LGA</div><div class="field-value">${p.lga}</div></div>
+        <div><div class="field-label">Type</div><div class="field-value">${(p.type||'rent').toUpperCase()}</div></div>
+        <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price||'—'}</div></div>
+        <div><div class="field-label">State</div><div class="field-value">${p.state||'—'}</div></div>
+        <div><div class="field-label">LGA</div><div class="field-value">${p.lga||'—'}</div></div>
       </div>
-      <div><div class="field-label">Full Address</div><div class="field-value">${p.address}</div></div>
+      <div><div class="field-label">Full Address</div><div class="field-value">${p.address||'—'}</div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Location Map</span>
+        <button class="btn btn-primary btn-sm" onclick="geocodeProp(${idx})">📍 ${p.lat?'Re-Geocode':'Geo-tag Address'}</button>
+      </div>
+      <div id="${mapId}" style="height:220px;border-radius:10px;overflow:hidden;background:var(--adm-surface-2);display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--adm-text-subtle)">
+        ${p.lat ? 'Loading map…' : 'Click <strong>Geo-tag Address</strong> to pin this property on the map'}
+      </div>
+      ${p.lat ? `<div style="font-size:.75rem;color:var(--adm-text-subtle);margin-top:4px">📍 ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>` : ''}
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Owner</div>
       <div class="field-grid">
-        <div><div class="field-label">Owner Name</div><div class="field-value name-link" onclick="openIdByRef('${p.ownerId}');closeModal('modal-prop')">${p.owner} ↗</div></div>
-        <div><div class="field-label">Owner ID</div><div class="field-value" style="font-family:monospace">${p.ownerId}</div></div>
+        <div><div class="field-label">Owner Name</div><div class="field-value name-link" onclick="openIdByRef('${p.ownerId||p.owner_id}');closeModal('modal-prop')">${p.owner||'—'} ↗</div></div>
+        <div><div class="field-label">Owner ID</div><div class="field-value" style="font-family:monospace">${p.ownerId||p.owner_id||'—'}</div></div>
       </div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Title Documents</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${p.docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
-      <div class="doc-grid">
-        <div class="doc-thumb" onclick="adminToast('Opening title document...','info')">📄<div class="doc-thumb-label">${p.docs[0]||'Document'}</div></div>
-        ${p.docs[1]?`<div class="doc-thumb" onclick="adminToast('Opening document...','info')">📋<div class="doc-thumb-label">${p.docs[1]}</div></div>`:''}
-      </div>
+      ${docs.length ? `
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
+        <div class="doc-grid">
+          <div class="doc-thumb" onclick="adminToast('Opening title document...','info')">📄<div class="doc-thumb-label">${docs[0]||'Document'}</div></div>
+          ${docs[1]?`<div class="doc-thumb" onclick="adminToast('Opening document...','info')">📋<div class="doc-thumb-label">${docs[1]}</div></div>`:''}
+        </div>` :
+        `<div style="color:var(--adm-text-subtle);font-size:.85rem">No documents attached to this listing.</div>`}
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Reviewer Notes</div>
-      <textarea class="notes-area" id="prop-notes-${idx}" placeholder="Add notes about this listing...">${p.notes}</textarea>
+      <textarea class="notes-area" id="prop-notes-${idx}" placeholder="Add notes about this listing...">${p.notes||''}</textarea>
     </div>
     ${p.notes&&p.status==='info'?`<div class="warning-box">⚠️ Info requested: ${p.notes}</div>`:''}
   `;
+
+  // Init Leaflet map if lat/lng available
+  if (p.lat && p.lng) {
+    initPropMap(mapId, p.lat, p.lng, p.title);
+  }
   document.getElementById('modal-prop-footer').innerHTML=`
     ${p.status!=='live'?`<button class="btn btn-approve btn-lg" style="flex:1;justify-content:center" onclick="approveProp(${idx})">✓ Approve & Go Live</button>`:'<span class="pill pill-live" style="padding:10px 20px">✓ Already Live</span>'}
     ${p.lawyerReq?(p.lawyerAssigned?`<span class="pill pill-approved" style="padding:8px 14px">⚖️ ${p.lawyerAssigned}</span>`:`<button class="btn btn-lawyer" onclick="openLawyerPicker('prop',${idx},'${p.title}')">⚖️ Assign Lawyer</button>`):''}
@@ -1939,17 +1980,22 @@ function renderPropQueue(){
   const pqc = document.getElementById('prop-queue-count');
   const pending = adminProperties.filter(p=>['pending','review','info'].includes(p.status));
   if(pqc) pqc.textContent = pending.length + ' Awaiting Review';
-  document.getElementById('prop-queue-table').innerHTML=adminProperties.map((p,i)=>`
+  document.getElementById('prop-queue-table').innerHTML=adminProperties.map((p,i)=>{
+    const docs = Array.isArray(p.docs) ? p.docs : [];
+    const sub = p.submitted ? String(p.submitted).split(' ')[0] : '—';
+    const ptype = (p.type||p.listing_type||'rent').toUpperCase();
+    const price = p.price||'—';
+    return `
     <tr class="clickable-row" onclick="openPropModal(${i})">
       <td><div class="name-link" style="font-weight:700">${p.title}</div><div style="font-size:.75rem;color:var(--adm-text-subtle)">${p.id}</div></td>
-      <td style="font-size:.82rem">${p.owner}</td>
-      <td><span class="tag">${p.type.toUpperCase()}</span></td>
-      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price}</td>
-      <td>${p.docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️</span>':''}${p.geo?'<span class="tag" style="color:#16a34a">📍</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo</span>'}</td>
-      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.submitted.split(' ')[0]}</td>
+      <td style="font-size:.82rem">${p.owner||'—'}</td>
+      <td><span class="tag">${ptype}</span></td>
+      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${price}</td>
+      <td>${docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}${p.lawyerReq?'<span class="tag" style="color:#6d28d9">⚖️</span>':''}${p.geo?'<span class="tag" style="color:#16a34a">📍</span>':'<span class="tag" style="color:#dc2626">⚠️ No Geo</span>'}</td>
+      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${sub}</td>
       <td>${statusPill(p.status)}</td>
       <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 }
 function renderUsers(){
   const verifiedUsers = getVerifiedUsers();
@@ -2995,7 +3041,21 @@ async function syncFromAPI() {
       if (presp.ok) {
         const pd = await presp.json();
         if (pd.success && Array.isArray(pd.properties)) {
-          pd.properties.forEach(p => {
+          pd.properties.forEach(raw => {
+            // Normalize DB row → admin UI shape (DB uses snake_case, UI uses camelCase)
+            const p = {
+              ...raw,
+              docs:       Array.isArray(raw.docs) ? raw.docs : (raw.docs ? (typeof raw.docs === 'string' ? JSON.parse(raw.docs) : []) : []),
+              geo:        raw.geo != null ? raw.geo : false,
+              lawyerReq:  raw.lawyer_req != null ? raw.lawyer_req : false,
+              lawyerAssigned: raw.lawyer_assigned || '',
+              ownerId:    raw.owner_id || '',
+              submitted:  raw.submitted || raw.created_at || '—',
+              type:       raw.listing_type || raw.type || 'rent',
+              price:      raw.price || (raw.monthly_rent ? '₦'+Number(raw.monthly_rent).toLocaleString()+'/mo' : (raw.sale_price ? '₦'+Number(raw.sale_price).toLocaleString() : '—')),
+              lat:        raw.lat || null,
+              lng:        raw.lng || null,
+            };
             const exists = adminProperties.find(x => x.id === p.id);
             if (!exists) adminProperties.unshift(p);
             else {
@@ -3026,6 +3086,97 @@ function manualSync() {
 
 
 // ══════════════════════════════════════════════════════════════
+
+
+// ── Property map + image helpers ─────────────────────────────────────────────
+let _propMapInst = null;
+
+function initPropMap(containerId, lat, lng, title) {
+  // Destroy any existing map instance first
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (_propMapInst) { try { _propMapInst.remove(); } catch(e){} _propMapInst = null; }
+  el.innerHTML = ''; // clear placeholder text
+  try {
+    _propMapInst = L.map(containerId, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(_propMapInst);
+    const icon = L.divIcon({
+      className: '',
+      html: '<div style="background:#1a6b3c;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35)">📍</div>',
+      iconSize: [36, 36], iconAnchor: [18, 36]
+    });
+    L.marker([lat, lng], { icon }).addTo(_propMapInst).bindPopup(`<strong>${title}</strong>`).openPopup();
+    // Fix map tiles not rendering inside modal (hidden element issue)
+    setTimeout(() => { if (_propMapInst) _propMapInst.invalidateSize(); }, 300);
+  } catch(e) { console.warn('Map init failed:', e.message); }
+}
+
+function propImgSelect(propIdx, imgIdx) {
+  let allImgs = [];
+  const p = adminProperties[propIdx];
+  try { allImgs = Array.isArray(p.images) ? p.images : (p.images ? JSON.parse(p.images) : []); } catch(e){}
+  if (p.img && !allImgs.includes(p.img)) allImgs.unshift(p.img);
+  allImgs = allImgs.filter(Boolean);
+  const mainImg = document.getElementById('prop-main-img-' + propIdx);
+  if (mainImg) mainImg.src = allImgs[imgIdx] || '';
+  // Update thumbnail borders
+  document.querySelectorAll('[data-gi]').forEach(el => {
+    el.style.borderColor = parseInt(el.dataset.gi) === imgIdx ? '#1a6b3c' : 'transparent';
+  });
+}
+
+async function geocodeProp(idx) {
+  const p = adminProperties[idx];
+  const query = [p.address, p.lga, p.state, 'Nigeria'].filter(Boolean).join(', ');
+  const mapId = 'prop-map-' + idx;
+  const mapEl = document.getElementById(mapId);
+  if (mapEl) mapEl.innerHTML = '<div style="padding:20px;text-align:center">⏳ Geocoding address…</div>';
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query), {
+      headers: { 'Accept-Language': 'en', 'User-Agent': 'GeoEstate Admin/2.1' }
+    });
+    const data = await r.json();
+    if (!data.length) {
+      adminToast('Could not find coordinates for this address', 'error');
+      if (mapEl) mapEl.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626">⚠️ Address not found — try a more specific address</div>';
+      return;
+    }
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
+    // Save to local state
+    adminProperties[idx].lat = lat;
+    adminProperties[idx].lng = lng;
+    adminProperties[idx].geo = true;
+    // Persist to DB
+    fetch(GEO_API + '/admin/property/' + p.id, {
+      method: 'PATCH', headers: geoHeaders(),
+      body: JSON.stringify({ geo: true, lat, lng })
+    }).catch(() => {});
+    saveState();
+    adminToast('📍 Property geo-tagged: ' + lat.toFixed(5) + ', ' + lng.toFixed(5), 'success');
+    // Render the map
+    if (mapEl) mapEl.innerHTML = '';
+    initPropMap(mapId, lat, lng, p.title);
+    // Update the lat/lng label beneath the map
+    const wrap = mapEl && mapEl.nextElementSibling;
+    if (wrap && wrap.style && !wrap.id) {
+      wrap.textContent = '📍 ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+    } else if (mapEl && mapEl.parentNode) {
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:.75rem;color:var(--adm-text-subtle);margin-top:4px';
+      lbl.textContent = '📍 ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+      mapEl.parentNode.insertBefore(lbl, mapEl.nextSibling);
+    }
+    // Update geo badge in status row
+    renderPropQueue();
+  } catch(e) {
+    adminToast('Geocoding error: ' + e.message, 'error');
+    if (mapEl) mapEl.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626">⚠️ Geocoding failed</div>';
+  }
+}
 
 </script>
 
