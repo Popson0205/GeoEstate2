@@ -1347,17 +1347,17 @@ document.addEventListener('click', function(e){
           <!-- hidden compat field so submit logic doesn't break -->
           <input type="hidden" id="lp-price" value="">
         </div>
-        <div class="geo-form-group">
+        <div class="geo-form-group" id="lp-shared-desc-wrap">
           <label class="geo-label">Property Description *</label>
-          <textarea class="geo-textarea" placeholder="Describe the property — condition, features, amenities, access, neighbourhood..."></textarea>
+          <textarea class="geo-textarea" id="lp-desc" placeholder="Describe the property — condition, features, amenities, access, neighbourhood..."></textarea>
         </div>
-        <div class="geo-form-group">
+        <div class="geo-form-group" id="lp-shared-photo-wrap">
           <label class="geo-label">Property Photos (min. 4)</label>
           <div style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);padding:var(--space-5);text-align:center;cursor:pointer;color:var(--text-muted)" onclick="document.getElementById('upload-prop-photos').click()">
             <input type="file" accept="image/*" multiple style="display:none" id="upload-prop-photos" onchange="handlePropPhotosUpload(this)">
             <div style="font-size:2rem;margin-bottom:8px">📸</div>
             <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Click to upload property photos</div>
-            <div style="font-size:.78rem">Images upload directly to Cloudinary · Min. 4 photos</div>
+            <div style="font-size:.78rem">Images upload directly to Supabase · Min. 4 photos</div>
             <div id="prop-upload-status" style="margin-top:8px;font-size:.78rem;color:var(--geo-green-600);display:none"></div>
           </div>
           <div id="prev-prop-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
@@ -3465,8 +3465,9 @@ async function submitListing() {
     state:          (document.getElementById('lp-state')   ||{}).value || '',
     lga:            (document.getElementById('lp-lga')     ||{}).value || '',
     address:        (document.getElementById('lp-address') ||{}).value || '',
-    img:            (document.getElementById('list-img-main')   ||{}).value || '',
-    images:         (document.getElementById('list-images-json')||{}).value || '[]',
+    description:    _unitStructure === 'single' ? ((document.getElementById('lp-desc')||{}).value||'') : '',
+    img:            _unitStructure === 'single' ? ((document.getElementById('list-img-main')   ||{}).value || '') : '',
+    images:         _unitStructure === 'single' ? ((document.getElementById('list-images-json')||{}).value || '[]') : '[]',
   };
   if (listLat && listLng) {
     listData.lat = parseFloat(listLat);
@@ -7633,15 +7634,32 @@ function renderUnitsSection(p) {
       const label    = u.name ? u.label + ' — "' + u.name + '"' : u.label;
       const priceStr = u.price ? '₦' + Number(u.price).toLocaleString('en-NG') : '—';
       const qty      = u.qty || 1;
+      const photos   = Array.isArray(u.photos) ? u.photos : [];
+      const desc     = u.desc || '';
+      const photoHtml = photos.length > 0
+        ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+          + photos.slice(0,4).map(src =>
+              '<img src="' + src + '" style="width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border-default)" onerror="this.style.display=\'none\'">'
+            ).join('')
+          + '</div>'
+        : '';
+      const descHtml = desc
+        ? '<div style="font-size:.8rem;color:var(--text-secondary);margin-top:8px;line-height:1.6">' + desc + '</div>'
+        : '';
       return '<div id="ug-card-' + i + '" '
-        + 'style="background:var(--surface-secondary);border-radius:var(--radius-lg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border:2px solid transparent;cursor:pointer;transition:border-color .15s,box-shadow .15s" '
-        + 'onclick="selectUnitGroup(' + i + ', \'' + label.replace(/'/g,"\'") + '\', ' + (u.price||0) + ', this)">'
-        + '<div><div style="font-weight:700;font-size:.9rem">' + label + '</div>'
-        + '<div style="font-size:.78rem;color:var(--text-muted)">' + qty + ' unit' + (qty>1?'s':'') + ' available</div></div>'
-        + '<div style="text-align:right">'
-        + '<div style="font-weight:800;color:var(--geo-green-600);font-size:.95rem">' + priceStr + '</div>'
-        + '<div style="font-size:.72rem;padding:2px 10px;border-radius:999px;font-weight:700;display:inline-block;background:#d1fae5;color:#065f46;margin-top:3px">Available</div>'
-        + '</div></div>';
+        + 'style="background:var(--surface-secondary);border-radius:var(--radius-lg);padding:14px 16px;border:2px solid transparent;cursor:pointer;transition:border-color .15s,box-shadow .15s" '
+        + 'onclick="selectUnitGroup(' + i + ', \'' + label.replace(/'/g,"\\'") + '\', ' + (u.price||0) + ', this)">'
+        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">'
+        +   '<div><div style="font-weight:700;font-size:.92rem">' + label + '</div>'
+        +   '<div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + qty + ' unit' + (qty>1?'s':'') + ' available</div></div>'
+        +   '<div style="text-align:right;flex-shrink:0">'
+        +     '<div style="font-weight:800;color:var(--geo-green-600);font-size:.95rem">' + priceStr + '</div>'
+        +     '<div style="font-size:.72rem;padding:2px 10px;border-radius:999px;font-weight:700;display:inline-block;background:#d1fae5;color:#065f46;margin-top:3px">Available</div>'
+        +   '</div>'
+        + '</div>'
+        + photoHtml
+        + descHtml
+        + '</div>';
     }).join('');
     return '<div class="divider"></div>'
       + '<h3 style="font-weight:800;margin-bottom:6px">Available Unit Types</h3>'
@@ -7722,17 +7740,66 @@ function selectUnitType(val) {
   const single = document.getElementById('lp-single-panel');
   const multi  = document.getElementById('lp-multi-panel');
 
+  const sharedDesc  = document.getElementById('lp-shared-desc-wrap');
+  const sharedPhoto = document.getElementById('lp-shared-photo-wrap');
   if (val === 'single') {
     single.style.display = 'block';
     multi.style.display  = 'none';
+    if (sharedDesc)  sharedDesc.style.display  = 'block';
+    if (sharedPhoto) sharedPhoto.style.display = 'block';
   } else {
     single.style.display = 'none';
     multi.style.display  = 'block';
-    // Seed one row if none exist
+    if (sharedDesc)  sharedDesc.style.display  = 'none';
+    if (sharedPhoto) sharedPhoto.style.display = 'none';
     if (document.querySelectorAll('.geo-unit-row').length === 0) {
       addUnitRow();
     }
   }
+}
+
+
+// ── Per-unit photo upload ─────────────────────────────────────────────────────
+async function handleUnitPhotosUpload(input, unitId) {
+  const files     = Array.from(input.files).slice(0, 4);
+  if (!files.length) return;
+  const statusEl  = document.getElementById('u-photo-status-' + unitId);
+  const previewEl = document.getElementById('u-photo-prev-'   + unitId);
+  const hiddenEl  = document.getElementById('u-photos-'       + unitId);
+  if (statusEl) statusEl.textContent = '⏳ Uploading…';
+  let urls = [];
+  try { urls = JSON.parse(hiddenEl?.value || '[]'); } catch(e) {}
+  for (const file of files) {
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const signRes = await fetch(API_BASE + '/upload-sign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'geoestate/unit-photos', ext })
+      });
+      if (!signRes.ok) throw new Error('sign failed');
+      const sign = await signRes.json();
+      await fetch(sign.upload_url || sign.signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'image/jpeg', 'x-upsert': 'false' },
+        body: file
+      });
+      urls.push(sign.public_url);
+      if (previewEl) previewEl.innerHTML += '<img src="' + sign.public_url + '" style="width:72px;height:54px;object-fit:cover;border-radius:6px">';
+    } catch(e) {
+      await new Promise(res => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          urls.push(ev.target.result);
+          if (previewEl) previewEl.innerHTML += '<img src="' + ev.target.result + '" style="width:72px;height:54px;object-fit:cover;border-radius:6px">';
+          res();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+  if (hiddenEl) hiddenEl.value = JSON.stringify(urls);
+  if (statusEl) statusEl.textContent = '✅ ' + urls.length + ' photo(s)';
+  updateUnitSummary();
 }
 
 function addUnitRow() {
@@ -7747,8 +7814,8 @@ function addUnitRow() {
   row.className = 'geo-unit-row';
   row.id = `unit-row-${id}`;
   row.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-weight:700;font-size:.85rem;color:var(--text-primary)">Unit Type ${id}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-weight:700;font-size:.88rem;color:var(--text-primary)">Unit Type ${id}</span>
       <button type="button" onclick="removeUnitRow(${id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;line-height:1" title="Remove">✕</button>
     </div>
     <div class="grid-4">
@@ -7764,13 +7831,37 @@ function addUnitRow() {
         <input class="geo-input unit-name-inp" id="u-name-${id}" type="text" placeholder="e.g. Room A" oninput="updateUnitSummary()">
       </div>
       <div class="geo-form-group" style="margin:0">
-        <label class="geo-label">Number Available *</label>
+        <label class="geo-label">Units Available *</label>
         <input class="geo-input unit-qty-inp" id="u-qty-${id}" type="number" min="1" value="1" placeholder="e.g. 4" oninput="updateUnitSummary()">
       </div>
       <div class="geo-form-group" style="margin:0">
-        <label class="geo-label">Price per Unit (₦) *</label>
+        <label class="geo-label">Price per Unit (&#8358;) *</label>
         <input class="geo-input unit-price-inp" id="u-price-${id}" type="number" min="0" placeholder="e.g. 250000" oninput="updateUnitSummary()">
       </div>
+    </div>
+    <div class="geo-form-group" style="margin-top:10px;margin-bottom:0">
+      <label class="geo-label">Unit Description <span style="font-weight:400;opacity:.65">(features, condition, what's included…)</span></label>
+      <textarea class="geo-textarea unit-desc-inp" id="u-desc-${id}" rows="2"
+        placeholder="e.g. Ensuite room with ceiling fan, wardrobe, tiled floor. Shared kitchen. Security included."
+        style="font-size:.84rem;min-height:64px;resize:vertical"
+        oninput="updateUnitSummary()"></textarea>
+    </div>
+    <div class="geo-form-group" style="margin-top:10px;margin-bottom:0">
+      <label class="geo-label">Unit Photos <span style="font-weight:400;opacity:.65">(1–4 photos for this unit type)</span></label>
+      <div style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer"
+           onclick="document.getElementById('u-photo-input-${id}').click()">
+        <input type="file" accept="image/*" multiple style="display:none"
+               id="u-photo-input-${id}"
+               onchange="handleUnitPhotosUpload(this, ${id})">
+        <span style="font-size:1.4rem">&#128247;</span>
+        <div>
+          <div style="font-size:.82rem;font-weight:700">Click to upload photos</div>
+          <div style="font-size:.72rem;color:var(--text-muted)">Buyers see these photos for this unit type</div>
+        </div>
+        <div id="u-photo-status-${id}" style="font-size:.75rem;color:var(--geo-green-600);margin-left:auto"></div>
+      </div>
+      <div id="u-photo-prev-${id}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+      <input type="hidden" id="u-photos-${id}" value="[]">
     </div>`;
 
   document.getElementById('lp-units-list').appendChild(row);
@@ -7793,16 +7884,21 @@ function updateUnitSummary() {
     const nameEl   = document.getElementById(`u-name-${idSuffix}`);
     const qtyEl    = document.getElementById(`u-qty-${idSuffix}`);
     const priceEl  = document.getElementById(`u-price-${idSuffix}`);
+    const descEl   = document.getElementById(`u-desc-${idSuffix}`);
+    const photosEl = document.getElementById(`u-photos-${idSuffix}`);
     if (!typeEl) return;
 
-    const typeVal  = typeEl.value;
+    const typeVal   = typeEl.value;
     const typeLabel = UNIT_TYPE_OPTIONS.find(o => o.value === typeVal)?.label || typeVal;
-    const name     = nameEl?.value.trim() || '';
-    const qty      = parseInt(qtyEl?.value) || 0;
-    const price    = parseFloat(priceEl?.value) || 0;
+    const name      = nameEl?.value.trim() || '';
+    const qty       = parseInt(qtyEl?.value) || 0;
+    const price     = parseFloat(priceEl?.value) || 0;
+    const desc      = descEl?.value.trim() || '';
+    let   photos    = [];
+    try { photos = JSON.parse(photosEl?.value || '[]'); } catch(e) {}
 
     if (typeVal && qty > 0 && price > 0) {
-      units.push({ type: typeVal, label: typeLabel, name, qty, price });
+      units.push({ type: typeVal, label: typeLabel, name, qty, price, desc, photos });
     }
   });
 
