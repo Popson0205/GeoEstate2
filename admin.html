@@ -1269,10 +1269,37 @@ async function adminDoLogin(){
   }
 }
 function adminDoLogout(){
+  sessionStorage.removeItem('geo_admin_token');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-pass').value='';
 }
+
+// ── Restore session on page refresh if a valid token is already stored ──────
+async function tryRestoreAdminSession(){
+  const tok = sessionStorage.getItem('geo_admin_token');
+  if (!tok) return; // no token — stay on login screen
+  try {
+    // Lightweight check: call a cheap authenticated endpoint to confirm the
+    // token still works before committing to showing the app.
+    const res = await fetch(GEO_API + '/admin/registrations', {
+      headers: { 'Authorization': 'Bearer ' + tok }
+    });
+    if (res.status === 401 || res.status === 403) {
+      sessionStorage.removeItem('geo_admin_token');
+      return; // token expired/invalid — stay on login screen
+    }
+    // Token still valid — skip login screen and boot the app
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  } catch(e) {
+    // Network error — don't force logout, but also can't confirm validity.
+    // Default to showing login screen rather than a broken blank app.
+    console.warn('Session restore check failed:', e.message);
+  }
+}
+document.addEventListener('DOMContentLoaded', tryRestoreAdminSession);
 
 // ══ NAV ══
 const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};

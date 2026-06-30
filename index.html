@@ -2225,26 +2225,6 @@ YPE html>
      ============================================================ -->
 <div id="auth-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;padding:20px">
 
-<div id="modal-listing-map" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:20px">
-  <div style="background:var(--surface-primary);border-radius:20px;width:100%;max-width:640px;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border-subtle)">
-      <div>
-        <div style="font-weight:800;font-size:1.05rem">Pin Your Property's Location</div>
-        <div style="font-size:.8rem;color:var(--text-muted);margin-top:2px">Click on the map, or use your current location</div>
-      </div>
-      <button onclick="closeListingMapModal()" style="border:none;background:transparent;font-size:1.1rem;cursor:pointer;color:var(--text-muted)">✕</button>
-    </div>
-    <div style="padding:20px 24px">
-      <button type="button" class="btn btn-ghost" onclick="useCurrentLocationForListing()" style="margin-bottom:10px">📡 Use My Current Location</button>
-      <div id="listing-map-canvas" style="height:360px;border-radius:10px;overflow:hidden;background:var(--surface-secondary)"></div>
-      <div id="listing-map-coords" style="font-size:.82rem;color:var(--text-muted);margin-top:8px">No location selected yet.</div>
-    </div>
-    <div style="display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--border-subtle)">
-      <button class="btn btn-primary btn-lg" onclick="confirmListingMapPick()" style="flex:1">Use This Location</button>
-      <button class="btn btn-ghost" onclick="closeListingMapModal()">Cancel</button>
-    </div>
-  </div>
-</div>
   <div style="background:var(--surface-primary);border-radius:20px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden">
 
     <!-- Tabs -->
@@ -2457,6 +2437,27 @@ YPE html>
       <button onclick="switchAuthTab('login')" style="background:none;border:none;color:var(--geo-green-600);font-weight:600;cursor:pointer;font-family:var(--font-sans);font-size:.82rem">← Back to Sign In</button>
     </div>
 
+  </div>
+</div>
+
+<div id="modal-listing-map" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface-primary);border-radius:20px;width:100%;max-width:640px;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border-subtle)">
+      <div>
+        <div style="font-weight:800;font-size:1.05rem">Pin Your Property's Location</div>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-top:2px">Click on the map, or use your current location</div>
+      </div>
+      <button onclick="closeListingMapModal()" style="border:none;background:transparent;font-size:1.1rem;cursor:pointer;color:var(--text-muted)">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <button type="button" class="btn btn-ghost" onclick="useCurrentLocationForListing()" style="margin-bottom:10px">📡 Use My Current Location</button>
+      <div id="listing-map-canvas" style="height:360px;border-radius:10px;overflow:hidden;background:var(--surface-secondary)"></div>
+      <div id="listing-map-coords" style="font-size:.82rem;color:var(--text-muted);margin-top:8px">No location selected yet.</div>
+    </div>
+    <div style="display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--border-subtle)">
+      <button class="btn btn-primary btn-lg" onclick="confirmListingMapPick()" style="flex:1">Use This Location</button>
+      <button class="btn btn-ghost" onclick="closeListingMapModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -6630,7 +6631,8 @@ let _listingCoords = null;
 function openListingMapPicker() {
   const el = document.getElementById('modal-listing-map');
   if (el) { el.style.display = 'flex'; }
-  setTimeout(initListingMapPicker, 150);
+  // Give the browser a full layout/paint cycle before Leaflet measures the container
+  requestAnimationFrame(() => requestAnimationFrame(() => initListingMapPicker()));
 }
 
 function closeListingMapModal() {
@@ -6663,6 +6665,7 @@ function initListingMapPicker() {
     });
 
     setTimeout(() => { if (_listingMapInst) _listingMapInst.invalidateSize(); }, 200);
+    setTimeout(() => { if (_listingMapInst) _listingMapInst.invalidateSize(); }, 600);
   } catch(e) { console.warn('Listing map picker init failed:', e.message); }
 }
 
