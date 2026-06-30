@@ -2686,9 +2686,16 @@ function initMap() {
     return;
   }
   setTimeout(() => {
-    mapInstance = L.map('map').setView([9.082, 8.6753], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(mapInstance);
-    setTimeout(() => { mapInstance.invalidateSize(); }, 300);
+    const el = document.getElementById('map');
+    if (!el) { console.warn('initMap: #map container not found — page-map not in DOM yet, skipping init.'); return; }
+    try {
+      mapInstance = L.map('map').setView([9.082, 8.6753], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(mapInstance);
+      setTimeout(() => { mapInstance.invalidateSize(); }, 300);
+    } catch (e) {
+      console.warn('initMap failed:', e.message);
+      return;
+    }
     if (properties.length === 0) {
       document.getElementById('map-listing-list').innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:.82rem"><div style="font-size:2rem;margin-bottom:8px">📍</div>No verified properties yet.<br>Be the first to list!</div>';
       loadLiveProperties();
@@ -3271,16 +3278,15 @@ function confirmPayment() {
   document.getElementById('payment-success-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   // Persist payment to DB so admin sees it immediately
-  fetch(GEO_API + '/admin/save-payment', {
-    method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||'')},
+  fetch(GEO_API + '/submit-payment', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       ref: currentPayRef,
       prop: window._currentProp ? window._currentProp.title : '',
       buyer: currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
       phone: currentUser ? currentUser.phone : '',
       owner: window._currentProp ? window._currentProp.owner : '',
-      ownerAcct: '', amount: window._currentProp ? window._currentProp.price : '',
-      fee: '0', ownerAmt: '0', status: 'pending'
+      amount: window._currentProp ? window._currentProp.price : ''
     })
   }).catch(()=>{});
   try {
