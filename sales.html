@@ -280,16 +280,38 @@
       </div>
     </div>
     <div class="login-title">Sales Team Login</div>
-    <div class="login-subtitle">Enter your admin token to access the sales dashboard.</div>
-    <div style="margin-bottom:14px">
-      <label class="login-label" for="login-token">Admin Token</label>
-      <input class="login-input" type="password" id="login-token" placeholder="Enter your admin token" autocomplete="current-password">
+    <div class="login-subtitle">Sign in to access the sales dashboard.</div>
+
+    <div id="login-mode-creds">
+      <div style="margin-bottom:14px">
+        <label class="login-label" for="login-email">Admin Email</label>
+        <input class="login-input" type="email" id="login-email" placeholder="you@geoestate.com.ng" autocomplete="username">
+      </div>
+      <div style="margin-bottom:14px">
+        <label class="login-label" for="login-password">Admin Password</label>
+        <input class="login-input" type="password" id="login-password" placeholder="Enter the admin password" autocomplete="current-password">
+      </div>
+      <div style="margin-bottom:0">
+        <label class="login-label" for="login-name">Your Name</label>
+        <input class="login-input" type="text" id="login-name" placeholder="e.g. Lateefah Majekodunmi">
+      </div>
+      <button class="login-btn" onclick="doLoginWithCredentials()">Access Dashboard →</button>
+      <div style="margin-top:12px;text-align:center"><a href="#" onclick="toggleLoginMode(event)" style="font-size:.8rem;color:#1a6b3c;font-weight:600">Have a token instead? Use it directly →</a></div>
     </div>
-    <div style="margin-bottom:0">
-      <label class="login-label" for="login-name">Your Name</label>
-      <input class="login-input" type="text" id="login-name" placeholder="e.g. Lateefah Majekodunmi">
+
+    <div id="login-mode-token" style="display:none">
+      <div style="margin-bottom:14px">
+        <label class="login-label" for="login-token">Admin Token</label>
+        <input class="login-input" type="password" id="login-token" placeholder="Enter your admin token" autocomplete="current-password">
+      </div>
+      <div style="margin-bottom:0">
+        <label class="login-label" for="login-name-2">Your Name</label>
+        <input class="login-input" type="text" id="login-name-2" placeholder="e.g. Lateefah Majekodunmi">
+      </div>
+      <button class="login-btn" onclick="doLogin()">Access Dashboard →</button>
+      <div style="margin-top:12px;text-align:center"><a href="#" onclick="toggleLoginMode(event)" style="font-size:.8rem;color:#1a6b3c;font-weight:600">← Use email & password instead</a></div>
     </div>
-    <button class="login-btn" onclick="doLogin()">Access Dashboard →</button>
+
     <div class="login-err" id="login-err">Invalid token. Please check with your admin.</div>
     <div style="margin-top:20px;font-size:.75rem;color:#9ca3af;text-align:center">GeoEstate Sales Portal · Popson Geospatial Services</div>
   </div>
@@ -606,9 +628,47 @@
   let currentPropForEnquiry = null;
 
   // ── Auth ─────────────────────────────────────────────────
+  function toggleLoginMode(e) {
+    if (e) e.preventDefault();
+    const creds = document.getElementById('login-mode-creds');
+    const tok   = document.getElementById('login-mode-token');
+    const showToken = creds.style.display === 'none';
+    creds.style.display = showToken ? 'block' : 'none';
+    tok.style.display   = showToken ? 'none' : 'block';
+    document.getElementById('login-err').style.display = 'none';
+  }
+
+  // Sign in with the admin email/password (already configured server-side as
+  // ADMIN_EMAIL / ADMIN_PASSWORD) — the API mints a fresh JWT for us so sales
+  // reps never need a manually copy-pasted token.
+  function doLoginWithCredentials() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const name     = document.getElementById('login-name').value.trim() || 'Sales Rep';
+    if (!email || !password) { showLoginErr('Please enter both email and password.'); return; }
+    fetch(API + '/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.token) {
+          showLoginErr(d.error || 'Invalid email or password.');
+          return;
+        }
+        adminToken = d.token;
+        salesName  = name;
+        localStorage.setItem('geo_sales_token', d.token);
+        localStorage.setItem('geo_sales_name', name);
+        initApp();
+      })
+      .catch(() => showLoginErr('Could not connect to server. Check your connection.'));
+  }
+
   function doLogin() {
     const token = document.getElementById('login-token').value.trim();
-    const name  = document.getElementById('login-name').value.trim() || 'Sales Rep';
+    const name  = document.getElementById('login-name-2').value.trim() || 'Sales Rep';
     if (!token) { showLoginErr('Please enter your admin token.'); return; }
     // Verify token against API
     fetch(API + '/admin/registrations?since=0', { headers: { 'Authorization': 'Bearer ' + token } })
@@ -670,6 +730,7 @@
     if (saved) {
       document.getElementById('login-token').value = saved;
       document.getElementById('login-name').value = name || '';
+      document.getElementById('login-name-2').value = name || '';
       adminToken = saved;
       salesName  = name || 'Sales Rep';
       initApp();

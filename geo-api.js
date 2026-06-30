@@ -81,7 +81,8 @@
       owner: p.owner || '',
       owner_id: p.owner_id || '',
       verified: true,
-      lat: 0, lng: 0,
+      lat: (p.lat !== null && p.lat !== undefined && p.lat !== '') ? parseFloat(p.lat) : null,
+      lng: (p.lng !== null && p.lng !== undefined && p.lng !== '') ? parseFloat(p.lng) : null,
       tags: [], video: false
     };
   }

@@ -2631,26 +2631,104 @@ renderProps('all');
 // ── MAP ────────────────────────────────────────────────────────────────────
 let mapInstance = null;
 let markers = [];
+
+// Approx centroid per Nigerian state — used as a fallback when a listing has
+// no exact owner-pinned lat/lng yet, so the map isn't left empty.
+const NG_STATE_COORDS = {
+  'Abuja': [9.0765, 7.3986], 'FCT': [9.0765, 7.3986], 'Lagos': [6.5244, 3.3792],
+  'Ogun': [7.1608, 3.3483], 'Oyo': [8.1574, 3.6147], 'Osun': [7.5629, 4.5200],
+  'Ondo': [7.2500, 5.2000], 'Ekiti': [7.7190, 5.3110], 'Edo': [6.3350, 5.6037],
+  'Delta': [5.5320, 5.8987], 'Rivers': [4.8156, 7.0498], 'Bayelsa': [4.9267, 6.2676],
+  'Cross River': [5.9631, 8.3270], 'Akwa Ibom': [5.0077, 7.8536], 'Abia': [5.4527, 7.5248],
+  'Imo': [5.5720, 7.0588], 'Anambra': [6.2209, 6.9370], 'Enugu': [6.5244, 7.5086],
+  'Ebonyi': [6.2649, 8.0137], 'Kogi': [7.7337, 6.6906], 'Kwara': [8.9670, 4.3874],
+  'Niger': [9.9309, 5.5980], 'Benue': [7.3369, 8.7404], 'Plateau': [9.2182, 9.5179],
+  'Nasarawa': [8.5500, 7.7000], 'Taraba': [7.9994, 10.7740], 'Adamawa': [9.3265, 12.3984],
+  'Gombe': [10.2904, 11.1670], 'Bauchi': [10.3158, 9.8442], 'Borno': [11.8333, 13.1500],
+  'Yobe': [11.7470, 11.9610], 'Jigawa': [12.2280, 9.5616], 'Kano': [12.0022, 8.5920],
+  'Katsina': [12.9908, 7.6018], 'Kaduna': [10.5105, 7.4165], 'Zamfara': [12.1700, 6.6600],
+  'Sokoto': [13.0059, 5.2476], 'Kebbi': [12.4500, 4.1990]
+};
+function geocodeFallback(p) {
+  if (!p.state) return null;
+  const key = Object.keys(NG_STATE_COORDS).find(k => p.state.toLowerCase().indexOf(k.toLowerCase()) !== -1);
+  if (!key) return null;
+  // small deterministic jitter (based on id) so pins in the same state don't fully overlap
+  let seed = 0; for (let i = 0; i < String(p.id).length; i++) seed += String(p.id).charCodeAt(i);
+  const jitter = ((seed % 100) / 100 - 0.5) * 0.12;
+  const c = NG_STATE_COORDS[key];
+  return [c[0] + jitter, c[1] - jitter];
+}
+
+function drawMapMarkers(list) {
+  if (!mapInstance) return;
+  markers.forEach(m => mapInstance.removeLayer(m));
+  markers = [];
+  list.forEach(p => {
+    let lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+    if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+      const fb = geocodeFallback(p);
+      if (!fb) return; // skip non-geotagged, ungeocodable listings on the map (still shown in sidebar list)
+      lat = fb[0]; lng = fb[1];
+    }
+    const greenIcon = L.divIcon({ className: '', html: `<div style="background:#1a6b3c;color:white;border-radius:999px;padding:4px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid white">✓ VERIFIED</div>`, iconAnchor: [40, 20] });
+    const marker = L.marker([lat, lng], { icon: greenIcon }).addTo(mapInstance)
+      .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail('${p.id}')" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
+    marker._propData = p;
+    markers.push(marker);
+  });
+}
+
 function initMap() {
-  if (mapInstance) { setTimeout(() => { mapInstance.invalidateSize(); }, 200); return; }
+  if (mapInstance) {
+    setTimeout(() => { mapInstance.invalidateSize(); }, 200);
+    if (properties.length === 0) loadLiveProperties();
+    return;
+  }
   setTimeout(() => {
     mapInstance = L.map('map').setView([9.082, 8.6753], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(mapInstance);
     setTimeout(() => { mapInstance.invalidateSize(); }, 300);
     if (properties.length === 0) {
       document.getElementById('map-listing-list').innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:.82rem"><div style="font-size:2rem;margin-bottom:8px">📍</div>No verified properties yet.<br>Be the first to list!</div>';
+      loadLiveProperties();
+      return;
     }
-    properties.forEach(p => {
-      const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
-      if (isNaN(lat) || isNaN(lng)) return; // skip non-geotagged listings on the map (still shown in sidebar list)
-      const greenIcon = L.divIcon({ className: '', html: `<div style="background:#1a6b3c;color:white;border-radius:999px;padding:4px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid white">✓ VERIFIED</div>`, iconAnchor: [40, 20] });
-      const marker = L.marker([lat, lng], { icon: greenIcon }).addTo(mapInstance)
-        .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail('${p.id}')" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
-      marker._propData = p;
-      markers.push(marker);
-    });
+    drawMapMarkers(properties);
     renderMapList(properties);
   }, 100);
+}
+
+// ── LIVE DATA LOADER ─────────────────────────────────────────────────────
+// Pulls live, verified properties from the API and feeds both the homepage
+// featured grid and the browse map. Previously nothing ever populated the
+// `properties` array, so the homepage and map always rendered empty.
+let _liveLoadInFlight = false;
+async function loadLiveProperties() {
+  if (_liveLoadInFlight) return;
+  _liveLoadInFlight = true;
+  try {
+    let live = [];
+    if (window.GeoAPI && typeof window.GeoAPI.loadPublicProperties === 'function') {
+      live = await window.GeoAPI.loadPublicProperties();
+    } else {
+      const apiBase = window.GEO_API_PUBLIC || API || 'https://api.geoestate.com.ng';
+      const r = await fetch(apiBase + '/properties');
+      const d = await r.json();
+      const raw = d.properties || [];
+      live = window.GeoAPI ? raw.map(window.GeoAPI.mapProperty) : raw;
+    }
+    properties = live;
+    renderProps(currentFilter);
+    if (mapInstance) {
+      drawMapMarkers(properties);
+      renderMapList(properties);
+    }
+  } catch (e) {
+    console.warn('Failed to load live properties:', e);
+  } finally {
+    _liveLoadInFlight = false;
+  }
 }
 function filterMapProps() {
   const type  = document.getElementById('map-type-filter').value;
@@ -6732,6 +6810,11 @@ function confirmListingMapPick() {
 </script>
 
 <script src="geo-api.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    loadLiveProperties();
+  });
+</script>
 
 <!-- ── Admin Portal Root ── -->
 <div id="admin-root" style="display:none;position:fixed;inset:0;z-index:10000"></div>
