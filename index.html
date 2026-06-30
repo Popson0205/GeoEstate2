@@ -3108,7 +3108,7 @@ async function renderDetail(id) {
           ${p.units.filter(u => u.status === 'vacant').map(u => `
             <div id="unit-card-${u.id}"
               style="background:var(--surface-secondary);border-radius:var(--radius-lg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border:2px solid transparent;cursor:pointer;transition:border-color .15s,box-shadow .15s"
-              onclick="selectUnit(${u.id}, '${(u.unit_label||'').replace(/'/g,"\\'")}', this)">
+              onclick="selectUnit(${u.id}, '${(u.unit_label||'').replace(/'/g,"\\'")}', ${u.monthly_price||0}, this)">
               <div>
                 <div style="font-weight:700;font-size:.9rem" data-unit-label>${u.unit_label}</div>
                 <div style="font-size:.78rem;color:var(--text-muted)">${u.unit_type||'Room'}${u.floor_level ? ' · ' + u.floor_level : ''}</div>
@@ -3482,10 +3482,18 @@ const GEOESTATE_ACCOUNT = { name: 'Popoola Idris Bamigboye', bank: 'Guaranty Tru
 let currentPayRef = '';
 function generateRef() { return 'GEO-' + Math.random().toString(36).substr(2,4).toUpperCase() + '-' + new Date().getFullYear(); }
 function openPaymentModal(propTitle, price, propType) {
-  const rawPrice = parseInt((price||'0').replace(/[^0-9]/g,'')) || 0;
+  // For multi-unit properties, use selected unit price + label instead of property-level price
+  const isUnitPayment = window._selectedUnitId && window._selectedUnitPrice > 0;
+  const rawPrice = isUnitPayment
+    ? Number(window._selectedUnitPrice)
+    : (parseInt((price||'0').replace(/[^0-9]/g,'')) || 0);
+  const displayLabel = isUnitPayment
+    ? propTitle + ' — ' + (window._selectedUnitLabel || 'Unit') + ' · ' + (propType||'').toUpperCase()
+    : propTitle + ' · ' + (propType||'').toUpperCase();
+
   const ref = generateRef();
   currentPayRef = ref;
-  document.getElementById('pay-prop-label').textContent = propTitle + ' · ' + (propType||'').toUpperCase();
+  document.getElementById('pay-prop-label').textContent = displayLabel;
   document.getElementById('pay-amount').textContent = rawPrice > 0 ? '₦' + rawPrice.toLocaleString('en-NG') : 'Contact us for amount';
   document.getElementById('pay-acct-num').textContent = GEOESTATE_ACCOUNT.number;
   document.getElementById('pay-ref').textContent = ref;
@@ -3508,15 +3516,31 @@ function confirmPayment() {
   document.getElementById('payment-success-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   // Persist payment to DB so admin sees it immediately
+  // For multi-unit: send unit_id, unit_label, unit_price so admin sees per-unit breakdown
+  const _isUnit = window._selectedUnitId && window._selectedUnitPrice > 0;
+  const _payAmount = _isUnit
+    ? window._selectedUnitPrice
+    : (window._currentProp ? (window._currentProp.monthly_rent || window._currentProp.sale_price || window._currentProp.lease_price || 0) : 0);
   fetch(GEO_API + '/submit-payment', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
-      ref: currentPayRef,
-      prop: window._currentProp ? window._currentProp.title : '',
-      buyer: currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
-      phone: currentUser ? currentUser.phone : '',
-      owner: window._currentProp ? window._currentProp.owner : '',
-      amount: window._currentProp ? window._currentProp.price : ''
+      ref:            currentPayRef,
+      property_id:    window._currentProp ? window._currentProp.id : '',
+      property_title: window._currentProp ? window._currentProp.title : '',
+      buyer_name:     currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
+      buyer_email:    currentUser ? currentUser.email : '',
+      buyer_phone:    currentUser ? currentUser.phone : '',
+      owner:          window._currentProp ? window._currentProp.owner : '',
+      amount:         _payAmount,
+      unit_id:        _isUnit ? window._selectedUnitId    : undefined,
+      unit_label:     _isUnit ? window._selectedUnitLabel : undefined,
+      unit_price:     _isUnit ? window._selectedUnitPrice : undefined,
+      // legacy fields for admin renderPayments compatibility
+      prop:           _isUnit
+                        ? (window._currentProp ? window._currentProp.title + ' — ' + window._selectedUnitLabel : '')
+                        : (window._currentProp ? window._currentProp.title : ''),
+      buyer:          currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
+      phone:          currentUser ? currentUser.phone : ''
     })
   }).catch(()=>{});
   try {
@@ -3702,13 +3726,13 @@ function goToAdmin(e) {
         </div>
         <div class="section-header" style="margin-bottom:12px"><span style="font-weight:700">Pending Confirmation</span></div>
         <table class="data-table" style="width:100%;margin-bottom:24px">
-          <thead><tr><th>Ref</th><th>Property</th><th>Buyer</th><th>Amount</th><th>Fee</th><th>Owner Amt</th><th>Actions</th></tr></thead>
-          <tbody id="pending-payments-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+          <thead><tr><th>Ref</th><th>Property</th><th>Unit</th><th>Buyer</th><th>Amount</th><th>Fee</th><th>Owner Amt</th><th>Actions</th></tr></thead>
+          <tbody id="pending-payments-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
         </table>
         <div class="section-header" style="margin-bottom:12px"><span style="font-weight:700">Confirmed Payments</span></div>
         <table class="data-table" style="width:100%">
-          <thead><tr><th>Ref</th><th>Property</th><th>Buyer</th><th>Amount</th><th>Fee</th><th>Owner Amt</th><th>Confirmed</th></tr></thead>
-          <tbody id="confirmed-payments-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+          <thead><tr><th>Ref</th><th>Property</th><th>Unit</th><th>Buyer</th><th>Amount</th><th>Fee</th><th>Owner Amt</th><th>Confirmed</th></tr></thead>
+          <tbody id="confirmed-payments-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
 
@@ -4589,7 +4613,8 @@ async function loadFromDB() {
       owner: p.owner, ownerAcct: p.owner_acct, amount: p.amount,
       fee: p.fee, ownerAmt: p.owner_amt, status: p.status,
       notified: p.notified, confirmedAt: p.confirmed_at,
-      releasedAt: p.released_at, date: p.created_at?.split('T')[0]
+      releasedAt: p.released_at, date: p.created_at?.split('T')[0],
+      unit_id: p.unit_id || null, unit_label: p.unit_label || ''  // FIX: per-unit payment data
     }));
 
     // Rebuild activity feed from DB
@@ -5692,11 +5717,11 @@ function renderPayments() {
       return `<tr>
         <td style="font-family:monospace;font-weight:700;font-size:.82rem">${p.ref}</td>
         <td style="font-size:.82rem">${p.prop}</td>
+        <td style="font-size:.78rem;font-weight:600;color:#1a6b3c">${p.unit_label||'—'}</td>
         <td><div style="font-weight:600;font-size:.82rem">${p.buyer}</div><div style="font-size:.72rem;color:var(--adm-text-subtle)">${p.phone}</div></td>
         <td style="font-weight:700">${fmtNaira(p.amount)}</td>
         <td style="font-weight:700;color:#1a6b3c">${fmtNaira(p.fee)}</td>
         <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.notified}</td>
-        <td>${payStatusPill(p.status)}</td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-approve btn-sm" onclick="openConfirmModal(${idx})">✓ Confirm</button>
           <button class="btn btn-reject btn-sm" onclick="disputePayment(${idx})">⚠ Dispute</button>
@@ -5713,12 +5738,11 @@ function renderPayments() {
       return `<tr>
         <td style="font-family:monospace;font-weight:700;font-size:.82rem">${p.ref}</td>
         <td style="font-size:.82rem">${p.prop}</td>
+        <td style="font-size:.78rem;font-weight:600;color:#1a6b3c">${p.unit_label||'—'}</td>
         <td style="font-size:.82rem">${p.buyer}</td>
-        <td style="font-size:.82rem">${p.owner}</td>
         <td style="font-weight:700">${fmtNaira(p.amount)}</td>
         <td style="font-weight:700;color:#1a6b3c">${fmtNaira(p.ownerAmt)}</td>
         <td style="font-weight:700;color:#1a6b3c">${fmtNaira(p.fee)}</td>
-        <td>${payStatusPill(p.status)}</td>
         <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.releasedAt||p.confirmedAt||'—'}</td>
       </tr>` +
       (p.status === 'confirmed' ? `<tr style="background:var(--adm-surface-2)"><td colspan="9" style="padding:8px 20px">
@@ -5994,7 +6018,8 @@ function openPropertyEditModal(propId){
   document.getElementById('pe-idx').value = propId || '';
   document.getElementById('pe-title').value = p ? p.title : '';
   document.getElementById('pe-owner').value = p ? p.owner : '';
-  document.getElementById('pe-type').value = p ? (p.type||'rent') : 'rent';
+  document.getElementById('pe-type').value = p ? (p.listing_type||p.type||'rent') : 'rent';
+  document.getElementById('pe-property-type').value = p ? (p.property_type||'single') : 'single';
   document.getElementById('pe-status').value = p ? p.status : 'pending';
   document.getElementById('pe-price').value = p ? p.price : '';
   document.getElementById('pe-state').value = p ? (p.state||'') : '';
@@ -6004,6 +6029,13 @@ function openPropertyEditModal(propId){
   document.getElementById('pe-notes').value = p ? (p.notes||'') : '';
   const removeBtn = document.getElementById('pe-remove-btn');
   if(removeBtn) removeBtn.style.display = isNew ? 'none' : '';
+  // Show units manager button only for existing multi-unit properties
+  const unitsBtn = document.getElementById('pe-units-btn');
+  if (unitsBtn) {
+    const pt = p ? (p.property_type||'single') : 'single';
+    unitsBtn.style.display = (!isNew && pt !== 'single') ? 'block' : 'none';
+    unitsBtn.onclick = function() { openUnitsManager(propId, p ? p.title : '', pt); };
+  }
   openModal('modal-property-edit');
 }
 
@@ -6014,6 +6046,7 @@ function openAddPropertyModal(){
     const el = document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('pe-type').value = 'rent';
+  document.getElementById('pe-property-type').value = 'single';
   document.getElementById('pe-status').value = 'live';
   const removeBtn = document.getElementById('pe-remove-btn');
   if(removeBtn) removeBtn.style.display = 'none';
@@ -6028,6 +6061,8 @@ function savePropertyEdit(){
     title: document.getElementById('pe-title').value.trim(),
     owner: document.getElementById('pe-owner').value.trim(),
     type: document.getElementById('pe-type').value,
+    listing_type: document.getElementById('pe-type').value,
+    property_type: document.getElementById('pe-property-type').value,
     status: newStatus,
     price: document.getElementById('pe-price').value.trim(),
     state: document.getElementById('pe-state').value.trim(),
@@ -6082,6 +6117,167 @@ function savePropertyEdit(){
   closeModal('modal-property-edit');
   adminToast(propId ? 'Property updated ✓' : 'Property added ✓','success');
   addSyncLog((propId?'Property updated: ':'Property added: ') + data.title);
+  // Persist property_type and status to backend
+  if (propId) {
+    fetch(GEO_API + '/admin/property/' + propId, {
+      method: 'PATCH',
+      headers: {'Authorization':'Bearer '+(localStorage.getItem('geo_admin_token')||''),'Content-Type':'application/json'},
+      body: JSON.stringify({ property_type: data.property_type, status: data.status, listing_type: data.listing_type })
+    }).catch(()=>{});
+    // If multi-unit/hotel, open units manager
+    if (data.property_type !== 'single') {
+      setTimeout(function() { openUnitsManager(propId, data.title, data.property_type); }, 300);
+    }
+  }
+}
+
+// ── togglePeUnitsBtn: show/hide Manage Units button based on property_type ──
+function togglePeUnitsBtn(val) {
+  const propId = document.getElementById('pe-idx').value;
+  const btn = document.getElementById('pe-units-btn');
+  if (btn) btn.style.display = (val !== 'single' && propId) ? 'block' : 'none';
+}
+
+// ── Units Manager Modal for Admin ─────────────────────────────────────────────
+async function openUnitsManager(propId, propTitle, propType) {
+  const admH = () => ({ 'Authorization': 'Bearer ' + (localStorage.getItem('geo_admin_token') || '') });
+  adminToast('Loading units…', 'info');
+  try {
+    const r = await fetch(GEO_API + '/admin/property/' + propId + '/units', { headers: admH() });
+    const d = await r.json();
+    const units = d.units || [];
+
+    const typeLabel = { multi_unit: 'Flat/Unit', hotel: 'Room', commercial: 'Space', single: 'Unit' }[propType] || 'Unit';
+
+    document.getElementById('modal-prop-title').textContent = '🏢 Manage Units — ' + propTitle;
+    document.getElementById('modal-prop-sub').textContent = units.length + ' unit(s) · Click a unit to edit price & status';
+    document.getElementById('modal-prop-body').innerHTML = `
+      <div style="margin-bottom:14px">
+        <div style="font-size:.8rem;color:var(--a-muted);margin-bottom:10px">
+          Each unit has its own price. Clients will see these individual prices when browsing this property.
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+          <thead>
+            <tr style="border-bottom:1px solid var(--a-border)">
+              <th style="text-align:left;padding:8px 6px;color:var(--a-muted);font-size:.72rem;text-transform:uppercase">Label</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--a-muted);font-size:.72rem;text-transform:uppercase">Type</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--a-muted);font-size:.72rem;text-transform:uppercase">Floor</th>
+              <th style="text-align:right;padding:8px 6px;color:var(--a-muted);font-size:.72rem;text-transform:uppercase">Price/mo</th>
+              <th style="text-align:left;padding:8px 6px;color:var(--a-muted);font-size:.72rem;text-transform:uppercase">Status</th>
+              <th style="padding:8px 6px"></th>
+            </tr>
+          </thead>
+          <tbody id="admin-units-tbody">
+            ${units.length ? units.map(u => `
+              <tr id="unit-row-${u.id}" style="border-bottom:1px solid var(--a-border)">
+                <td style="padding:8px 6px;font-weight:700">${u.unit_label}</td>
+                <td style="padding:8px 6px;color:var(--a-muted)">${u.unit_type||'room'}</td>
+                <td style="padding:8px 6px;color:var(--a-muted)">${u.floor_level||'—'}</td>
+                <td style="padding:8px 6px;text-align:right;font-weight:700;color:#1a6b3c">
+                  ${u.monthly_price ? '₦'+Number(u.monthly_price).toLocaleString() : '—'}
+                </td>
+                <td style="padding:8px 6px">
+                  <span style="font-size:.72rem;padding:2px 8px;border-radius:999px;font-weight:700;background:${u.status==='vacant'?'#d1fae5':'#fee2e2'};color:${u.status==='vacant'?'#065f46':'#991b1b'}">${u.status||'vacant'}</span>
+                </td>
+                <td style="padding:8px 6px;text-align:right">
+                  <button class="btn btn-ghost btn-sm" onclick="editAdminUnit('${propId}',${u.id},'${u.unit_label}',${u.monthly_price||0},'${u.status||'vacant'}','${u.unit_type||'room'}','${u.floor_level||''}')">Edit</button>
+                  <button class="btn btn-reject btn-sm" onclick="deleteAdminUnit('${propId}',${u.id})">✕</button>
+                </td>
+              </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--a-muted)">No units yet — add the first one below</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+      <!-- Add unit form -->
+      <div style="background:var(--a-card2);border-radius:10px;padding:14px;margin-top:4px">
+        <div style="font-weight:700;font-size:.82rem;margin-bottom:10px">+ Add New ${typeLabel}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <div style="font-size:.72rem;color:var(--a-muted);margin-bottom:3px">Label *</div>
+            <input id="new-unit-label" class="form-input" placeholder="e.g. Flat 3A / Room 12">
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:var(--a-muted);margin-bottom:3px">Type</div>
+            <select id="new-unit-type" class="form-input">
+              <option value="room">Room</option>
+              <option value="flat">Flat</option>
+              <option value="studio">Studio</option>
+              <option value="suite">Suite</option>
+              <option value="shop">Shop/Office</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:var(--a-muted);margin-bottom:3px">Price per month (₦) *</div>
+            <input id="new-unit-price" class="form-input" type="number" placeholder="e.g. 150000">
+          </div>
+          <div>
+            <div style="font-size:.72rem;color:var(--a-muted);margin-bottom:3px">Floor / Level</div>
+            <input id="new-unit-floor" class="form-input" placeholder="e.g. Ground / 1st">
+          </div>
+        </div>
+        <button class="btn btn-approve" onclick="addAdminUnit('${propId}')">Add ${typeLabel}</button>
+      </div>
+    `;
+    document.getElementById('modal-prop-footer').innerHTML = `
+      <button class="btn btn-ghost" onclick="closeModal('modal-prop')">Close</button>
+    `;
+    openModal('modal-prop');
+  } catch(e) { adminToast('Could not load units: ' + e.message, 'error'); }
+}
+
+async function addAdminUnit(propId) {
+  const label = (document.getElementById('new-unit-label').value || '').trim();
+  const price = parseFloat(document.getElementById('new-unit-price').value) || null;
+  const type  = document.getElementById('new-unit-type').value || 'room';
+  const floor = document.getElementById('new-unit-floor').value || '';
+  if (!label) { adminToast('Unit label is required', 'error'); return; }
+  if (!price) { adminToast('Price per month is required', 'error'); return; }
+  try {
+    const r = await fetch(GEO_API + '/admin/property/' + propId + '/units', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('geo_admin_token')||''), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unit_label: label, unit_type: type, monthly_price: price, floor_level: floor })
+    });
+    const d = await r.json();
+    if (d.success) {
+      adminToast('Unit added ✓', 'success');
+      const p = adminProperties.find(x => x.id === propId);
+      openUnitsManager(propId, p ? p.title : '', p ? (p.property_type||'multi_unit') : 'multi_unit');
+    } else { adminToast(d.error || 'Failed to add unit', 'error'); }
+  } catch(e) { adminToast('Error: ' + e.message, 'error'); }
+}
+
+function editAdminUnit(propId, unitId, label, price, status, type, floor) {
+  const newPrice  = prompt('New price per month for ' + label + ' (₦):', price);
+  if (newPrice === null) return;
+  const newStatus = prompt('Status (vacant / occupied / reserved / maintenance):', status);
+  if (newStatus === null) return;
+  fetch(GEO_API + '/admin/property/' + propId + '/units/' + unitId, {
+    method: 'PATCH',
+    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('geo_admin_token')||''), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ monthly_price: parseFloat(newPrice)||price, status: newStatus||status })
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      adminToast('Unit updated ✓', 'success');
+      const p = adminProperties.find(x => x.id === propId);
+      openUnitsManager(propId, p ? p.title : '', p ? (p.property_type||'multi_unit') : 'multi_unit');
+    } else { adminToast(d.error || 'Failed', 'error'); }
+  }).catch(()=>{ adminToast('Update failed — check connection', 'error'); });
+}
+
+async function deleteAdminUnit(propId, unitId) {
+  if (!confirm('Remove this unit?')) return;
+  try {
+    const r = await fetch(GEO_API + '/admin/property/' + propId + '/units/' + unitId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('geo_admin_token')||'') }
+    });
+    const d = await r.json();
+    if (d.success) {
+      adminToast('Unit removed ✓', 'success');
+      const p = adminProperties.find(x => x.id === propId);
+      openUnitsManager(propId, p ? p.title : '', p ? (p.property_type||'multi_unit') : 'multi_unit');
+    }
+  } catch(e) { adminToast('Error: ' + e.message, 'error'); }
 }
 
 function removePropertyById(propId){
@@ -6851,7 +7047,7 @@ async function submitEnquiry() {
 }
 
 // FIX 3: Unit selection for multi-unit properties
-function selectUnit(unitId, unitLabel, el) {
+function selectUnit(unitId, unitLabel, unitPrice, el) {
   // Deselect all unit cards
   document.querySelectorAll('[id^="unit-card-"]').forEach(function(c) {
     c.style.borderColor = 'transparent';
@@ -6861,10 +7057,12 @@ function selectUnit(unitId, unitLabel, el) {
   el.style.borderColor = 'var(--geo-green-600)';
   el.style.boxShadow = '0 0 0 2px var(--geo-green-600)';
   enquiryUnitId = unitId;
-  window._selectedUnitId = unitId;
+  window._selectedUnitId    = unitId;
+  window._selectedUnitLabel = unitLabel;
+  window._selectedUnitPrice = unitPrice;   // per-unit price for payment
   const bar = document.getElementById('unit-select-bar');
   const labelEl = document.getElementById('unit-select-label');
-  if (bar && labelEl) { labelEl.textContent = unitLabel; bar.style.display = 'block'; }
+  if (bar && labelEl) { labelEl.textContent = unitLabel; bar.style.display = 'flex'; }
 }
 
 function showSalesContactPopup(salesTeam, propTitle, propId, enquirerName, enquirerPhone) {
