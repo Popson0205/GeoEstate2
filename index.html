@@ -4514,7 +4514,7 @@ var syncLog          = JSON.parse(localStorage.getItem('pgs_synclog') || '[]');
 var checkStates      = {};
 var activityFeed     = [
   {dot:'green', text:'<strong>GeoEstate Platform launched</strong> — identity queue open, ready for first submissions', time:'Today'},
-  {dot:'blue',  text:'<strong>Neon database connected</strong> — all data persisted to cloud', time:'Today'},
+  {dot:'blue',  text:'<strong>Supabase database connected</strong> — all data persisted to cloud', time:'Today'},
 ];
 
 function saveState(){
@@ -5261,7 +5261,7 @@ function addLawyer(){
   adminToast(name + ' added to lawyer panel ✓', 'success');
   addSyncLog('Lawyer added: ' + name);
 
-  // Save to Neon DB (without photo — photos are large, store separately)
+  // Save to Supabase DB (without photo — photos are large, store separately)
   const dbPayload = {name, bar, spec, state, email, phone, bio, status:'active'};
   fetch(GEO_API + '/admin/save-lawyer', {
     method: 'POST',
@@ -5567,7 +5567,7 @@ function initApp(){
   renderTeam();
   renderRegistrations();
   updateBadges();saveState();
-  // Load from Neon DB
+  // Load from Supabase DB
   if(typeof loadFromDB === 'function') loadFromDB();
 }
 
@@ -6405,7 +6405,7 @@ window.initApp = function(){
   renderTeam();
   renderTenancy();
   updateBadges(); saveState();
-  // Load everything from Neon DB
+  // Load everything from Supabase DB
   loadFromDB();
   initAdminSSE(); // FIX 4: start SSE real-time listener
   // Poll for new registrations every 30s
