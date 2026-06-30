@@ -368,11 +368,7 @@
       <div id="page-add-property" class="page-section" style="display:none">
         <div style="max-width:680px">
           <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Add New Property</h2>
-          <div id="add-verify-warning" style="display:none;background:var(--amber-bg);border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:20px">
-            <strong>⚠️ Identity Verification Required</strong><br>
-            <span style="font-size:.85rem;color:#92400e">You need to complete identity verification before listing properties. This only needs to be done once.</span><br>
-            <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="navTo('verification',null)">Go to Verification →</button>
-          </div>
+          <div id="add-verify-warning" style="display:none;border-radius:10px;padding:16px;margin-bottom:20px"></div>
           <div class="card" id="add-prop-form-wrap">
             <div class="card-body">
               <div class="form-group">
@@ -761,7 +757,22 @@ async function checkVerificationForAdd() {
   const form = document.getElementById('add-prop-form-wrap');
   // Show the warning banner but never block the form — the submit handler
   // catches unverified owners and shows a clear error instead.
-  if (profile.profile && !profile.profile.is_verified) {
+  const p = profile.profile || {};
+  if (!p.is_verified && p.status === 'review') {
+    warning.style.background = 'var(--blue-bg)';
+    warning.style.border = '1px solid #93c5fd';
+    warning.innerHTML = `
+      <strong style="color:var(--blue)">🔍 Verification Under Review</strong><br>
+      <span style="font-size:.85rem;color:var(--blue)">You've already submitted your identity documents — they're being reviewed (usually 24–48 hours). You can keep filling this form; you'll be able to publish once approved.</span><br>
+      <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="navTo('verification',null)">View Verification Status →</button>`;
+    warning.style.display = 'block';
+  } else if (!p.is_verified) {
+    warning.style.background = 'var(--amber-bg)';
+    warning.style.border = '1px solid #fde68a';
+    warning.innerHTML = `
+      <strong>⚠️ Identity Verification Required</strong><br>
+      <span style="font-size:.85rem;color:#92400e">You need to complete identity verification before listing properties. This only needs to be done once.</span><br>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="navTo('verification',null)">Go to Verification →</button>`;
     warning.style.display = 'block';
   } else {
     warning.style.display = 'none';
@@ -777,9 +788,13 @@ async function submitAddProperty() {
   // Verification guard at submit time — gives a clear action path
   const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
   if (_vp.profile && !_vp.profile.is_verified) {
-    toast('Please complete identity verification before listing a property.', 'error');
-    setTimeout(() => navTo('verification', null), 1500);
-    return;
+    if (_vp.profile.status === 'review') {
+      toast('Your identity verification is still under review — you can finish setting this up, but it can only go live once approved.', 'info');
+    } else {
+      toast('Please complete identity verification before listing a property.', 'error');
+      setTimeout(() => navTo('verification', null), 1500);
+      return;
+    }
   }
   const payload = {
     title, listing_type: lt,
