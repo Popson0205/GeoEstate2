@@ -420,7 +420,6 @@ YPE html>
       <li><a href="#" onclick="showPage('lease')" id="nav-lease">Lease</a></li>
       <li><a href="#" onclick="showPage('list')" id="nav-list">List Property</a></li>
       <li><a href="#" onclick="showPage('verify')" id="nav-verify">Verify Identity</a></li>
-      <li><a href="#" onclick="showPage('about')" id="nav-about">How It Works</a></li>
       <li><a href="#" onclick="showPage('team')" id="nav-team">Our Team</a></li>
       <li><a href="#" onclick="showPage('contact')" id="nav-contact">Contact</a></li>
       <li><a href="#" onclick="showPage('dispute')" id="nav-dispute" style="color:#dc2626;font-weight:700">⚠ Report Dispute</a></li>
@@ -432,18 +431,39 @@ YPE html>
         <button class="btn btn-secondary btn-sm" onclick="openAuthModal('login')">Sign In</button>
         <button class="btn btn-primary btn-sm" onclick="openAuthModal('register')">Register</button>
       </div>
-      <div style="display:flex;align-items:center;gap:0;border-left:1px solid var(--border-subtle);margin-left:4px;padding-left:8px">
-        <a href="/owner-dashboard" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Owner Portal">🏠 Owner</a>
-        <a href="/sales" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Sales Portal">📊 Sales</a>
-        <a href="/admin" class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:.75rem;text-decoration:none;padding:4px 10px" title="Admin Portal">🔐 Admin</a>
+      <!-- Portals menu — Owner / Sales / Admin tucked behind a hamburger on desktop too -->
+      <div class="portal-dropdown" id="portal-dropdown">
+        <button class="geo-hamburger portal-menu-btn" id="portal-menu-btn" onclick="togglePortalMenu(event)" aria-label="Portals menu" title="Owner / Sales / Admin">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="portal-dropdown-panel" id="portal-dropdown-panel">
+          <div class="portal-dropdown-label">Portals</div>
+          <a href="/owner-dashboard" title="Owner Portal">🏠 Owner</a>
+          <a href="/sales" title="Sales Portal">📊 Sales</a>
+          <a href="/admin" title="Admin Portal">🔐 Admin</a>
+        </div>
       </div>
-      <!-- Hamburger — mobile only -->
+      <!-- Hamburger — mobile only (main site nav) -->
       <button class="geo-hamburger" id="geo-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
 </nav>
+<script>
+function togglePortalMenu(e){
+  e.stopPropagation();
+  var panel = document.getElementById('portal-dropdown-panel');
+  panel.classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  var dd = document.getElementById('portal-dropdown');
+  if (dd && !dd.contains(e.target)) {
+    var panel = document.getElementById('portal-dropdown-panel');
+    if (panel) panel.classList.remove('open');
+  }
+});
+</script>
 <!-- ── VERIFICATION BANNER (shown to logged-in unverified users) ── -->
 <div id="verify-banner" style="display:none;background:linear-gradient(90deg,#d97706,#f59e0b);padding:10px 20px;text-align:center;font-size:.83rem;font-weight:600;color:#fff;position:sticky;top:0;z-index:999;box-shadow:0 2px 8px rgba(217,119,6,.3)">
   🪪 Complete your identity verification to unlock full platform access &nbsp;
@@ -459,7 +479,6 @@ YPE html>
   <a href="#" onclick="navTo('map')">🗺️ Browse Properties</a>
   <a href="#" onclick="navTo('list')">📋 List a Property</a>
   <a href="#" onclick="navTo('verify')">🪪 Verify Identity</a>
-  <a href="#" onclick="navTo('about')">⚙️ How It Works</a>
   <a href="#" onclick="navTo('team')">👥 Our Team</a>
   <a href="#" onclick="navTo('contact')">📞 Contact</a>
   <a href="#" onclick="navTo('dispute')" class="danger">⚠️ Report Dispute</a>
@@ -2015,6 +2034,94 @@ YPE html>
 
 
 <!-- ============================================================
+     PAGE: MY PROFILE / ACCOUNT SETTINGS (logged-in users only)
+     ============================================================ -->
+<div id="page-profile" class="page page-padded">
+  <div style="background:linear-gradient(135deg,#0d3d22,#1a6b3c 60%,#3db374);padding:40px var(--space-8) 64px;margin:0 0 -48px">
+    <div style="max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:18px">
+      <div id="profile-hero-avatar" style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;flex-shrink:0;overflow:hidden;box-shadow:0 0 0 3px rgba(255,255,255,.25)">U</div>
+      <div>
+        <div style="font-size:1.5rem;font-weight:900;color:#fff" id="profile-hero-name">User Name</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.75)" id="profile-hero-role">Renter/Buyer</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:1000px;margin:0 auto;padding:0 var(--space-6) var(--space-8);position:relative;z-index:1">
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+
+      <!-- Tabs -->
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:200px;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:10px;height:fit-content">
+        <button class="profile-tab-btn active" data-tab="profile" onclick="showProfileTab('profile')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">👤 Profile</button>
+        <button class="profile-tab-btn" data-tab="settings" onclick="showProfileTab('settings')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">⚙️ Account Settings</button>
+        <button class="profile-tab-btn" data-tab="notifs" onclick="showProfileTab('notifs')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🔔 Notifications</button>
+        <button class="profile-tab-btn" data-tab="security" onclick="showProfileTab('security')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🔒 Security</button>
+        <div style="height:1px;background:var(--border-subtle);margin:6px 4px"></div>
+        <button onclick="goManageProperty()" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--geo-green-600)" id="profile-manage-property-link">🏠 Manage My Properties</button>
+        <button onclick="logoutUser()" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:#dc2626">🚪 Sign Out</button>
+      </div>
+
+      <!-- Tab content -->
+      <div style="flex:1;min-width:280px">
+
+        <div class="profile-tab-pane active" id="profile-tab-profile" style="background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:4px">Profile Details</h2>
+          <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:24px">This information is used across your GeoEstate account.</p>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+            <div id="profile-edit-avatar" style="width:64px;height:64px;border-radius:50%;background:var(--geo-green-600);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;overflow:hidden">U</div>
+            <div>
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('profile-avatar-input').click()">Change Photo</button>
+              <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" onchange="handleProfileAvatarChange(event)">
+              <div style="font-size:.72rem;color:var(--text-muted);margin-top:6px">JPG or PNG, square image works best</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div><label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">First Name</label><input class="geo-input" id="profile-fname" style="width:100%"></div>
+            <div><label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">Last Name</label><input class="geo-input" id="profile-lname" style="width:100%"></div>
+          </div>
+          <div style="margin-bottom:14px"><label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">Email</label><input class="geo-input" id="profile-email" style="width:100%" disabled></div>
+          <div style="margin-bottom:20px"><label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:5px">Phone Number</label><input class="geo-input" id="profile-phone" style="width:100%"></div>
+          <button class="btn btn-primary" onclick="saveProfileDetails()">Save Changes</button>
+        </div>
+
+        <div class="profile-tab-pane" id="profile-tab-settings" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:4px">Account Settings</h2>
+          <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:24px">Manage how GeoEstate works for you.</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle)">
+            <div><div style="font-size:.88rem;font-weight:700">Dark Mode</div><div style="font-size:.76rem;color:var(--text-muted)">Switch between light and dark theme</div></div>
+            <button class="btn btn-secondary btn-sm" onclick="toggleThemeManual()">Toggle</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle)">
+            <div><div style="font-size:.88rem;font-weight:700">Account Role</div><div style="font-size:.76rem;color:var(--text-muted)" id="profile-role-display">Renter/Buyer</div></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0">
+            <div><div style="font-size:.88rem;font-weight:700;color:#dc2626">Sign Out</div><div style="font-size:.76rem;color:var(--text-muted)">End your current session on this device</div></div>
+            <button class="btn btn-secondary btn-sm" onclick="logoutUser()">Sign Out</button>
+          </div>
+        </div>
+
+        <div class="profile-tab-pane" id="profile-tab-notifs" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <h2 style="font-size:1.1rem;font-weight:800">Notifications</h2>
+            <button onclick="markAllNotifsRead();renderProfileNotifTab()" style="background:none;border:none;color:var(--geo-green-600);font-size:.78rem;font-weight:700;cursor:pointer">Mark all read</button>
+          </div>
+          <div id="profile-notif-list"></div>
+        </div>
+
+        <div class="profile-tab-pane" id="profile-tab-security" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:4px">Security</h2>
+          <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:24px">Your account uses email/OTP sign-in, so there's no password to manage. Identity verification status:</p>
+          <div id="profile-verify-status"></div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="showPage('verify')">Go to Verification →</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
      PAGE: PRIVACY POLICY
      ============================================================ -->
 <div id="page-privacy" class="page page-padded">
@@ -2461,19 +2568,31 @@ YPE html>
   </div>
 </div>
 
+<!-- Notifications Dropdown -->
+<div id="notif-dropdown" style="display:none;position:fixed;top:64px;right:20px;z-index:9997;background:var(--surface-primary);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,0.06);min-width:300px;max-width:92vw;overflow:hidden"></div>
+
 <!-- User Profile Dropdown -->
-<div id="user-dropdown" style="display:none;position:fixed;top:64px;right:20px;z-index:9997;background:var(--surface-primary);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,0.06);min-width:220px;overflow:hidden">
-  <div id="dropdown-user-info" style="padding:16px 18px;border-bottom:1px solid var(--border-subtle)">
-    <div style="font-weight:800;font-size:.9rem" id="dropdown-name">User</div>
-    <div style="font-size:.75rem;color:var(--text-muted)" id="dropdown-email">email</div>
-    <div style="margin-top:8px" id="dropdown-status"></div>
+<div id="user-dropdown" style="display:none;position:fixed;top:64px;right:20px;z-index:9997;background:var(--surface-primary);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,0.06);min-width:240px;overflow:hidden">
+  <div id="dropdown-user-info" style="padding:16px 18px;border-bottom:1px solid var(--border-subtle);display:flex;gap:10px;align-items:center">
+    <div id="dropdown-avatar" style="width:42px;height:42px;border-radius:50%;background:var(--geo-green-600);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;flex-shrink:0;overflow:hidden">U</div>
+    <div>
+      <div style="font-weight:800;font-size:.9rem" id="dropdown-name">User</div>
+      <div style="font-size:.75rem;color:var(--text-muted)" id="dropdown-email">email</div>
+      <div style="margin-top:6px" id="dropdown-status"></div>
+    </div>
   </div>
   <div style="padding:8px">
+    <button onclick="closeDropdown();showPage('profile')" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:var(--text-primary);display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='transparent'">
+      👤 My Profile
+    </button>
+    <button onclick="closeDropdown();showPage('profile');setTimeout(()=>showProfileTab('settings'),0)" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:var(--text-primary);display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='transparent'">
+      ⚙️ Account Settings
+    </button>
+    <button id="dropdown-manage-property" onclick="goManageProperty()" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:var(--text-primary);display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='transparent'">
+      🏠 Manage My Properties
+    </button>
     <button onclick="closeDropdown();showPage('verify')" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:var(--text-primary);display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='transparent'">
       🪪 Complete Verification
-    </button>
-    <button onclick="closeDropdown();showPage('list')" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:var(--text-primary);display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='transparent'">
-      🏠 List a Property
     </button>
     <button onclick="closeDropdown();showPage('map')" style="width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.85rem;color:var(--text-primary);display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='transparent'">
       🗺️ Browse Properties
@@ -2574,6 +2693,89 @@ function showPage(name) {
   window.scrollTo(0, 0);
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
+  if (name === 'profile') populateProfilePage();
+}
+
+// ── PROFILE PAGE ─────────────────────────────────────────────────────────
+function populateProfilePage() {
+  if (!currentUser) { showPage('home'); openAuthModal('login'); return; }
+  const initials = ((currentUser.fname || '?')[0] + (currentUser.lname || '?')[0]).toUpperCase();
+  const avatarHTML = currentUser.avatar ? `<img src="${currentUser.avatar}" alt="" style="width:100%;height:100%;object-fit:cover">` : initials;
+  const heroAvatar = document.getElementById('profile-hero-avatar');
+  if (heroAvatar) heroAvatar.innerHTML = avatarHTML;
+  const editAvatar = document.getElementById('profile-edit-avatar');
+  if (editAvatar) editAvatar.innerHTML = avatarHTML;
+  const heroName = document.getElementById('profile-hero-name');
+  if (heroName) heroName.textContent = currentUser.fname + ' ' + currentUser.lname;
+  const roleLabel = currentUser.role === 'owner' ? 'Property Owner' : 'Renter/Buyer';
+  const heroRole = document.getElementById('profile-hero-role');
+  if (heroRole) heroRole.textContent = roleLabel;
+  const roleDisplay = document.getElementById('profile-role-display');
+  if (roleDisplay) roleDisplay.textContent = roleLabel;
+  const manageLink = document.getElementById('profile-manage-property-link');
+  if (manageLink) manageLink.textContent = currentUser.role === 'owner' ? '🏠 Manage My Properties' : '🏠 List a Property';
+
+  const fname = document.getElementById('profile-fname'); if (fname) fname.value = currentUser.fname || '';
+  const lname = document.getElementById('profile-lname'); if (lname) lname.value = currentUser.lname || '';
+  const email = document.getElementById('profile-email'); if (email) email.value = currentUser.email || '';
+  const phone = document.getElementById('profile-phone'); if (phone) phone.value = currentUser.phone || '';
+
+  const verifyStatus = document.getElementById('profile-verify-status');
+  if (verifyStatus) {
+    verifyStatus.innerHTML = currentUser.verified
+      ? `<span class="verified-badge">✓ Identity Verified</span>`
+      : `<span class="pending-badge">⏳ Verification ${currentUser.verificationPending ? 'Pending Review' : 'Not Started'}</span>`;
+  }
+  renderProfileNotifTab();
+}
+
+function showProfileTab(tab) {
+  document.querySelectorAll('.profile-tab-pane').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
+  document.querySelectorAll('.profile-tab-btn').forEach(b => { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = 'var(--text-primary)'; });
+  const pane = document.getElementById('profile-tab-' + tab);
+  if (pane) { pane.style.display = 'block'; pane.classList.add('active'); }
+  const btn = document.querySelector('.profile-tab-btn[data-tab="' + tab + '"]');
+  if (btn) { btn.classList.add('active'); btn.style.background = 'var(--geo-green-50)'; btn.style.color = 'var(--geo-green-600)'; }
+  if (tab === 'notifs') renderProfileNotifTab();
+}
+
+function renderProfileNotifTab() {
+  const list = document.getElementById('profile-notif-list');
+  if (!list) return;
+  const notifs = getNotifications();
+  list.innerHTML = notifs.length ? notifs.map(n => `
+    <div style="padding:14px 0;border-bottom:1px solid var(--border-subtle);display:flex;gap:10px;align-items:flex-start">
+      <div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.read ? 'transparent' : 'var(--geo-green-600)'}"></div>
+      <div>
+        <div style="font-size:.86rem;color:var(--text-primary);line-height:1.4">${n.text}</div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">${n.time}</div>
+      </div>
+    </div>`).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">You're all caught up 🎉</div>`;
+}
+
+function handleProfileAvatarChange(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file || !currentUser) return;
+  const reader = new FileReader();
+  reader.onload = function (ev) {
+    currentUser.avatar = ev.target.result;
+    localStorage.setItem('geo_session', JSON.stringify(currentUser));
+    populateProfilePage();
+    renderNavAuth();
+    showAuthToast('Profile photo updated.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveProfileDetails() {
+  if (!currentUser) return;
+  currentUser.fname = document.getElementById('profile-fname').value.trim() || currentUser.fname;
+  currentUser.lname = document.getElementById('profile-lname').value.trim() || currentUser.lname;
+  currentUser.phone = document.getElementById('profile-phone').value.trim();
+  localStorage.setItem('geo_session', JSON.stringify(currentUser));
+  renderNavAuth();
+  populateProfilePage();
+  showAuthToast('Profile updated successfully.');
 }
 
 // ── PROPERTY CARDS (Homepage) ──────────────────────────────────────────────
@@ -3697,9 +3899,16 @@ function renderNavAuth() {
   if (!area) return;
   if (currentUser) {
     const initials = ((currentUser.fname || '?')[0] + (currentUser.lname || '?')[0]).toUpperCase();
+    const notifCount = getNotifications().filter(n => !n.read).length;
     area.innerHTML =
-      `<button onclick="toggleDropdown()" style="display:flex;align-items:center;gap:8px;background:var(--surface-secondary);border:none;border-radius:10px;padding:6px 12px 6px 6px;cursor:pointer;font-family:var(--font-sans);box-shadow:var(--shadow-lifted-card)">
-        <div style="width:28px;height:28px;border-radius:50%;background:var(--geo-green-600);color:white;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">${initials}</div>
+      `<div style="position:relative">
+        <button onclick="toggleNotifPanel(event)" id="notif-bell-btn" style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--surface-secondary);border:none;border-radius:10px;cursor:pointer;font-size:1rem;box-shadow:var(--shadow-lifted-card)" title="Notifications">
+          🔔
+          ${notifCount > 0 ? `<span style="position:absolute;top:2px;right:2px;background:#dc2626;color:#fff;font-size:.6rem;font-weight:800;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px">${notifCount}</span>` : ''}
+        </button>
+      </div>
+      <button onclick="toggleDropdown()" style="display:flex;align-items:center;gap:8px;background:var(--surface-secondary);border:none;border-radius:10px;padding:6px 12px 6px 6px;cursor:pointer;font-family:var(--font-sans);box-shadow:var(--shadow-lifted-card)">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--geo-green-600);color:white;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;overflow:hidden">${currentUser.avatar ? `<img src="${currentUser.avatar}" alt="" style="width:100%;height:100%;object-fit:cover">` : initials}</div>
         <div style="text-align:left">
           <div style="font-size:.78rem;font-weight:700;color:var(--text-primary)">${currentUser.fname}</div>
           <div style="font-size:.65rem;color:var(--text-muted)">${currentUser.role === 'owner' ? 'Property Owner' : 'Renter/Buyer'}</div>
@@ -3709,10 +3918,82 @@ function renderNavAuth() {
     const demail = document.getElementById('dropdown-email');
     if (dname)  dname.textContent  = currentUser.fname + ' ' + currentUser.lname;
     if (demail) demail.textContent = currentUser.email;
+    const dAvatar = document.getElementById('dropdown-avatar');
+    if (dAvatar) dAvatar.innerHTML = currentUser.avatar ? `<img src="${currentUser.avatar}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initials;
+    const manageBtn = document.getElementById('dropdown-manage-property');
+    if (manageBtn) manageBtn.textContent = currentUser.role === 'owner' ? '🏠 Manage My Properties' : '🏠 List a Property';
+    renderNotifPanel();
   } else {
     area.innerHTML =
       `<button class="btn btn-secondary btn-sm" onclick="openAuthModal('login')">Sign In</button>` +
       `<button class="btn btn-primary btn-sm"   onclick="openAuthModal('register')">Register</button>`;
+  }
+}
+
+// ── Notifications (lightweight, local) ────────────────────────────────────
+function getNotifications() {
+  if (!currentUser) return [];
+  const key = 'geo_notifs_' + currentUser.id;
+  let stored = [];
+  try { stored = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { stored = []; }
+  if (!stored.length) {
+    stored = [
+      { id: 1, text: currentUser.verified ? 'Your identity is verified ✓' : 'Complete your identity verification to unlock full access', read: !!currentUser.verified, time: 'Today' },
+      { id: 2, text: 'Welcome to GeoEstate! Explore verified listings near you.', read: true, time: 'Earlier' }
+    ];
+    localStorage.setItem(key, JSON.stringify(stored));
+  }
+  return stored;
+}
+
+function renderNotifPanel() {
+  let panel = document.getElementById('notif-dropdown');
+  if (!panel) return;
+  const notifs = getNotifications();
+  panel.innerHTML = `
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-weight:800;font-size:.88rem">Notifications</div>
+      ${notifs.some(n=>!n.read) ? `<button onclick="markAllNotifsRead()" style="background:none;border:none;color:var(--geo-green-600);font-size:.74rem;font-weight:700;cursor:pointer">Mark all read</button>` : ''}
+    </div>
+    <div style="max-height:320px;overflow-y:auto">
+      ${notifs.length ? notifs.map(n => `
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;gap:10px;align-items:flex-start;${n.read ? '' : 'background:var(--geo-green-50)'}">
+          <div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.read ? 'transparent' : 'var(--geo-green-600)'}"></div>
+          <div>
+            <div style="font-size:.82rem;color:var(--text-primary);line-height:1.4">${n.text}</div>
+            <div style="font-size:.68rem;color:var(--text-muted);margin-top:4px">${n.time}</div>
+          </div>
+        </div>`).join('') : `<div style="padding:24px 16px;text-align:center;color:var(--text-muted);font-size:.82rem">You're all caught up 🎉</div>`}
+    </div>`;
+}
+
+function markAllNotifsRead() {
+  if (!currentUser) return;
+  const key = 'geo_notifs_' + currentUser.id;
+  const notifs = getNotifications().map(n => ({ ...n, read: true }));
+  localStorage.setItem(key, JSON.stringify(notifs));
+  renderNavAuth();
+}
+
+function toggleNotifPanel(e) {
+  if (e) e.stopPropagation();
+  closeDropdown();
+  let panel = document.getElementById('notif-dropdown');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function closeNotifPanel() {
+  const panel = document.getElementById('notif-dropdown');
+  if (panel) panel.style.display = 'none';
+}
+
+function goManageProperty() {
+  closeDropdown();
+  if (currentUser && currentUser.role === 'owner') {
+    window.location.href = '/owner-dashboard';
+  } else {
+    showPage('list');
   }
 }
 
@@ -3732,6 +4013,7 @@ function closeAuthModal() {
 }
 
 function toggleDropdown() {
+  closeNotifPanel();
   const dd = document.getElementById('user-dropdown');
   if (dd) dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
 }
@@ -3744,6 +4026,7 @@ function closeDropdown() {
 document.addEventListener('click', function (e) {
   if (e.target.id === 'auth-modal') closeAuthModal();
   if (!e.target.closest('#user-dropdown') && !e.target.closest('#nav-auth-area')) closeDropdown();
+  if (!e.target.closest('#notif-dropdown') && !e.target.closest('#notif-bell-btn')) closeNotifPanel();
 });
 
 function switchAuthTab(tab) {
