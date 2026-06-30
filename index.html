@@ -2224,6 +2224,27 @@ YPE html>
      AUTH MODAL — Login / Register / Forgot Password
      ============================================================ -->
 <div id="auth-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;padding:20px">
+
+<div id="modal-listing-map" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface-primary);border-radius:20px;width:100%;max-width:640px;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border-subtle)">
+      <div>
+        <div style="font-weight:800;font-size:1.05rem">Pin Your Property's Location</div>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-top:2px">Click on the map, or use your current location</div>
+      </div>
+      <button onclick="closeListingMapModal()" style="border:none;background:transparent;font-size:1.1rem;cursor:pointer;color:var(--text-muted)">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <button type="button" class="btn btn-ghost" onclick="useCurrentLocationForListing()" style="margin-bottom:10px">📡 Use My Current Location</button>
+      <div id="listing-map-canvas" style="height:360px;border-radius:10px;overflow:hidden;background:var(--surface-secondary)"></div>
+      <div id="listing-map-coords" style="font-size:.82rem;color:var(--text-muted);margin-top:8px">No location selected yet.</div>
+    </div>
+    <div style="display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--border-subtle)">
+      <button class="btn btn-primary btn-lg" onclick="confirmListingMapPick()" style="flex:1">Use This Location</button>
+      <button class="btn btn-ghost" onclick="closeListingMapModal()">Cancel</button>
+    </div>
+  </div>
+</div>
   <div style="background:var(--surface-primary);border-radius:20px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden">
 
     <!-- Tabs -->
@@ -3468,24 +3489,6 @@ function goToAdmin(e) {
 <div id="modal-confirm-payment" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div class="modal-title">Confirm Payment</div><button class="modal-close" onclick="closeModal('modal-confirm-payment')">✕</button></div><div id="modal-confirm-payment-body" class="modal-body"></div><div id="modal-confirm-payment-footer" class="modal-footer"></div></div></div>
 <div id="modal-tenancy-detail" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="tn-detail-title" class="modal-title"></div></div><button class="modal-close" onclick="closeModal('modal-tenancy-detail')">✕</button></div><div id="tn-detail-body" class="modal-body"></div><div id="tn-detail-footer" class="modal-footer"></div></div></div>
 <div id="modal-pick-lawyer" class="modal-overlay"><div class="modal-box" style="max-width:520px"><div class="modal-header"><div><div class="modal-title">Assign Lawyer</div><div id="pick-lawyer-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-pick-lawyer')">✕</button></div><div class="modal-body"><input id="lawyer-picker-search" type="text" placeholder="Search by name, specialisation, state…" oninput="filterLawyerPicker(this.value)" style="width:100%;padding:10px 14px;border:none;border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.88rem;outline:none;box-shadow:0 0 0 1px var(--a-input-border);margin-bottom:14px;box-sizing:border-box"><div id="lawyer-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div></div></div></div>
-
-<div id="modal-listing-map" class="modal-overlay">
-  <div class="modal-box" style="max-width:640px">
-    <div class="modal-header">
-      <div><div class="modal-title">Pin Your Property's Location</div><div class="modal-sub">Click on the map, or use your current location</div></div>
-      <button class="modal-close" onclick="closeModal('modal-listing-map')">✕</button>
-    </div>
-    <div class="modal-body">
-      <button type="button" class="btn btn-ghost" onclick="useCurrentLocationForListing()" style="margin-bottom:10px">📡 Use My Current Location</button>
-      <div id="listing-map-canvas" style="height:360px;border-radius:10px;overflow:hidden;background:var(--surface-secondary)"></div>
-      <div id="listing-map-coords" style="font-size:.82rem;color:var(--text-muted);margin-top:8px">No location selected yet.</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary btn-lg" onclick="confirmListingMapPick()" style="flex:1">Use This Location</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-listing-map')">Cancel</button>
-    </div>
-  </div>
-</div>
 
 `;
         // Check for existing JWT and auto-login
@@ -6625,8 +6628,14 @@ let _listingMarker = null;
 let _listingCoords = null;
 
 function openListingMapPicker() {
-  openModal('modal-listing-map');
+  const el = document.getElementById('modal-listing-map');
+  if (el) { el.style.display = 'flex'; }
   setTimeout(initListingMapPicker, 150);
+}
+
+function closeListingMapModal() {
+  const el = document.getElementById('modal-listing-map');
+  if (el) { el.style.display = 'none'; }
 }
 
 function initListingMapPicker() {
@@ -6715,7 +6724,7 @@ function confirmListingMapPick() {
   document.getElementById('lp-lat').value = _listingCoords.lat.toFixed(6);
   document.getElementById('lp-lng').value = _listingCoords.lng.toFixed(6);
   document.getElementById('lp-map-status').textContent = '📍 Location pinned: ' + _listingCoords.lat.toFixed(5) + ', ' + _listingCoords.lng.toFixed(5);
-  closeModal('modal-listing-map');
+  closeListingMapModal();
 }
 </script>
 
