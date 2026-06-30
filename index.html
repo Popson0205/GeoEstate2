@@ -1097,6 +1097,15 @@ YPE html>
           <label class="geo-label">Property Address *</label>
           <input class="geo-input" id="lp-address" type="text" placeholder="Full address of the property">
         </div>
+        <div class="geo-form-group">
+          <label class="geo-label">Pin Exact Location on Map (recommended)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="geo-input" id="lp-lat" placeholder="Latitude" readonly style="flex:1">
+            <input class="geo-input" id="lp-lng" placeholder="Longitude" readonly style="flex:1">
+            <button type="button" class="btn btn-primary" onclick="openListingMapPicker()" style="white-space:nowrap">📍 Pin on Map</button>
+          </div>
+          <div id="lp-map-status" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Pinning your exact location helps buyers find your property on the map after approval.</div>
+        </div>
         <div class="grid-2">
           <div class="geo-form-group">
             <label class="geo-label">State *</label>
@@ -2610,8 +2619,10 @@ function initMap() {
       document.getElementById('map-listing-list').innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:.82rem"><div style="font-size:2rem;margin-bottom:8px">📍</div>No verified properties yet.<br>Be the first to list!</div>';
     }
     properties.forEach(p => {
+      const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+      if (isNaN(lat) || isNaN(lng)) return; // skip non-geotagged listings on the map (still shown in sidebar list)
       const greenIcon = L.divIcon({ className: '', html: `<div style="background:#1a6b3c;color:white;border-radius:999px;padding:4px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid white">✓ VERIFIED</div>`, iconAnchor: [40, 20] });
-      const marker = L.marker([p.lat, p.lng], { icon: greenIcon }).addTo(mapInstance)
+      const marker = L.marker([lat, lng], { icon: greenIcon }).addTo(mapInstance)
         .bindPopup(`<div class="map-popup"><div class="map-popup-price">${p.price}</div><div class="map-popup-title">${p.title}</div><div class="map-popup-loc">📍 ${p.location}</div><button onclick="showDetail('${p.id}')" style="background:#1a6b3c;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;width:100%">View Details →</button></div>`);
       marker._propData = p;
       markers.push(marker);
@@ -2655,12 +2666,19 @@ function updatePriceLabel(val) {
 let detailMap = null;
 function initDetailMap(lat, lng, title, location) {
   if (detailMap) { detailMap.remove(); detailMap = null; }
+  const latN = parseFloat(lat), lngN = parseFloat(lng);
+  const el = document.getElementById('detail-map');
+  if (isNaN(latN) || isNaN(lngN)) {
+    if (el) {
+      el.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px">📍 Exact location not pinned yet for this property.<br>Showing general area: ' + (location || '') + '</div>';
+    }
+    return;
+  }
   setTimeout(() => {
-    const el = document.getElementById('detail-map');
     if (!el) return;
-    detailMap = L.map('detail-map', { zoomControl: true }).setView([lat, lng], 15);
+    detailMap = L.map('detail-map', { zoomControl: true }).setView([latN, lngN], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(detailMap);
-    L.marker([lat, lng]).addTo(detailMap).bindPopup('<strong>' + title + '</strong><br>📍 ' + location).openPopup();
+    L.marker([latN, lngN]).addTo(detailMap).bindPopup('<strong>' + title + '</strong><br>📍 ' + location).openPopup();
     setTimeout(() => { detailMap.invalidateSize(); }, 200);
   }, 300);
 }
@@ -2888,6 +2906,8 @@ async function submitListing() {
 
   // Build payload matching server schema
   const listing_type = (document.getElementById('lp-type')||{}).value || 'rent';
+  const listLat = (document.getElementById('lp-lat')||{}).value || '';
+  const listLng = (document.getElementById('lp-lng')||{}).value || '';
   const listData = {
     title:        ((document.getElementById('lp-title')  ||{}).value || '').trim(),
     listing_type: listing_type,
@@ -2895,7 +2915,16 @@ async function submitListing() {
     state:        (document.getElementById('lp-state')   ||{}).value || '',
     lga:          (document.getElementById('lp-lga')     ||{}).value || '',
     address:      (document.getElementById('lp-address') ||{}).value || '',
+    img:          (document.getElementById('list-img-main')   ||{}).value || '',
+    images:       (document.getElementById('list-images-json')||{}).value || '[]',
   };
+  if (listLat && listLng) {
+    listData.lat = parseFloat(listLat);
+    listData.lng = parseFloat(listLng);
+    listData.geo = true;
+  } else {
+    listData.geo = false;
+  }
 
   // Client-side guard - server also validates, but fail fast here
   if (!listData.title) {
@@ -3439,6 +3468,25 @@ function goToAdmin(e) {
 <div id="modal-confirm-payment" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div class="modal-title">Confirm Payment</div><button class="modal-close" onclick="closeModal('modal-confirm-payment')">✕</button></div><div id="modal-confirm-payment-body" class="modal-body"></div><div id="modal-confirm-payment-footer" class="modal-footer"></div></div></div>
 <div id="modal-tenancy-detail" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="tn-detail-title" class="modal-title"></div></div><button class="modal-close" onclick="closeModal('modal-tenancy-detail')">✕</button></div><div id="tn-detail-body" class="modal-body"></div><div id="tn-detail-footer" class="modal-footer"></div></div></div>
 <div id="modal-pick-lawyer" class="modal-overlay"><div class="modal-box" style="max-width:520px"><div class="modal-header"><div><div class="modal-title">Assign Lawyer</div><div id="pick-lawyer-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-pick-lawyer')">✕</button></div><div class="modal-body"><input id="lawyer-picker-search" type="text" placeholder="Search by name, specialisation, state…" oninput="filterLawyerPicker(this.value)" style="width:100%;padding:10px 14px;border:none;border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.88rem;outline:none;box-shadow:0 0 0 1px var(--a-input-border);margin-bottom:14px;box-sizing:border-box"><div id="lawyer-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div></div></div></div>
+
+<div id="modal-listing-map" class="modal-overlay">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-header">
+      <div><div class="modal-title">Pin Your Property's Location</div><div class="modal-sub">Click on the map, or use your current location</div></div>
+      <button class="modal-close" onclick="closeModal('modal-listing-map')">✕</button>
+    </div>
+    <div class="modal-body">
+      <button type="button" class="btn btn-ghost" onclick="useCurrentLocationForListing()" style="margin-bottom:10px">📡 Use My Current Location</button>
+      <div id="listing-map-canvas" style="height:360px;border-radius:10px;overflow:hidden;background:var(--surface-secondary)"></div>
+      <div id="listing-map-coords" style="font-size:.82rem;color:var(--text-muted);margin-top:8px">No location selected yet.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-lg" onclick="confirmListingMapPick()" style="flex:1">Use This Location</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-listing-map')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 `;
         // Check for existing JWT and auto-login
         const tok = localStorage.getItem('geo_admin_token');
@@ -6316,53 +6364,6 @@ function loadTypePageIfNeeded(name) {
   }
 }
 
-// ── SSE: instant public refresh when admin approves a property ─────────────
-// When the server broadcasts property_updated or property_created we:
-//  1. Invalidate the type-page cache for all types
-//  2. Re-fetch and re-render whichever type page is currently visible
-//  3. Also refresh the homepage hero grid (properties array)
-(function _wirePublicSSE() {
-  // Run after GeoAPI is available (geo-api.js loads before this block)
-  function _attachSSE() {
-    if (!window.GeoAPI || !window.GeoAPI.onSSE) return;
-
-    function _refreshPublicListings() {
-      // Clear all cached type pages so next visit fetches fresh data
-      typePageCache = { rent: [], buy: [], lease: [] };
-
-      // Re-render whatever type page is currently active
-      ['rent', 'buy', 'lease'].forEach(function(type) {
-        const page = document.getElementById('page-' + type);
-        if (page && page.classList.contains('active')) {
-          loadTypePage(type).then(function(props) {
-            typePageCache[type] = props;
-            renderTypePage(type, props);
-          });
-        }
-      });
-
-      // Refresh homepage grid (first 6 properties across all types)
-      var baseUrl = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
-      fetch(baseUrl + '/properties').then(function(r) { return r.json(); }).then(function(d) {
-        if (!d.properties) return;
-        var mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p) { return p; };
-        properties = d.properties.map(mapper);
-        if (typeof renderProps === 'function') renderProps(currentFilter || 'all');
-      }).catch(function() {});
-    }
-
-    window.GeoAPI.onSSE('property_updated', _refreshPublicListings);
-    window.GeoAPI.onSSE('property_created', _refreshPublicListings);
-  }
-
-  // GeoAPI may not be defined yet at parse time — wait briefly
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(_attachSSE, 500); });
-  } else {
-    setTimeout(_attachSSE, 500);
-  }
-})();
-
 // Patch showPage safely — preserve original fully, just add side effect
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof window._geoShowPagePatched === 'undefined') {
@@ -6616,6 +6617,105 @@ async function cloudinaryUpload(inputId, previewId) {
     if (typeof showAuthToast === 'function') showAuthToast('Could not reach upload server.', 'error');
     else alert('Could not reach upload server.');
   }
+}
+
+// ── Listing location picker (property owner pins exact location) ────────────
+let _listingMapInst = null;
+let _listingMarker = null;
+let _listingCoords = null;
+
+function openListingMapPicker() {
+  openModal('modal-listing-map');
+  setTimeout(initListingMapPicker, 150);
+}
+
+function initListingMapPicker() {
+  const el = document.getElementById('listing-map-canvas');
+  if (!el) return;
+  if (_listingMapInst) { try { _listingMapInst.remove(); } catch(e){} _listingMapInst = null; _listingMarker = null; }
+
+  const existingLat = parseFloat(document.getElementById('lp-lat').value);
+  const existingLng = parseFloat(document.getElementById('lp-lng').value);
+  const startLat = !isNaN(existingLat) ? existingLat : 9.0765;
+  const startLng = !isNaN(existingLng) ? existingLng : 7.3986;
+
+  try {
+    _listingMapInst = L.map('listing-map-canvas').setView([startLat, startLng], !isNaN(existingLat) ? 15 : 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors', maxZoom: 19
+    }).addTo(_listingMapInst);
+
+    if (!isNaN(existingLat) && !isNaN(existingLng)) {
+      dropListingMarker(existingLat, existingLng);
+    }
+
+    _listingMapInst.on('click', function(e) {
+      dropListingMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    setTimeout(() => { if (_listingMapInst) _listingMapInst.invalidateSize(); }, 200);
+  } catch(e) { console.warn('Listing map picker init failed:', e.message); }
+}
+
+function dropListingMarker(lat, lng) {
+  if (!_listingMapInst) return;
+  if (_listingMarker) { _listingMapInst.removeLayer(_listingMarker); }
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="background:#1a6b3c;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.35)">📍</div>',
+    iconSize: [32, 32], iconAnchor: [16, 32]
+  });
+  _listingMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_listingMapInst);
+  _listingMarker.on('dragend', function() {
+    const pos = _listingMarker.getLatLng();
+    _listingCoords = { lat: pos.lat, lng: pos.lng };
+    updateListingCoordsLabel();
+  });
+  _listingCoords = { lat, lng };
+  updateListingCoordsLabel();
+}
+
+function updateListingCoordsLabel() {
+  const lbl = document.getElementById('listing-map-coords');
+  if (lbl && _listingCoords) {
+    lbl.textContent = '📍 Selected: ' + _listingCoords.lat.toFixed(6) + ', ' + _listingCoords.lng.toFixed(6) + ' (drag pin to fine-tune)';
+  }
+}
+
+function useCurrentLocationForListing() {
+  if (!navigator.geolocation) {
+    if (typeof showAuthToast === 'function') showAuthToast('Geolocation not supported by this browser', 'error');
+    return;
+  }
+  const statusEl = document.getElementById('listing-map-coords');
+  if (statusEl) statusEl.textContent = '📡 Getting current location…';
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (_listingMapInst) {
+        _listingMapInst.setView([lat, lng], 16);
+        dropListingMarker(lat, lng);
+      } else {
+        _listingCoords = { lat, lng };
+      }
+    },
+    function(err) {
+      if (typeof showAuthToast === 'function') showAuthToast('Could not get current location: ' + err.message, 'error');
+      if (statusEl) statusEl.textContent = 'Location unavailable — click on the map instead.';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function confirmListingMapPick() {
+  if (!_listingCoords) {
+    if (typeof showAuthToast === 'function') showAuthToast('Click on the map (or use current location) to drop a pin first', 'error');
+    return;
+  }
+  document.getElementById('lp-lat').value = _listingCoords.lat.toFixed(6);
+  document.getElementById('lp-lng').value = _listingCoords.lng.toFixed(6);
+  document.getElementById('lp-map-status').textContent = '📍 Location pinned: ' + _listingCoords.lat.toFixed(5) + ', ' + _listingCoords.lng.toFixed(5);
+  closeModal('modal-listing-map');
 }
 </script>
 

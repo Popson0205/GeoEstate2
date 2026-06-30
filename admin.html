@@ -984,6 +984,13 @@
       </div>
       <label class="form-label">Full Address</label><input class="form-input" id="pe-address" placeholder="Full property address">
       <label class="form-label">Image URL</label><input class="form-input" id="pe-img" placeholder="https://... (Unsplash or direct URL)">
+      <label class="form-label">Location (Map Pin)</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input class="form-input" id="pe-lat" placeholder="Latitude" style="flex:1" readonly>
+        <input class="form-input" id="pe-lng" placeholder="Longitude" style="flex:1" readonly>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openMapPicker()" style="white-space:nowrap">📍 Pick on Map</button>
+      </div>
+      <div id="pe-map-status" style="font-size:.75rem;color:var(--adm-text-subtle);margin-bottom:8px"></div>
       <label class="form-label">Notes / Reason for change</label>
       <textarea class="notes-area" id="pe-notes" placeholder="e.g. Price updated per owner request..."></textarea>
     </div>
@@ -991,6 +998,23 @@
       <button class="btn btn-primary btn-lg" onclick="savePropertyEdit()" style="flex:1;justify-content:center">Save Changes</button>
       <button class="btn btn-reject" onclick="removePropertyConfirm()" id="pe-remove-btn">Remove Property</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-property-edit')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Map Picker Modal -->
+<div class="modal-overlay" id="modal-map-picker">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header"><div class="modal-title">Pick Property Location</div><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-map-picker')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:.8rem;color:var(--adm-text-subtle);margin-bottom:8px">Click anywhere on the map to drop a pin at the property's exact location, or use your current location.</div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="useCurrentLocationForPicker()" style="margin-bottom:8px">📡 Use My Current Location</button>
+      <div id="map-picker-canvas" style="height:360px;border-radius:10px;overflow:hidden;background:var(--adm-surface-2)"></div>
+      <div id="map-picker-coords" style="font-size:.8rem;color:var(--adm-text-subtle);margin-top:8px">No location selected yet.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-lg" onclick="confirmMapPick()" style="flex:1;justify-content:center">Use This Location</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-map-picker')">Cancel</button>
     </div>
   </div>
 </div>
@@ -2531,6 +2555,9 @@ function openPropertyEditModal(propId){
   document.getElementById('pe-lga').value = p ? (p.lga||'') : '';
   document.getElementById('pe-address').value = p ? (p.address||'') : '';
   document.getElementById('pe-img').value = p ? (p.img||'') : '';
+  document.getElementById('pe-lat').value = p && p.lat ? p.lat : '';
+  document.getElementById('pe-lng').value = p && p.lng ? p.lng : '';
+  document.getElementById('pe-map-status').textContent = (p && p.lat && p.lng) ? ('📍 Pinned: ' + Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5)) : '';
   document.getElementById('pe-notes').value = p ? (p.notes||'') : '';
   const removeBtn = document.getElementById('pe-remove-btn');
   if(removeBtn) removeBtn.style.display = isNew ? 'none' : '';
@@ -2540,9 +2567,10 @@ function openPropertyEditModal(propId){
 function openAddPropertyModal(){
   document.getElementById('prop-edit-title').textContent = '+ Add New Property';
   document.getElementById('pe-idx').value = '';
-  ['pe-title','pe-owner','pe-price','pe-state','pe-lga','pe-address','pe-img','pe-notes'].forEach(id=>{
+  ['pe-title','pe-owner','pe-price','pe-state','pe-lga','pe-address','pe-img','pe-notes','pe-lat','pe-lng'].forEach(id=>{
     const el = document.getElementById(id); if(el) el.value='';
   });
+  document.getElementById('pe-map-status').textContent = '';
   document.getElementById('pe-type').value = 'rent';
   document.getElementById('pe-status').value = 'live';
   const removeBtn = document.getElementById('pe-remove-btn');
@@ -2566,8 +2594,17 @@ function savePropertyEdit(){
     img: document.getElementById('pe-img').value.trim(),
     notes: document.getElementById('pe-notes').value.trim(),
     submitted: new Date().toLocaleDateString('en-NG'),
-    docs: [], geo: true, lawyerReq: false, ownerId: 'ADMIN'
+    docs: [], lawyerReq: false, ownerId: 'ADMIN'
   };
+  const latVal = document.getElementById('pe-lat').value.trim();
+  const lngVal = document.getElementById('pe-lng').value.trim();
+  if (latVal && lngVal) {
+    data.lat = parseFloat(latVal);
+    data.lng = parseFloat(lngVal);
+    data.geo = true;
+  } else {
+    data.geo = false;
+  }
   if(!data.title){ adminToast('Property title is required','error'); return; }
 
   // Auto-archive from portal if completed/sold
@@ -2606,6 +2643,13 @@ function savePropertyEdit(){
   else if(pIdx < 0) managedProperties.push(data);
 
   saveManagedProperties();
+
+  // Persist to backend (lat/lng, status, etc.)
+  fetch(GEO_API + '/admin/property/' + data.id, {
+    method: 'PATCH', headers: geoHeaders(),
+    body: JSON.stringify(data)
+  }).catch(() => {});
+
   renderPropertiesMgmt();
   renderPropQueue();
   updateBadges();
@@ -3176,6 +3220,108 @@ async function geocodeProp(idx) {
     adminToast('Geocoding error: ' + e.message, 'error');
     if (mapEl) mapEl.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626">⚠️ Geocoding failed</div>';
   }
+}
+
+
+
+// ── Lat/Lng map picker for the property editor form ──────────────────────────
+let _pickerMapInst = null;
+let _pickerMarker = null;
+let _pickerCoords = null;
+
+function openMapPicker() {
+  openModal('modal-map-picker');
+  setTimeout(initMapPicker, 150); // wait for modal to render/become visible
+}
+
+function initMapPicker() {
+  const el = document.getElementById('map-picker-canvas');
+  if (!el) return;
+  if (_pickerMapInst) { try { _pickerMapInst.remove(); } catch(e){} _pickerMapInst = null; _pickerMarker = null; }
+
+  // Start centered on existing lat/lng if present, else default to Abuja, Nigeria
+  const existingLat = parseFloat(document.getElementById('pe-lat').value);
+  const existingLng = parseFloat(document.getElementById('pe-lng').value);
+  const startLat = !isNaN(existingLat) ? existingLat : 9.0765;
+  const startLng = !isNaN(existingLng) ? existingLng : 7.3986;
+
+  try {
+    _pickerMapInst = L.map('map-picker-canvas').setView([startLat, startLng], !isNaN(existingLat) ? 15 : 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors', maxZoom: 19
+    }).addTo(_pickerMapInst);
+
+    if (!isNaN(existingLat) && !isNaN(existingLng)) {
+      dropPickerMarker(existingLat, existingLng);
+    }
+
+    _pickerMapInst.on('click', function(e) {
+      dropPickerMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    setTimeout(() => { if (_pickerMapInst) _pickerMapInst.invalidateSize(); }, 200);
+  } catch(e) { console.warn('Map picker init failed:', e.message); }
+}
+
+function dropPickerMarker(lat, lng) {
+  if (!_pickerMapInst) return;
+  if (_pickerMarker) { _pickerMapInst.removeLayer(_pickerMarker); }
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="background:#1a6b3c;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.35)">📍</div>',
+    iconSize: [32, 32], iconAnchor: [16, 32]
+  });
+  _pickerMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(_pickerMapInst);
+  _pickerMarker.on('dragend', function() {
+    const pos = _pickerMarker.getLatLng();
+    _pickerCoords = { lat: pos.lat, lng: pos.lng };
+    updatePickerCoordsLabel();
+  });
+  _pickerCoords = { lat, lng };
+  updatePickerCoordsLabel();
+}
+
+function updatePickerCoordsLabel() {
+  const lbl = document.getElementById('map-picker-coords');
+  if (lbl && _pickerCoords) {
+    lbl.textContent = '📍 Selected: ' + _pickerCoords.lat.toFixed(6) + ', ' + _pickerCoords.lng.toFixed(6) + ' (drag pin to fine-tune)';
+  }
+}
+
+function useCurrentLocationForPicker() {
+  if (!navigator.geolocation) {
+    adminToast('Geolocation not supported by this browser', 'error');
+    return;
+  }
+  const statusEl = document.getElementById('map-picker-coords');
+  if (statusEl) statusEl.textContent = '📡 Getting current location…';
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (_pickerMapInst) {
+        _pickerMapInst.setView([lat, lng], 16);
+        dropPickerMarker(lat, lng);
+      } else {
+        _pickerCoords = { lat, lng };
+      }
+    },
+    function(err) {
+      adminToast('Could not get current location: ' + err.message, 'error');
+      if (statusEl) statusEl.textContent = 'Location unavailable — click on the map instead.';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function confirmMapPick() {
+  if (!_pickerCoords) {
+    adminToast('Click on the map (or use current location) to drop a pin first', 'error');
+    return;
+  }
+  document.getElementById('pe-lat').value = _pickerCoords.lat.toFixed(6);
+  document.getElementById('pe-lng').value = _pickerCoords.lng.toFixed(6);
+  document.getElementById('pe-map-status').textContent = '📍 Pinned: ' + _pickerCoords.lat.toFixed(5) + ', ' + _pickerCoords.lng.toFixed(5);
+  closeModal('modal-map-picker');
 }
 
 </script>
