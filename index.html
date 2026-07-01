@@ -3590,22 +3590,100 @@ async function submitListing() {
   const _bedrooms      = (document.getElementById('lp-bedrooms')||{}).value || '';
   const _bathrooms     = (document.getElementById('lp-bathrooms')||{}).value || '';
   const _totalUnits    = (document.getElementById('lp-total-units')||{}).value || '';
+  // ── Build type-specific payload — matches owner-dashboard submitAddProperty ──
+  function _v(id) { return (document.getElementById(id)||{}).value || ''; }
+  function _n(id) { const v = parseFloat(_v(id)); return isNaN(v) ? null : v; }
+  function _i(id) { const v = parseInt(_v(id)); return isNaN(v) ? null : v; }
+  function _chk(id) { const el = document.getElementById(id); return el ? el.checked : false; }
+
   const listData = {
-    title:          ((document.getElementById('lp-title')  ||{}).value || '').trim(),
-    listing_type:   listing_type,
-    price:          _unitStructure === 'single' ? _singlePrice : '',
+    // ── Shared ──────────────────────────────────────────────
+    title:        (_v('lp-title')).trim(),
+    listing_type: listing_type,
+    rent_category:rent_category,
+    property_type:_v('lp-prop-type') || _v('lp-prop-type-sel') || '',
+    state:        _v('lp-state'),
+    lga:          _v('lp-lga'),
+    address:      _v('lp-address'),
+    landmark:     _v('lp-landmark'),
+    description:  _v('lp-desc'),
+    img:          _v('list-img-main'),
+    images:       _v('list-images-json') || '[]',
+    bedrooms:     _i('lp-bedrooms') || _v('lp-bedrooms') || null,
+    bathrooms:    _i('lp-bathrooms') || null,
     unit_structure: _unitStructure,
-    units_json:     _unitStructure === 'multi'  ? _unitsJson   : '[]',
-    total_units:    _unitStructure === 'multi'  ? _totalUnits  : '',
-    bedrooms:       _unitStructure === 'single' ? _bedrooms    : '',
-    bathrooms:      _unitStructure === 'single' ? _bathrooms   : '',
-    state:          (document.getElementById('lp-state')   ||{}).value || '',
-    lga:            (document.getElementById('lp-lga')     ||{}).value || '',
-    address:        (document.getElementById('lp-address') ||{}).value || '',
-    description:    _unitStructure === 'single' ? ((document.getElementById('lp-desc')||{}).value||'') : '',
-    img:            _unitStructure === 'single' ? ((document.getElementById('list-img-main')   ||{}).value || '') : '',
-    images:         _unitStructure === 'single' ? ((document.getElementById('list-images-json')||{}).value || '[]') : '[]',
+    units_json:   _unitStructure === 'multi' ? _unitsJson : '[]',
+    total_units:  _unitStructure === 'multi' ? _totalUnits : '',
   };
+
+  // ── Rent — Standard ─────────────────────────────────────────
+  if (listing_type === 'rent' && rent_category === 'standard') {
+    listData.annual_rent     = _n('lp-price-rent') || _n('fp-annual-rent') || null;
+    listData.monthly_rent    = listData.annual_rent ? Math.round(listData.annual_rent / 12) : null;
+    listData.price           = listData.annual_rent ? '\u20A6' + listData.annual_rent.toLocaleString() + '/yr' : _singlePrice;
+    listData.rent_frequency  = _v('lp-rent-freq') || 'annual';
+    listData.advance_payment = _v('lp-advance') || null;
+    listData.caution_fee     = _n('lp-caution-fee') || null;
+    listData.agency_fee      = _n('lp-agency-fee')  || null;
+    listData.furnishing      = _v('lp-furnishing') || null;
+    listData.agreement_doc   = _v('lp-agreement-doc') || null;
+    listData.notes           = _v('lp-notes') || '';
+  }
+  // ── Rent — Shortlet ─────────────────────────────────────────
+  else if (listing_type === 'rent' && rent_category === 'shortlet') {
+    const nr = _n('lp-nightly-rate') || _n('lp-price-shortlet');
+    listData.nightly_rate    = nr;
+    listData.monthly_rent    = nr ? nr * 30 : null;
+    listData.price           = nr ? '\u20A6' + (nr||0).toLocaleString() + '/night' : _singlePrice;
+    listData.min_nights      = _i('lp-min-nights') || 1;
+    listData.max_nights      = _v('lp-max-nights') || null;
+    listData.weekend_rate    = _n('lp-weekend-rate') || null;
+    listData.cleaning_fee    = _n('lp-cleaning-fee') || null;
+    listData.checkin_time    = _v('lp-checkin-time') || '14:00';
+    listData.checkout_time   = _v('lp-checkout-time') || '11:00';
+    listData.house_rules     = _v('lp-house-rules') || null;
+    listData.caution_fee     = _n('lp-shortlet-caution') || null;
+    listData.furnishing      = _v('lp-furnishing') || null;
+    listData.notes           = _v('lp-notes') || '';
+  }
+  // ── Sell ─────────────────────────────────────────────────────
+  else if (listing_type === 'buy') {
+    const sp = _n('lp-price-buy') || _n('buy-sale-price');
+    listData.sale_price      = sp;
+    listData.price           = sp ? '\u20A6' + (sp||0).toLocaleString() : _singlePrice;
+    listData.negotiable      = _v('lp-negotiable') || null;
+    listData.tenure          = _v('lp-tenure') || null;
+    listData.floors          = _i('lp-floors') || null;
+    listData.land_size_sqm   = _n('lp-land-sqm') || null;
+    listData.doc_coo         = _v('lp-doc-coo-url') || null;
+    listData.doc_deed        = _v('lp-doc-deed-url') || null;
+    listData.doc_survey      = _v('lp-doc-survey-url') || null;
+    listData.doc_approval    = _v('lp-doc-approval-url') || null;
+    listData.sale_agreement  = _v('lp-sale-agreement-url') || null;
+    listData.notes           = _v('lp-notes') || '';
+  }
+  // ── Lease ────────────────────────────────────────────────────
+  else if (listing_type === 'lease') {
+    const lp = _n('lp-price-lease') || _n('lease-price');
+    listData.lease_price          = lp;
+    listData.price                = lp ? '\u20A6' + (lp||0).toLocaleString() + '/yr' : _singlePrice;
+    listData.lease_type           = _v('lp-lease-type') || null;
+    listData.lease_payment_freq   = _v('lp-lease-payment-freq') || null;
+    listData.lease_duration_years = _v('lp-lease-duration') || null;
+    listData.lease_start_date     = _v('lp-lease-start') || null;
+    listData.renewal_option       = _v('lp-lease-renewal') || null;
+    listData.escalation_pct       = _n('lp-escalation') || null;
+    listData.permitted_use        = _v('lp-permitted-use') || null;
+    listData.land_size_sqm        = _n('lp-land-sqm') || null;
+    listData.floors               = _i('lp-floors') || null;
+    listData.parking_spaces       = _i('lp-parking') || null;
+    listData.condition            = _v('lp-condition') || null;
+    listData.lease_agreement      = _v('lp-lease-agreement-url') || null;
+    listData.doc_coo              = _v('lp-doc-coo-url') || null;
+    listData.doc_survey           = _v('lp-doc-survey-url') || null;
+    listData.notes                = _v('lp-notes') || '';
+  }
+
   if (listLat && listLng) {
     listData.lat = parseFloat(listLat);
     listData.lng = parseFloat(listLng);

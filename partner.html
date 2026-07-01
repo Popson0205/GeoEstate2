@@ -1991,7 +1991,9 @@ async function partnerSubmitListing() {
     return;
   }
 
-  const listing_type   = (document.getElementById('lp-type')||{}).value || 'rent';
+  const raw_type       = (document.getElementById('lp-type')||{}).value || 'rent';
+  const listing_type   = raw_type === 'shortlet' ? 'rent' : raw_type;
+  const rent_category  = raw_type === 'shortlet' ? 'shortlet' : 'standard';
   const listLat        = (document.getElementById('lp-lat')||{}).value || '';
   const listLng        = (document.getElementById('lp-lng')||{}).value || '';
   const _unitStructure = (document.getElementById('lp-unit-structure')||{}).value || 'single';
@@ -2001,22 +2003,84 @@ async function partnerSubmitListing() {
   const _bathrooms     = (document.getElementById('lp-bathrooms')||{}).value || '';
   const _totalUnits    = (document.getElementById('lp-total-units')||{}).value || '';
 
+  function _pv(id) { return (document.getElementById(id)||{}).value || ''; }
+  function _pn(id) { const v = parseFloat(_pv(id)); return isNaN(v) ? null : v; }
+  function _pi(id) { const v = parseInt(_pv(id)); return isNaN(v) ? null : v; }
+
   const listData = {
-    title:          ((document.getElementById('lp-title')||{}).value || '').trim(),
+    // ── Shared ──────────────────────────────────────────────
+    title:        (_pv('lp-title')).trim(),
     listing_type,
-    price:          _unitStructure === 'single' ? _singlePrice : '',
+    rent_category,
+    property_type:_pv('lp-prop-type') || '',
+    state:        _pv('lp-state'),
+    lga:          _pv('lp-lga'),
+    address:      _pv('lp-address'),
+    landmark:     _pv('lp-landmark'),
+    description:  _unitStructure === 'single' ? _pv('lp-desc') : '',
+    img:          _unitStructure === 'single' ? _pv('list-img-main') : '',
+    images:       _unitStructure === 'single' ? (_pv('list-images-json')||'[]') : '[]',
+    bedrooms:     _unitStructure === 'single' ? (_pi('lp-bedrooms')||null) : null,
+    bathrooms:    _unitStructure === 'single' ? (_pi('lp-bathrooms')||null) : null,
     unit_structure: _unitStructure,
-    units_json:     _unitStructure === 'multi' ? _unitsJson : '[]',
-    total_units:    _unitStructure === 'multi' ? _totalUnits : '',
-    bedrooms:       _unitStructure === 'single' ? _bedrooms : '',
-    bathrooms:      _unitStructure === 'single' ? _bathrooms : '',
-    state:          (document.getElementById('lp-state')||{}).value || '',
-    lga:            (document.getElementById('lp-lga')||{}).value || '',
-    address:        (document.getElementById('lp-address')||{}).value || '',
-    description:    _unitStructure === 'single' ? ((document.getElementById('lp-desc')||{}).value||'') : '',
-    img:            _unitStructure === 'single' ? ((document.getElementById('list-img-main')||{}).value || '') : '',
-    images:         _unitStructure === 'single' ? ((document.getElementById('list-images-json')||{}).value || '[]') : '[]',
+    units_json:   _unitStructure === 'multi' ? _unitsJson : '[]',
+    total_units:  _unitStructure === 'multi' ? _totalUnits : '',
   };
+
+  // ── Rent — Standard ─────────────────────────────────────────
+  if (listing_type === 'rent' && rent_category === 'standard') {
+    const ar = _pn('lp-price') || null;
+    listData.annual_rent     = ar;
+    listData.monthly_rent    = ar ? Math.round(ar / 12) : null;
+    listData.price           = ar ? '\u20A6' + ar.toLocaleString() + '/yr' : _singlePrice;
+    listData.rent_frequency  = _pv('lp-rent-freq') || 'annual';
+    listData.advance_payment = _pv('lp-advance') || null;
+    listData.caution_fee     = _pn('lp-caution-fee') || null;
+    listData.agency_fee      = _pn('lp-agency-fee') || null;
+    listData.furnishing      = _pv('lp-furnishing') || null;
+    listData.notes           = _pv('lp-notes') || '';
+  }
+  // ── Rent — Shortlet ─────────────────────────────────────────
+  else if (listing_type === 'rent' && rent_category === 'shortlet') {
+    const nr = _pn('lp-price') || null;
+    listData.nightly_rate    = nr;
+    listData.monthly_rent    = nr ? nr * 30 : null;
+    listData.price           = nr ? '\u20A6' + (nr||0).toLocaleString() + '/night' : _singlePrice;
+    listData.min_nights      = _pi('lp-min-nights') || 1;
+    listData.max_nights      = _pv('lp-max-nights') || null;
+    listData.weekend_rate    = _pn('lp-weekend-rate') || null;
+    listData.cleaning_fee    = _pn('lp-cleaning-fee') || null;
+    listData.checkin_time    = _pv('lp-checkin-time') || '14:00';
+    listData.checkout_time   = _pv('lp-checkout-time') || '11:00';
+    listData.house_rules     = _pv('lp-house-rules') || null;
+    listData.furnishing      = _pv('lp-furnishing') || null;
+    listData.notes           = _pv('lp-notes') || '';
+  }
+  // ── Sell ─────────────────────────────────────────────────────
+  else if (listing_type === 'buy') {
+    const sp = _pn('lp-price') || null;
+    listData.sale_price      = sp;
+    listData.price           = sp ? '\u20A6' + (sp||0).toLocaleString() : _singlePrice;
+    listData.negotiable      = _pv('lp-negotiable') || null;
+    listData.tenure          = _pv('lp-tenure') || null;
+    listData.floors          = _pi('lp-floors') || null;
+    listData.land_size_sqm   = _pn('lp-land-sqm') || null;
+    listData.notes           = _pv('lp-notes') || '';
+  }
+  // ── Lease ────────────────────────────────────────────────────
+  else if (listing_type === 'lease') {
+    const lp = _pn('lp-price') || null;
+    listData.lease_price          = lp;
+    listData.price                = lp ? '\u20A6' + (lp||0).toLocaleString() + '/yr' : _singlePrice;
+    listData.lease_type           = _pv('lp-lease-type') || null;
+    listData.lease_payment_freq   = _pv('lp-lease-payment-freq') || null;
+    listData.lease_duration_years = _pv('lp-lease-duration') || null;
+    listData.lease_start_date     = _pv('lp-lease-start') || null;
+    listData.renewal_option       = _pv('lp-lease-renewal') || null;
+    listData.escalation_pct       = _pn('lp-escalation') || null;
+    listData.permitted_use        = _pv('lp-permitted-use') || null;
+    listData.notes                = _pv('lp-notes') || '';
+  }
 
   if (listLat && listLng) {
     listData.lat = parseFloat(listLat);
