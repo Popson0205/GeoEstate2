@@ -1984,6 +1984,72 @@ window.addEventListener('DOMContentLoaded', function() {
   }
   function ownerDocUpload(inputId, statusId) { ownerUpload(inputId, statusId, { isDoc: true }); }
 
+
+// ── Transaction Type Switcher ─────────────────────────────────
+function setTransactionType(type) {
+  // Update hidden input
+  document.getElementById('fp-listing-type').value = type;
+
+  // Highlight the active button
+  ['rent','buy','lease'].forEach(t => {
+    const btn = document.getElementById('txn-btn-' + t);
+    if (!btn) return;
+    if (t === type) {
+      btn.style.border = '2px solid var(--green)';
+      btn.style.background = 'var(--green-bg)';
+      btn.style.color = 'var(--green-d)';
+    } else {
+      btn.style.border = '2px solid var(--border)';
+      btn.style.background = 'var(--card2)';
+      btn.style.color = 'var(--text)';
+    }
+  });
+
+  // Show only the relevant form section
+  ['rent','buy','lease'].forEach(t => {
+    const sec = document.getElementById('form-section-' + t);
+    if (sec) sec.style.display = (t === type) ? 'block' : 'none';
+  });
+}
+
+// ── Rent Category Switcher (Standard / Shortlet) ──────────────
+function setRentCategory(cat) {
+  document.getElementById('fp-rent-category').value = cat;
+
+  // Style the sub-buttons
+  ['standard','shortlet'].forEach(c => {
+    const btn = document.getElementById('rent-cat-btn-' + c);
+    if (!btn) return;
+    if (c === cat) {
+      btn.style.border = '2px solid var(--green)';
+      btn.style.background = 'var(--green-bg)';
+      btn.style.color = 'var(--green-d)';
+    } else {
+      btn.style.border = '2px solid var(--border)';
+      btn.style.background = 'var(--card2)';
+      btn.style.color = 'var(--text)';
+    }
+  });
+
+  // Toggle price fields
+  const standardWrap = document.getElementById('fp-price-standard-wrap');
+  const shortletWrap = document.getElementById('fp-price-shortlet-wrap');
+  const standardFields = document.getElementById('fp-standard-fields');
+  const shortletFields = document.getElementById('fp-shortlet-fields');
+
+  if (cat === 'shortlet') {
+    if (standardWrap) standardWrap.style.display = 'none';
+    if (shortletWrap) shortletWrap.style.display = 'block';
+    if (standardFields) standardFields.style.display = 'none';
+    if (shortletFields) shortletFields.style.display = 'block';
+  } else {
+    if (standardWrap) standardWrap.style.display = 'block';
+    if (shortletWrap) shortletWrap.style.display = 'none';
+    if (standardFields) standardFields.style.display = 'block';
+    if (shortletFields) shortletFields.style.display = 'none';
+  }
+}
+
 // ── submitAddProperty — now transaction-type aware ────────────────────────
 async function submitAddProperty() {
   const lt = document.getElementById('fp-listing-type').value;

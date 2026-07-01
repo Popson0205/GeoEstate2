@@ -421,15 +421,32 @@
                 <input class="form-input" id="lp-title" type="text" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
               </div>
 
-              <div class="form-grid">
-                <div class="form-group">
-                  <label class="form-label">Transaction Type *</label>
-                  <select class="form-select" id="lp-type">
-                    <option value="rent">🔑 Rent</option>
-                    <option value="lease">📋 Lease</option>
-                    <option value="buy">🏠 Buy / Sale</option>
-                  </select>
+              <!-- Transaction Type Selector (button-based, matches owner-dashboard) -->
+              <div class="form-group" style="margin-bottom:20px">
+                <label class="form-label" style="font-size:.9rem;font-weight:700">What type of transaction is this? *</label>
+                <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Your selection determines the form fields below.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                  <button type="button" id="ptn-txn-btn-rent" onclick="ptnSetTxnType('rent')"
+                    style="border:2px solid var(--green);background:var(--green-bg);color:var(--green-d);border-radius:12px;padding:14px 8px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+                    <div style="font-size:1.4rem;margin-bottom:4px">🔑</div>Rent
+                    <div style="font-size:.7rem;font-weight:400;color:var(--muted);margin-top:3px">Monthly / Yearly</div>
+                  </button>
+                  <button type="button" id="ptn-txn-btn-buy" onclick="ptnSetTxnType('buy')"
+                    style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:12px;padding:14px 8px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+                    <div style="font-size:1.4rem;margin-bottom:4px">🏠</div>Sell
+                    <div style="font-size:.7rem;font-weight:400;color:var(--muted);margin-top:3px">Outright purchase</div>
+                  </button>
+                  <button type="button" id="ptn-txn-btn-lease" onclick="ptnSetTxnType('lease')"
+                    style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:12px;padding:14px 8px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+                    <div style="font-size:1.4rem;margin-bottom:4px">📋</div>Lease
+                    <div style="font-size:.7rem;font-weight:400;color:var(--muted);margin-top:3px">Long-term rights</div>
+                  </button>
                 </div>
+                <!-- Hidden compat field — submit logic reads from this -->
+                <input type="hidden" id="lp-type" value="rent">
+              </div>
+
+              <div class="form-grid">
                 <div class="form-group">
                   <label class="form-label">Property Type *</label>
                   <select class="form-select" id="lp-prop-type">
@@ -1936,6 +1953,23 @@ function confirmPartnerMapPick() {
 }
 
 // ── Submit ────────────────────────────────────────────────────
+// ── ptnSetTxnType — button-based transaction type switcher for partner.html ──
+function ptnSetTxnType(type) {
+  // Update hidden compat field
+  const hiddenEl = document.getElementById('lp-type');
+  if (hiddenEl) hiddenEl.value = type;
+
+  // Highlight active button
+  ['rent','buy','lease'].forEach(t => {
+    const btn = document.getElementById('ptn-txn-btn-' + t);
+    if (!btn) return;
+    const active = t === type;
+    btn.style.border     = active ? '2px solid var(--green)' : '2px solid var(--border)';
+    btn.style.background = active ? 'var(--green-bg)' : 'var(--card2)';
+    btn.style.color      = active ? 'var(--green-d)' : 'var(--text)';
+  });
+}
+
 async function partnerSubmitListing() {
   const errEl = document.getElementById('p-submit-error');
   const btn   = document.getElementById('p-submit-btn');

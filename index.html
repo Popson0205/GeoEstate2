@@ -1206,14 +1206,34 @@ document.addEventListener('click', function(e){
           <label class="geo-label">Property Title *</label>
           <input class="geo-input" id="lp-title" type="text" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
         </div>
+        <!-- Transaction Type Selector (button-based, matches owner-dashboard) -->
         <div class="geo-form-group">
-          <label class="geo-label">Transaction Type *</label>
-          <select class="geo-select" id="lp-type" onchange="updateListingPriceFields()">
-            <option value="rent">🔑 Rent (Standard Tenancy)</option>
-            <option value="shortlet">🌟 Rent (Shortlet / Daily)</option>
-            <option value="lease">📋 Lease</option>
-            <option value="buy">🏠 Buy / Sale</option>
-          </select>
+          <label class="geo-label" style="font-size:.9rem;font-weight:700">What type of transaction is this? *</label>
+          <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px">Your selection changes the form fields below.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+            <button type="button" id="idx-txn-btn-rent" onclick="idxSetTxnType('rent')"
+              style="border:2px solid var(--geo-green-600,#16a34a);background:var(--geo-green-50,#f0fdf4);color:var(--geo-green-700,#15803d);border-radius:12px;padding:14px 8px;cursor:pointer;font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+              <div style="font-size:1.4rem;margin-bottom:4px">🔑</div>Rent
+              <div style="font-size:.7rem;font-weight:400;opacity:.8;margin-top:3px">Monthly / Yearly</div>
+            </button>
+            <button type="button" id="idx-txn-btn-shortlet" onclick="idxSetTxnType('shortlet')"
+              style="border:2px solid var(--border-default,#e2e8f0);background:var(--surface-secondary,#f8fafc);color:var(--text-primary,#1a202c);border-radius:12px;padding:14px 8px;cursor:pointer;font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+              <div style="font-size:1.4rem;margin-bottom:4px">🌟</div>Shortlet
+              <div style="font-size:.7rem;font-weight:400;opacity:.8;margin-top:3px">Daily pricing</div>
+            </button>
+            <button type="button" id="idx-txn-btn-buy" onclick="idxSetTxnType('buy')"
+              style="border:2px solid var(--border-default,#e2e8f0);background:var(--surface-secondary,#f8fafc);color:var(--text-primary,#1a202c);border-radius:12px;padding:14px 8px;cursor:pointer;font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+              <div style="font-size:1.4rem;margin-bottom:4px">🏠</div>Sell
+              <div style="font-size:.7rem;font-weight:400;opacity:.8;margin-top:3px">Outright purchase</div>
+            </button>
+            <button type="button" id="idx-txn-btn-lease" onclick="idxSetTxnType('lease')"
+              style="border:2px solid var(--border-default,#e2e8f0);background:var(--surface-secondary,#f8fafc);color:var(--text-primary,#1a202c);border-radius:12px;padding:14px 8px;cursor:pointer;font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
+              <div style="font-size:1.4rem;margin-bottom:4px">📋</div>Lease
+              <div style="font-size:.7rem;font-weight:400;opacity:.8;margin-top:3px">Long-term rights</div>
+            </button>
+          </div>
+          <!-- Hidden compat field — submit logic reads from this -->
+          <input type="hidden" id="lp-type" value="rent">
         </div>
         <div class="geo-form-group">
           <label class="geo-label">Property Type *</label>
@@ -3432,6 +3452,57 @@ document.addEventListener('click', function(e) {
 });
 
 // ── LIST FORM STEPS ─────────────────────────────────────────────────────────
+// ── idxSetTxnType — button-based transaction type switcher for index.html ──
+function idxSetTxnType(type) {
+  // Update hidden compat field
+  const hiddenEl = document.getElementById('lp-type');
+  if (hiddenEl) hiddenEl.value = type;
+
+  // Highlight active button
+  const greenBorder = '2px solid var(--geo-green-600,#16a34a)';
+  const greenBg = 'var(--geo-green-50,#f0fdf4)';
+  const greenColor = 'var(--geo-green-700,#15803d)';
+  const defBorder = '2px solid var(--border-default,#e2e8f0)';
+  const defBg = 'var(--surface-secondary,#f8fafc)';
+  const defColor = 'var(--text-primary,#1a202c)';
+
+  ['rent','shortlet','buy','lease'].forEach(t => {
+    const btn = document.getElementById('idx-txn-btn-' + t);
+    if (!btn) return;
+    const active = t === type;
+    btn.style.border   = active ? greenBorder : defBorder;
+    btn.style.background = active ? greenBg : defBg;
+    btn.style.color    = active ? greenColor : defColor;
+  });
+
+  // Toggle price fields (existing logic, now triggered from button)
+  updateListingPriceFields();
+}
+
+// ── idxSetTxnType — button-based transaction type switcher for index.html ──
+function idxSetTxnType(type) {
+  const hiddenEl = document.getElementById('lp-type');
+  if (hiddenEl) hiddenEl.value = type;
+
+  const greenBorder = '2px solid #16a34a';
+  const greenBg = '#f0fdf4';
+  const greenColor = '#15803d';
+  const defBorder = '2px solid #e2e8f0';
+  const defBg = '#f8fafc';
+  const defColor = '#1a202c';
+
+  ['rent','shortlet','buy','lease'].forEach(t => {
+    const btn = document.getElementById('idx-txn-btn-' + t);
+    if (!btn) return;
+    const active = t === type;
+    btn.style.border     = active ? greenBorder : defBorder;
+    btn.style.background = active ? greenBg : defBg;
+    btn.style.color      = active ? greenColor : defColor;
+  });
+
+  updateListingPriceFields();
+}
+
 function updateListingPriceFields() {
   const t = (document.getElementById('lp-type')||{}).value || 'rent';
   const fields = {

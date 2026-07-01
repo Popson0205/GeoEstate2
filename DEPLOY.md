@@ -45,7 +45,7 @@ Push these 4 files to your GeoEstate2 repo (root level):
 - `sales.html`
 - `geo-api.js`
 
-GitHub Pages / Netlify will auto-deploy.
+Railway will auto-deploy on push.
 
 ---
 
