@@ -472,6 +472,7 @@ YPE html>
         <div class="portal-dropdown-panel" id="portal-dropdown-panel">
           <div class="portal-dropdown-label">Portals</div>
           <a href="/owner-dashboard" title="Owner Portal">🏠 Owner</a>
+          <a href="#" onclick="closeDropdown&&closeDropdown();showPage('partner');document.getElementById('portal-dropdown-panel').classList.remove('open')" title="Partner Portal">🤝 Partner</a>
           <a href="/sales" title="Sales Portal">📊 Sales</a>
           <a href="/admin" title="Admin Portal">🔐 Admin</a>
         </div>
@@ -512,6 +513,7 @@ document.addEventListener('click', function(e){
   <a href="#" onclick="navTo('map')">🗺️ Browse Properties</a>
   <a href="#" onclick="navTo('list')">📋 List a Property</a>
   <a href="#" onclick="navTo('verify')">🪪 Verify Identity</a>
+  <a href="#" onclick="navTo('partner')">🤝 Partner Portal</a>
   <a href="#" onclick="navTo('team')">👥 Our Team</a>
   <a href="#" onclick="navTo('contact')">📞 Contact</a>
   <a href="#" onclick="navTo('dispute')" class="danger">⚠️ Report Dispute</a>
@@ -1678,6 +1680,121 @@ document.addEventListener('click', function(e){
       <h2 style="font-size:1.6rem;font-weight:900;margin-bottom:var(--space-3)">Verification Submitted</h2>
       <p style="color:var(--text-tertiary);max-width:380px;margin:0 auto var(--space-6);line-height:1.6">Your identity is being reviewed by our team. Most verifications complete within 24 hours. You'll be notified by email once approved.</p>
       <button class="btn btn-primary btn-lg" onclick="showPage('map')">Browse Verified Properties →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ============================================================
+     PAGE: PARTNER PORTAL
+     ============================================================ -->
+<div id="page-partner" class="page page-padded">
+  <div style="max-width:760px;margin:0 auto;padding:var(--space-8) var(--space-4)">
+
+    <!-- Header -->
+    <div style="margin-bottom:var(--space-6)">
+      <div class="section-label">Partner Portal</div>
+      <h1 style="font-size:1.8rem;font-weight:900;letter-spacing:-0.03em;margin-bottom:8px">🤝 Partner Portal</h1>
+      <p style="color:var(--text-tertiary);font-size:.9rem;line-height:1.6">List and manage the properties you bring to Popson as a registered partner.</p>
+    </div>
+
+    <!-- Login form -->
+    <div id="partner-login-wrap" class="geo-card" style="padding:var(--space-5)">
+      <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-4)">Partner Sign In</h2>
+      <div id="partner-login-error" style="display:none;background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:14px"></div>
+      <label class="geo-label">Partner Name *</label>
+      <select id="partner-name" class="geo-input" style="margin-bottom:14px;cursor:pointer">
+        <option value="">— Select your name —</option>
+        <option value="Adebayo Taofeek">Adebayo Taofeek</option>
+        <option value="Olawale Ayuba">Olawale Ayuba</option>
+      </select>
+      <label class="geo-label">Access Token *</label>
+      <input id="partner-token" type="password" class="geo-input" placeholder="Enter your partner access token" style="margin-bottom:18px" onkeydown="if(event.key==='Enter')partnerLogin()">
+      <button class="btn btn-primary" style="width:100%" id="partner-login-btn" onclick="partnerLogin()">Sign In →</button>
+      <p style="color:var(--text-muted);font-size:.78rem;margin-top:12px;line-height:1.5">Don't have your access token? Contact the Popson admin team.</p>
+    </div>
+
+    <!-- Dashboard (shown after login) -->
+    <div id="partner-dashboard-wrap" style="display:none">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:.78rem;color:var(--text-muted);font-weight:700">Signed in as</div>
+          <div id="partner-name-display" style="font-size:1.1rem;font-weight:900"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="togglePartnerAddForm()">+ Add Property</button>
+          <button class="btn btn-ghost btn-sm" onclick="partnerLogout()">Sign Out</button>
+        </div>
+      </div>
+
+      <!-- Add property form -->
+      <div id="partner-add-form" class="geo-card" style="padding:var(--space-5);margin-bottom:var(--space-5);display:none">
+        <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-4)">List a New Property</h2>
+        <div id="partner-add-error" style="display:none;background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:14px"></div>
+
+        <label class="geo-label">Property Title *</label>
+        <input id="pp-title" class="geo-input" placeholder="e.g. 3-Bedroom Flat, Lekki Phase 1" style="margin-bottom:12px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label class="geo-label">Listing Type *</label>
+            <select id="pp-type" class="geo-input" style="cursor:pointer">
+              <option value="rent">For Rent</option>
+              <option value="buy">For Sale</option>
+              <option value="lease">For Lease</option>
+            </select>
+          </div>
+          <div>
+            <label class="geo-label">Price *</label>
+            <input id="pp-price" class="geo-input" placeholder="e.g. 2500000">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label class="geo-label">Bedrooms</label>
+            <input id="pp-bedrooms" type="number" min="0" class="geo-input">
+          </div>
+          <div>
+            <label class="geo-label">Bathrooms</label>
+            <input id="pp-bathrooms" type="number" min="0" class="geo-input">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label class="geo-label">State *</label>
+            <input id="pp-state" class="geo-input" placeholder="e.g. Lagos">
+          </div>
+          <div>
+            <label class="geo-label">LGA</label>
+            <input id="pp-lga" class="geo-input" placeholder="e.g. Eti-Osa">
+          </div>
+        </div>
+
+        <label class="geo-label">Address *</label>
+        <input id="pp-address" class="geo-input" placeholder="Street address" style="margin-bottom:12px">
+
+        <label class="geo-label">Main Image URL</label>
+        <input id="pp-img" class="geo-input" placeholder="https://…" style="margin-bottom:12px">
+
+        <label class="geo-label">Description</label>
+        <textarea id="pp-desc" class="geo-input" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" id="partner-add-submit-btn" onclick="submitPartnerProperty()">Submit Property</button>
+          <button class="btn btn-ghost" onclick="togglePartnerAddForm()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Properties list -->
+      <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-3)">Your Properties</h2>
+      <div id="partner-properties-loading" style="color:var(--text-muted);font-size:.85rem">Loading your properties…</div>
+      <div id="partner-properties-empty" style="display:none;color:var(--text-muted);font-size:.85rem;padding:24px 0;text-align:center">You haven't listed any properties yet.</div>
+      <div id="partner-properties-list"></div>
+
     </div>
 
   </div>
@@ -2892,6 +3009,7 @@ function showPage(name) {
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
+  if (name === 'partner') initPartnerPage();
 }
 
 // ── PROFILE PAGE ─────────────────────────────────────────────────────────
@@ -3436,9 +3554,12 @@ function previewDocUpload(input, previewId) {
 }
 
 async function submitListing() {
-  // Must be logged in with a valid owner JWT session
-  const session = GeoAPI.getOwnerSession();
-  if (!currentUser || !currentUser.id || !session || !session.token) {
+  // Must be logged in. NOTE: this uses the regular user session (currentUser),
+  // the same one set by the normal Sign In modal — NOT GeoAPI's separate
+  // OTP-based "owner session" (that's a different, unrelated login flow that
+  // most users never go through, which was the cause of the app asking
+  // people to sign in again right after they had just signed in).
+  if (!currentUser || !currentUser.id) {
     openAuthModal('login');
     return;
   }
@@ -3484,14 +3605,27 @@ async function submitListing() {
     return;
   }
 
-  // Use /owner/add-property with the JWT token stored by GeoAPI.ownerVerifyOTP
+  // Use /owner/add-property with a token built from the current sign-in
+  // session — format: owner:<userId>:<timestamp> — same format submitVerification()
+  // already uses successfully, and the exact format requireOwner() expects on the server.
+  const ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
   try {
-    const result = await GeoAPI.ownerFetch('/owner/add-property', {
+    const res = await fetch(GEO_API_BASE + '/owner/add-property', {
       method: 'POST',
-      body: listData
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + ownerToken
+      },
+      body: JSON.stringify(listData)
     });
-    if (result.error) {
-      showAuthToast(result.message || result.error, 'error');
+    const result = await res.json();
+    if (!res.ok || result.error) {
+      if (result.needsVerification) {
+        showAuthToast('Please complete identity verification before listing a property.', 'error');
+        showPage('verify');
+        return;
+      }
+      showAuthToast(result.message || result.error || 'Submission failed. Please try again.', 'error');
       return;
     }
   } catch(e) {
@@ -3502,6 +3636,146 @@ async function submitListing() {
   for (let i = 1; i <= 4; i++) { const el = document.getElementById('list-step-' + i); if (el) el.style.display = 'none'; }
   document.getElementById('list-success').style.display = 'block';
   window.scrollTo(0, 0);
+}
+
+// ── PARTNER PORTAL ───────────────────────────────────────────────────────────
+// Partners sign in with their name + a shared access token (set server-side
+// as PARTNER_ACCESS_TOKEN). The server hands back a normal owner session
+// token, so we store it via GeoAPI's owner session and reuse the existing
+// /owner/* endpoints for everything else (add/list/delete properties).
+function initPartnerPage() {
+  const loginWrap = document.getElementById('partner-login-wrap');
+  const dashWrap  = document.getElementById('partner-dashboard-wrap');
+  if (GeoAPI.isOwnerLoggedIn()) {
+    const session = GeoAPI.getOwnerSession();
+    loginWrap.style.display = 'none';
+    dashWrap.style.display  = 'block';
+    const nameEl = document.getElementById('partner-name-display');
+    if (nameEl && session && session.owner) nameEl.textContent = (session.owner.fname || '') + ' ' + (session.owner.lname || '');
+    loadPartnerProperties();
+  } else {
+    loginWrap.style.display = 'block';
+    dashWrap.style.display  = 'none';
+  }
+}
+
+async function partnerLogin() {
+  const errEl = document.getElementById('partner-login-error');
+  const btn   = document.getElementById('partner-login-btn');
+  if (errEl) errEl.style.display = 'none';
+  const name  = (document.getElementById('partner-name')  || {}).value || '';
+  const token = (document.getElementById('partner-token') || {}).value || '';
+  if (!name)  { errEl.textContent = 'Please select your name.'; errEl.style.display = 'block'; return; }
+  if (!token) { errEl.textContent = 'Please enter your access token.'; errEl.style.display = 'block'; return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  try {
+    const res  = await fetch(GEO_API_BASE + '/partner/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, token })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Sign in failed. Please try again.');
+    GeoAPI.setOwnerSession({ token: data.token, owner: data.owner, loginTime: Date.now() });
+    document.getElementById('partner-token').value = '';
+    initPartnerPage();
+  } catch (err) {
+    if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign In →'; }
+  }
+}
+
+function partnerLogout() {
+  GeoAPI.clearOwnerSession();
+  initPartnerPage();
+}
+
+function togglePartnerAddForm() {
+  const form = document.getElementById('partner-add-form');
+  if (!form) return;
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitPartnerProperty() {
+  const errEl = document.getElementById('partner-add-error');
+  const btn   = document.getElementById('partner-add-submit-btn');
+  if (errEl) errEl.style.display = 'none';
+
+  const title = ((document.getElementById('pp-title') || {}).value || '').trim();
+  const state = ((document.getElementById('pp-state') || {}).value || '').trim();
+  const address = ((document.getElementById('pp-address') || {}).value || '').trim();
+  if (!title)   { errEl.textContent = 'Please enter a property title.'; errEl.style.display = 'block'; return; }
+  if (!state)   { errEl.textContent = 'Please enter a state.'; errEl.style.display = 'block'; return; }
+  if (!address) { errEl.textContent = 'Please enter an address.'; errEl.style.display = 'block'; return; }
+
+  const payload = {
+    title,
+    listing_type: (document.getElementById('pp-type') || {}).value || 'rent',
+    price:        (document.getElementById('pp-price') || {}).value || '',
+    bedrooms:     (document.getElementById('pp-bedrooms') || {}).value || '',
+    bathrooms:    (document.getElementById('pp-bathrooms') || {}).value || '',
+    state,
+    lga:          (document.getElementById('pp-lga') || {}).value || '',
+    address,
+    img:          (document.getElementById('pp-img') || {}).value || '',
+    images:       '[]',
+    description:  (document.getElementById('pp-desc') || {}).value || ''
+  };
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  try {
+    const result = await GeoAPI.ownerFetch('/owner/add-property', { method: 'POST', body: payload });
+    if (result.error) throw new Error(result.message || result.error);
+    ['pp-title','pp-price','pp-bedrooms','pp-bathrooms','pp-state','pp-lga','pp-address','pp-img','pp-desc'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    togglePartnerAddForm();
+    showAuthToast('Property submitted for review.', 'success');
+    loadPartnerProperties();
+  } catch (err) {
+    if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Property'; }
+  }
+}
+
+async function loadPartnerProperties() {
+  const loadingEl = document.getElementById('partner-properties-loading');
+  const emptyEl   = document.getElementById('partner-properties-empty');
+  const listEl    = document.getElementById('partner-properties-list');
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (listEl)    listEl.innerHTML = '';
+
+  const result = await GeoAPI.ownerFetch('/owner/properties');
+  if (loadingEl) loadingEl.style.display = 'none';
+  const props = (result && result.properties) || [];
+  if (!props.length) { if (emptyEl) emptyEl.style.display = 'block'; return; }
+
+  listEl.innerHTML = props.map(p => {
+    const statusColors = { live: '#16a34a', pending: '#d97706', rejected: '#dc2626', inactive: '#6b7280' };
+    const color = statusColors[p.status] || '#6b7280';
+    return `
+      <div class="geo-card" style="padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:800;font-size:.92rem">${(p.title || '').replace(/</g,'&lt;')}</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${(p.address || p.lga || p.state || '').replace(/</g,'&lt;')} · ${p.listing_type || p.type || ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.72rem;font-weight:800;color:${color};background:${color}1a;padding:4px 10px;border-radius:20px;text-transform:capitalize">${p.status || 'pending'}</span>
+          <button class="btn btn-ghost btn-sm" onclick="deletePartnerProperty('${p.id}')" title="Remove listing">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function deletePartnerProperty(id) {
+  if (!confirm('Remove this property listing?')) return;
+  const result = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (result && result.error) { showAuthToast(result.error, 'error'); return; }
+  loadPartnerProperties();
 }
 
 // ── IDENTITY VERIFICATION ────────────────────────────────────────────────────
