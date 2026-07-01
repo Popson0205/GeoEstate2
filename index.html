@@ -1223,7 +1223,7 @@ document.addEventListener('click', function(e){
           <input class="geo-input" id="lp-address" type="text" placeholder="Full address of the property">
         </div>
         <div class="geo-form-group">
-          <label class="geo-label">Pin Exact Location on Map (recommended)</label>
+          <label class="geo-label">Pin Exact Location on Map <span style="font-weight:400;font-size:.8em;color:var(--text-muted)">(optional)</span></label>
           <div style="display:flex;gap:8px;align-items:center">
             <input class="geo-input" id="lp-lat" placeholder="Latitude" readonly style="flex:1">
             <input class="geo-input" id="lp-lng" placeholder="Longitude" readonly style="flex:1">
@@ -7563,8 +7563,24 @@ let _listingCoords = null;
 function openListingMapPicker() {
   const el = document.getElementById('modal-listing-map');
   if (el) { el.style.display = 'flex'; }
-  // Give the browser a full layout/paint cycle before Leaflet measures the container
-  requestAnimationFrame(() => requestAnimationFrame(() => initListingMapPicker()));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    initListingMapPicker();
+    // Auto-zoom to user's current location if not already pinned
+    const latEl = document.getElementById('lp-lat');
+    const lngEl = document.getElementById('lp-lng');
+    if (latEl && lngEl && !latEl.value && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (_listingMapInst) {
+          _listingMapInst.setView([lat, lng], 15);
+          dropListingMarker(lat, lng);
+          var coordsEl = document.getElementById('listing-map-coords');
+          if (coordsEl) coordsEl.textContent = 'Your location: ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+        }
+      }, function() { /* geolocation denied – stay at default view */ });
+    }
+  }));
 }
 
 function closeListingMapModal() {

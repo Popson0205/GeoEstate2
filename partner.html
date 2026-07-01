@@ -451,7 +451,7 @@
 
               <!-- Map pin -->
               <div class="form-group">
-                <label class="form-label">Pin Exact Location on Map <span style="font-weight:400;color:var(--muted)">(recommended)</span></label>
+                <label class="form-label">Pin Exact Location on Map <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
                 <div style="display:flex;gap:8px;align-items:center">
                   <input class="form-input" id="lp-lat" placeholder="Latitude" readonly style="flex:1">
                   <input class="form-input" id="lp-lng" placeholder="Longitude" readonly style="flex:1">
@@ -1874,14 +1874,30 @@ function partnerPreviewDoc(input, previewId) {
 // otherwise show a simple lat/lng input prompt.
 var _pMapInst = null, _pMapMarker = null;
 function openPartnerMapPicker() {
-  // Try to use existing modal if available
   var modalEl = document.getElementById('modal-listing-map');
   if (modalEl) {
     modalEl.style.display = 'flex';
-    requestAnimationFrame(() => requestAnimationFrame(() => initPartnerMapPicker()));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      initPartnerMapPicker();
+      // Auto-zoom to user's current location if not already pinned
+      var latEl = document.getElementById('lp-lat');
+      var lngEl = document.getElementById('lp-lng');
+      if (latEl && lngEl && !latEl.value && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          if (_pMapInst) {
+            _pMapInst.setView([lat, lng], 15);
+            if (_pMapMarker) _pMapInst.removeLayer(_pMapMarker);
+            _pMapMarker = L.marker([lat, lng]).addTo(_pMapInst);
+            var coordsEl = document.getElementById('listing-map-coords');
+            if (coordsEl) coordsEl.textContent = 'Your location: ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+          }
+        }, function() { /* geolocation denied – stay at default view */ });
+      }
+    }));
     return;
   }
-  // Fallback: prompt
   toast('Map picker not available. Enter lat/lng manually if needed.', 'info');
 }
 function initPartnerMapPicker() {
