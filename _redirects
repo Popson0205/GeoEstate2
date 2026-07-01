@@ -6,3 +6,4 @@
 /property/:id /index.html 200
 /owner-dashboard /owner-dashboard.html 200
 /owner /owner-dashboard.html 200
+/partner /partner.html 200

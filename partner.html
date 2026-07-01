@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a6b3c">
+  <title>Partner Portal — GeoEstate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #1a6b3c; --green-d: #0d3d22; --green-l: #d9f2e3; --green-bg: #f0faf4;
+      --bg: #f0f2f5; --card: #ffffff; --card2: #f3f4f6; --text: #111827;
+      --muted: #6b7280; --subtle: #9ca3af; --border: #e5e7eb;
+      --amber: #d97706; --amber-bg: #fffbeb; --red: #b91c1c; --red-bg: #fef2f2;
+      --blue: #1e40af; --blue-bg: #eff6ff; --sidebar: #0d1f15;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05);
+      --font: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      /* Unit status colors */
+      --vacant: #15803d; --occupied: #b91c1c; --reserved: #d97706; --maintenance: #6b7280;
+    }
+    html.dark { --bg:#111827;--card:#1f2937;--card2:#374151;--text:#f9fafb;--muted:#9ca3af;--subtle:#6b7280;--border:#374151;--green:#34d399;--green-d:#059669;--green-l:#064e3b;--green-bg:#052e16;--sidebar:#0d1f15; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); font-family: var(--font); color: var(--text); min-height: 100vh; }
+
+    /* ── Layout ── */
+    .layout { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
+    .content { padding: 24px; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+    /* ── Sidebar ── */
+    .sb-logo { padding: 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sb-logo-text { color: #fff; font-size: 1.1rem; font-weight: 900; }
+    .sb-logo-sub { color: rgba(255,255,255,.4); font-size: .7rem; margin-top: 2px; }
+    .sb-section { padding: 16px 12px 4px; font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.3); letter-spacing: .08em; text-transform: uppercase; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 1px 8px; border-radius: 8px; color: rgba(255,255,255,.7); font-size: .85rem; font-weight: 500; cursor: pointer; transition: all .15s; }
+    .sb-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .sb-item.active { background: var(--green); color: #fff; font-weight: 600; }
+    .sb-icon { width: 18px; text-align: center; }
+    .sb-badge { margin-left: auto; background: #ef4444; color: #fff; border-radius: 999px; font-size: .65rem; font-weight: 700; padding: 1px 7px; min-width: 18px; text-align: center; }
+
+    /* ── Cards ── */
+    .card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: .92rem; font-weight: 700; }
+    .card-sub { font-size: .78rem; color: var(--subtle); margin-top: 2px; }
+    .card-body { padding: 20px; }
+
+    /* ── Stat row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+    .stat-value { font-size: 1.8rem; font-weight: 900; color: var(--green); }
+    .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; font-weight: 600; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font); }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: var(--green-d); }
+    .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-outline:hover { background: var(--card2); }
+    .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+    .btn-sm { padding: 5px 11px; font-size: .78rem; }
+    .btn-xs { padding: 3px 8px; font-size: .72rem; }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--text); font-family: var(--font); font-size: .88rem;
+      outline: none; transition: border-color .15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--green); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: .7rem; font-weight: 700; }
+    .badge-green { background: var(--green-l); color: var(--green-d); }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-red { background: #fee2e2; color: var(--red); }
+    .badge-gray { background: #f3f4f6; color: var(--muted); }
+    .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+    /* ── Unit Grid ── */
+    .unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .unit-cell { border-radius: 10px; padding: 14px; cursor: pointer; transition: transform .15s, box-shadow .15s; border: 2px solid transparent; }
+    .unit-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+    .unit-cell.vacant { background: #f0fdf4; border-color: #86efac; }
+    .unit-cell.occupied { background: #fef2f2; border-color: #fca5a5; }
+    .unit-cell.reserved { background: #fffbeb; border-color: #fde68a; }
+    .unit-cell.maintenance { background: #f3f4f6; border-color: #d1d5db; }
+    .unit-label { font-size: .88rem; font-weight: 700; margin-bottom: 4px; }
+    .unit-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .dot-vacant { background: #15803d; }
+    .dot-occupied { background: #b91c1c; }
+    .dot-reserved { background: #d97706; }
+    .dot-maintenance { background: #6b7280; }
+    .unit-price { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+    .unit-tenant { font-size: .72rem; color: var(--subtle); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Property card ── */
+    .prop-card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+    .prop-img { height: 160px; overflow: hidden; background: var(--green-bg); position: relative; }
+    .prop-img img { width: 100%; height: 100%; object-fit: cover; }
+    .prop-type-badge { position: absolute; top: 10px; left: 10px; background: var(--green-d); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+    .prop-body { padding: 14px; flex: 1; }
+    .prop-title { font-size: .88rem; font-weight: 700; margin-bottom: 4px; }
+    .prop-price { font-size: .92rem; font-weight: 900; color: var(--green); margin-bottom: 4px; }
+    .prop-loc { font-size: .75rem; color: var(--muted); }
+    .prop-footer { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+    .props-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+    /* ── Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--card); border-radius: 16px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,.35); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--muted); padding: 4px; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Login screen ── */
+    #login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #0d1f15, #1a3d25); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .login-box { background: #fff; border-radius: 16px; padding: 48px 40px; width: 400px; max-width: 95vw; box-shadow: 0 24px 64px rgba(0,0,0,.35); }
+    .login-box .form-input { background: #ffffff !important; color: #111827 !important; border-color: #e5e7eb !important; }
+    .login-box .form-input::placeholder { color: #9ca3af; }
+    .login-logo { font-size: 1.3rem; font-weight: 900; color: var(--green); margin-bottom: 4px; }
+    .login-sub { font-size: .85rem; color: var(--muted); margin-bottom: 28px; }
+    .login-step { display: none; }
+    .login-step.active { display: block; }
+
+    /* ── Verification ── */
+    .verify-status { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 10px; }
+    .verify-status.verified { background: var(--green-bg); border: 1px solid #86efac; }
+    .verify-status.pending { background: var(--amber-bg); border: 1px solid #fde68a; }
+    .verify-icon { font-size: 1.8rem; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast-item { background: var(--sidebar); color: #fff; border-radius: 10px; padding: 12px 20px; font-size: .85rem; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,.3); opacity: 0; transform: translateY(10px); transition: all .25s; }
+    .toast-item.show { opacity: 1; transform: translateY(0); }
+    .toast-item.success { border-left: 4px solid #34d399; }
+    .toast-item.error { border-left: 4px solid #ef4444; }
+    .toast-item.info { border-left: 4px solid #60a5fa; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    th { padding: 10px 12px; background: var(--card2); color: var(--muted); font-weight: 700; text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Enquiry list ── */
+    .enq-item { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+    .enq-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--green-l); color: var(--green-d); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .85rem; flex-shrink: 0; }
+    .enq-name { font-weight: 700; font-size: .85rem; }
+    .enq-prop { font-size: .75rem; color: var(--muted); }
+    .enq-msg { font-size: .82rem; margin-top: 4px; color: var(--subtle); }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 48px 24px; }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-title { font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { font-size: .85rem; color: var(--muted); }
+
+    /* ── Legend ── */
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); }
+
+    /* ── Mobile topbar (hamburger) ── */
+    .mob-topbar {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; height: 56px;
+      background: var(--sidebar, #0d1f15);
+      align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 200;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .mob-topbar-brand { display: flex; align-items: center; gap: 8px; color: #fff; font-size: .95rem; font-weight: 800; }
+    .mob-burger {
+      display: flex; flex-direction: column; justify-content: center; gap: 5px;
+      width: 36px; height: 36px; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 8px;
+    }
+    .mob-burger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; transition: all .25s ease; }
+    .mob-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .mob-burger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .mob-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ── Mobile nav drawer overlay ── */
+    .mob-drawer {
+      display: none;
+      position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
+      background: var(--sidebar, #0d1f15);
+      z-index: 300; overflow-y: auto;
+      transform: translateX(-100%);
+      transition: transform .25s ease;
+      padding-bottom: 32px;
+    }
+    .mob-drawer.open { transform: translateX(0); }
+    .mob-drawer-backdrop {
+      display: none;
+      position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 299;
+    }
+    .mob-drawer-backdrop.open { display: block; }
+    .mob-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .mob-drawer-brand { display: flex; align-items: center; gap: 8px; color: #fff; font-size: .95rem; font-weight: 800; }
+    .mob-drawer-close { background: none; border: none; color: rgba(255,255,255,.6); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 4px 8px; }
+    .mob-drawer .sb-section { display: block !important; padding: 14px 20px 6px; font-size: .68rem; font-weight: 700; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .1em; }
+    .mob-drawer .sb-item { flex-direction: row !important; gap: 12px !important; padding: 11px 20px !important; margin: 0 !important; font-size: .88rem !important; min-width: unset !important; border-radius: 0 !important; color: rgba(255,255,255,.75); cursor: pointer; transition: background .12s; }
+    .mob-drawer .sb-item:hover { background: rgba(255,255,255,.07); }
+    .mob-drawer .sb-item.active { background: rgba(26,107,60,.4); color: #3db374; }
+    .mob-drawer .sb-icon { width: 22px !important; text-align: center; flex-shrink: 0; }
+    .mob-drawer .sb-badge { margin-left: auto !important; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .mob-topbar { display: flex; }
+      .mob-drawer { display: block; }
+      .layout { flex-direction: column; }
+      .sidebar { display: none !important; }
+      .main { flex: 1; padding-top: 56px; }
+      .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="api-down-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:white;text-align:center;padding:10px 16px;font-size:.85rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  ⚠️ Backend service unavailable. Data may not load — check Render dashboard.
+  <button onclick="document.getElementById('api-down-banner').style.display='none'" style="margin-left:12px;background:rgba(255,255,255,.2);border:none;color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-weight:700">✕</button>
+</div>
+<script>
+(function(){
+  var API = 'https://api.geoestate.com.ng';
+  fetch(API + '/').then(r=>r.text()).then(t=>{
+    if(t.indexOf('suspended')!==-1||t.indexOf('Suspended')!==-1)
+      document.getElementById('api-down-banner').style.display='block';
+  }).catch(()=>{ document.getElementById('api-down-banner').style.display='block'; });
+})();
+</script>
+
+
+<!-- ── Login Screen ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo" style="display:flex;align-items:center;gap:10px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="30" height="36" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.6"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg><span>GeoEstate</span></div>
+    <div class="login-sub">Partner Portal — List &amp; manage your properties</div>
+
+    <div class="login-step active" id="ls-partner">
+      <label class="form-label" style="color:#374151">Partner Name</label>
+      <select class="form-select" id="partner-name" style="margin-bottom:14px;cursor:pointer">
+        <option value="">— Select your name —</option>
+        <option value="Adebayo Taofeek">Adebayo Taofeek</option>
+        <option value="Olawale Ayuba">Olawale Ayuba</option>
+      </select>
+      <label class="form-label" style="color:#374151">Access Token</label>
+      <input class="form-input" type="password" id="partner-token" placeholder="Enter your partner access token" style="margin-bottom:14px"
+        onkeydown="if(event.key==='Enter')partnerLogin()">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" id="partner-login-btn" onclick="partnerLogin()">Sign In →</button>
+      <p style="font-size:.78rem;color:#9ca3af;margin-top:12px;text-align:center">Don't have your access token? Contact the GeoEstate admin team.</p>
+      <div id="ls-error-partner" style="display:none;color:#ef4444;font-size:.8rem;margin-top:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div class="layout" id="app" style="display:none">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-text" style="display:flex;align-items:center;gap:8px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="30" height="36" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.6"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg><span>GeoEstate</span></div>
+      <div class="sb-logo-sub">Partner Portal</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding-bottom:20px">
+      <div class="sb-section">Dashboard</div>
+      <div class="sb-item active" onclick="navTo('overview',this)"><span class="sb-icon">📊</span>Overview</div>
+      <div class="sb-section">Properties</div>
+      <div class="sb-item" onclick="navTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="badge-props" style="display:none">0</span></div>
+      <div class="sb-item" onclick="navTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
+      <div class="sb-section">Leads</div>
+      <div class="sb-item" onclick="navTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="badge-enq" style="display:none">0</span></div>
+      <div class="sb-section">Account</div>
+      <div class="sb-item" onclick="navTo('profile',this)"><span class="sb-icon">👤</span>My Profile</div>
+      <div class="sb-item" style="margin-top:auto;color:#ef4444" onclick="ownerLogout()"><span class="sb-icon">🚪</span>Sign Out</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <span style="font-weight:700;font-size:.95rem" id="topbar-title">Overview</span>
+        <span style="font-size:.78rem;color:var(--muted);margin-left:12px" id="topbar-sub"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="owner-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--green-l);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem">?</div>
+        <span style="font-size:.85rem;font-weight:600" id="owner-name">—</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Overview -->
+      <div id="page-overview" class="page-section">
+        <div class="stats-row" id="overview-stats">
+          <div class="stat-card"><div class="stat-value" id="ov-total">0</div><div class="stat-label">Total Properties</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-live">0</div><div class="stat-label">Live Listings</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-units">0</div><div class="stat-label">Total Units</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-vacant">0</div><div class="stat-label">Vacant Units</div></div>
+          <div class="stat-card"><div class="stat-value" id="ov-enq">0</div><div class="stat-label">New Enquiries</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">My Properties</div><div class="card-sub">Quick view</div></div><button class="btn btn-primary btn-sm" onclick="navTo('add-property',null)">+ Add Property</button></div>
+          <div class="card-body" id="ov-props-list"><div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties yet</div><div class="empty-sub">Add your first listing to get started.</div></div></div>
+        </div>
+      </div>
+
+      <!-- My Properties -->
+      <div id="page-my-properties" class="page-section" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.1rem;font-weight:700">My Properties</h2>
+            <p style="font-size:.82rem;color:var(--muted)" id="props-subtitle">—</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select class="form-select" style="width:130px" onchange="filterOwnerProps(this.value)">
+              <option value="">All Types</option>
+              <option value="rent">Rent</option>
+              <option value="buy">Buy</option>
+              <option value="lease">Lease</option>
+            </select>
+            <button class="btn btn-primary" onclick="navTo('add-property',null)">+ Add Property</button>
+          </div>
+        </div>
+        <div class="props-grid" id="props-grid">
+          <div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties yet</div></div>
+        </div>
+      </div>
+
+      <!-- Add Property -->
+      <div id="page-add-property" class="page-section" style="display:none">
+        <div style="max-width:680px">
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Add New Property</h2>
+          <div id="add-verify-warning" style="display:none;border-radius:10px;padding:16px;margin-bottom:20px"></div>
+          <div class="card" id="add-prop-form-wrap">
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Property Title *</label>
+                <input class="form-input" id="fp-title" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Listing Type *</label>
+                  <select class="form-select" id="fp-listing-type" onchange="updatePriceFields()">
+                    <option value="rent">🔑 Rent</option>
+                    <option value="buy">🏠 Buy / Sale</option>
+                    <option value="lease">📋 Lease</option>
+                  </select>
+                </div>
+                <div class="form-group" id="fp-price-rent">
+                  <label class="form-label">Monthly Rent (₦)</label>
+                  <input class="form-input" id="fp-monthly-rent" type="number" placeholder="e.g. 250000">
+                </div>
+                <div class="form-group" id="fp-price-buy" style="display:none">
+                  <label class="form-label">Sale Price (₦)</label>
+                  <input class="form-input" id="fp-sale-price" type="number" placeholder="e.g. 45000000">
+                </div>
+                <div class="form-group" id="fp-price-lease" style="display:none">
+                  <label class="form-label">Lease Fee (₦)</label>
+                  <input class="form-input" id="fp-lease-price" type="number" placeholder="e.g. 1500000">
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">State</label>
+                  <select class="form-select" id="fp-state">
+                    <option value="">Select state</option>
+                    <option value="abia">Abia</option>
+                    <option value="adamawa">Adamawa</option>
+                    <option value="akwa_ibom">Akwa Ibom</option>
+                    <option value="anambra">Anambra</option>
+                    <option value="bauchi">Bauchi</option>
+                    <option value="bayelsa">Bayelsa</option>
+                    <option value="benue">Benue</option>
+                    <option value="borno">Borno</option>
+                    <option value="cross_river">Cross River</option>
+                    <option value="delta">Delta</option>
+                    <option value="ebonyi">Ebonyi</option>
+                    <option value="edo">Edo</option>
+                    <option value="ekiti">Ekiti</option>
+                    <option value="enugu">Enugu</option>
+                    <option value="fct">FCT - Abuja</option>
+                    <option value="gombe">Gombe</option>
+                    <option value="imo">Imo</option>
+                    <option value="jigawa">Jigawa</option>
+                    <option value="kaduna">Kaduna</option>
+                    <option value="kano">Kano</option>
+                    <option value="katsina">Katsina</option>
+                    <option value="kebbi">Kebbi</option>
+                    <option value="kogi">Kogi</option>
+                    <option value="kwara">Kwara</option>
+                    <option value="lagos">Lagos</option>
+                    <option value="nasarawa">Nasarawa</option>
+                    <option value="niger">Niger</option>
+                    <option value="ogun">Ogun</option>
+                    <option value="ondo">Ondo</option>
+                    <option value="osun">Osun</option>
+                    <option value="oyo">Oyo</option>
+                    <option value="plateau">Plateau</option>
+                    <option value="rivers">Rivers</option>
+                    <option value="sokoto">Sokoto</option>
+                    <option value="taraba">Taraba</option>
+                    <option value="yobe">Yobe</option>
+                    <option value="zamfara">Zamfara</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">LGA / Area</label>
+                  <select class="form-select" id="fp-lga" disabled>
+                    <option value="">— Select State first —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Address</label>
+                <input class="form-input" id="fp-address" placeholder="e.g. 12 Akin Adesola Street, Lekki Phase 1">
+              </div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label">Bedrooms</label>
+                  <input class="form-input" id="fp-beds" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bathrooms</label>
+                  <input class="form-input" id="fp-baths" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Size (sqm)</label>
+                  <input class="form-input" id="fp-sqm" type="number" min="0" placeholder="0">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-textarea" id="fp-desc" placeholder="Describe the property — features, neighbourhood, access..." rows="4"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Main Image URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <div style="display:flex;gap:8px;align-items:center">
+                <input class="form-input" id="fp-img" placeholder="https://... or use Upload button (optional)" style="flex:1">
+                <button type="button" onclick="ownerCloudinaryUpload('fp-img','fp-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
+              </div>
+              <div id="fp-img-preview" style="display:none;margin-top:6px">
+                <img id="fp-img-preview-img" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px">
+              </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amenities (comma-separated)</label>
+                <input class="form-input" id="fp-amenities" placeholder="e.g. Parking, Security, Generator, Swimming Pool">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes for Admin (optional)</label>
+                <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know..." rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Property →</button>
+                <button class="btn btn-outline" onclick="navTo('my-properties',null)">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enquiries -->
+      <div id="page-enquiries" class="page-section" style="display:none">
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Enquiries</h2>
+        <div class="card">
+          <div class="card-body" id="enq-list">
+            <div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it shows here.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div id="page-profile" class="page-section" style="display:none">
+        <div style="max-width:480px">
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">My Profile</h2>
+          <div class="card">
+            <div class="card-body" id="profile-content">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Unit Management Modal -->
+<div class="modal-overlay" id="units-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="units-modal-title">Manage Units</div><div style="font-size:.78rem;color:var(--muted)" id="units-modal-sub">—</div></div>
+      <button class="modal-close" onclick="closeUnitsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="legend">
+        <div class="legend-item"><span class="unit-status-dot dot-vacant"></span>Vacant</div>
+        <div class="legend-item"><span class="unit-status-dot dot-occupied"></span>Occupied</div>
+        <div class="legend-item"><span class="unit-status-dot dot-reserved"></span>Reserved</div>
+        <div class="legend-item"><span class="unit-status-dot dot-maintenance"></span>Maintenance</div>
+      </div>
+      <div class="unit-grid" id="units-grid"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <span style="font-size:.82rem;color:var(--muted)" id="units-stats-text">—</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddUnitModal()">+ Add Unit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Unit Edit Modal -->
+<div class="modal-overlay" id="unit-edit-modal" style="display:none">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title" id="unit-edit-title">Edit Unit</div>
+      <button class="modal-close" onclick="closeUnitEditModal()">✕</button>
+    </div>
+    <div class="modal-body" id="unit-edit-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUnitEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUnitEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Unit Modal -->
+<div class="modal-overlay" id="add-unit-modal" style="display:none">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Add New Unit</div>
+      <button class="modal-close" onclick="document.getElementById('add-unit-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Unit Label *</label><input class="form-input" id="au-label" placeholder="e.g. Room 4B, Flat 2, Shop 3"></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Unit Type</label><select class="form-select" id="au-type"><option value="room">Room</option><option value="flat">Flat</option><option value="shop">Shop</option><option value="office">Office</option><option value="floor">Floor</option></select></div>
+        <div class="form-group"><label class="form-label">Floor Level</label><input class="form-input" id="au-floor" placeholder="e.g. Ground, 1st"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Capacity (persons)</label><input class="form-input" id="au-capacity" type="number" min="1" value="1"></div>
+        <div class="form-group"><label class="form-label">Monthly Price (₦)</label><input class="form-input" id="au-price" type="number" placeholder="e.g. 45000"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="au-notes" placeholder="Optional notes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('add-unit-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddUnit()">Add Unit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast"></div>
+
+<script src="geo-api.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// OWNER DASHBOARD — Main Script
+// ══════════════════════════════════════════════════════════════
+let ownerSession = null;
+let ownerProperties = [];
+let ownerEnquiries = [];
+let currentUnitsPropId = null;
+let editingUnitId = null;
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'success';
+  const el = document.createElement('div');
+  el.className = 'toast-item ' + type;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// ── Login Flow ────────────────────────────────────────────────
+// Partners sign in with their name + a shared access token (set server-side
+// as PARTNER_ACCESS_TOKEN). The server hands back a normal owner session
+// token, so we store it via GeoAPI's owner session and reuse the existing
+// /owner/* endpoints for everything else (add/list/manage properties).
+async function partnerLogin() {
+  const errEl = document.getElementById('ls-error-partner');
+  const btn   = document.getElementById('partner-login-btn');
+  errEl.style.display = 'none';
+  const name  = (document.getElementById('partner-name')  || {}).value || '';
+  const token = (document.getElementById('partner-token') || {}).value || '';
+  if (!name)  { errEl.textContent = 'Please select your name.'; errEl.style.display = 'block'; return; }
+  if (!token) { errEl.textContent = 'Please enter your access token.'; errEl.style.display = 'block'; return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  try {
+    const res  = await fetch('https://api.geoestate.com.ng/partner/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, token })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Sign in failed. Please try again.');
+    GeoAPI.setOwnerSession({ token: data.token, owner: data.owner, loginTime: Date.now() });
+    document.getElementById('partner-token').value = '';
+    ownerSession = GeoAPI.getOwnerSession();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initDashboard();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign In →'; }
+  }
+}
+
+function ownerLogout() {
+  GeoAPI.clearOwnerSession();
+  ownerSession = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('partner-token').value = '';
+}
+
+// ── Init ──────────────────────────────────────────────────────
+async function initDashboard() {
+  ownerSession = GeoAPI.getOwnerSession();
+  const o = ownerSession.owner;
+  document.getElementById('owner-name').textContent = o.fname + ' ' + o.lname;
+  document.getElementById('owner-avatar').textContent = (o.fname[0] + o.lname[0]).toUpperCase();
+  await loadAll();
+  renderOverview();
+}
+
+async function loadAll() {
+  const [propsD, enqD] = await Promise.all([
+    GeoAPI.ownerFetch('/owner/properties').catch(() => ({})),
+    GeoAPI.ownerFetch('/owner/enquiries').catch(() => ({}))
+  ]);
+  if (propsD.properties) ownerProperties = propsD.properties;
+  if (enqD.enquiries) ownerEnquiries = enqD.enquiries;
+
+  // Update badges
+  const newEnq = ownerEnquiries.filter(e => e.status === 'new').length;
+  const b = document.getElementById('badge-enq');
+  if (newEnq > 0) { b.textContent = newEnq; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+  const pb = document.getElementById('badge-props');
+  if (ownerProperties.length) { pb.textContent = ownerProperties.length; pb.style.display = 'inline-flex'; }
+}
+
+// ── Nav ───────────────────────────────────────────────────────
+const pageTitles = { overview: 'Overview', 'my-properties': 'My Properties', 'add-property': 'Add New Property', enquiries: 'Enquiries', profile: 'My Profile' };
+function navTo(page, el) {
+  document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.style.display = 'block';
+  if (el) el.classList.add('active');
+  document.getElementById('topbar-title').textContent = pageTitles[page] || page;
+  if (page === 'overview') renderOverview();
+  if (page === 'my-properties') renderProperties();
+  if (page === 'profile') renderProfile();
+  if (page === 'enquiries') renderEnquiries();
+  if (page === 'add-property') checkVerificationForAdd();
+}
+
+// ── Overview ──────────────────────────────────────────────────
+function renderOverview() {
+  const totalUnits = ownerProperties.reduce((s, p) => s + (parseInt(p.unit_count) || 0), 0);
+  const vacantUnits = ownerProperties.reduce((s, p) => s + (parseInt(p.vacant_units) || 0), 0);
+  const liveProps = ownerProperties.filter(p => p.status === 'live').length;
+  const newEnq = ownerEnquiries.filter(e => e.status === 'new').length;
+  document.getElementById('ov-total').textContent = ownerProperties.length;
+  document.getElementById('ov-live').textContent = liveProps;
+  document.getElementById('ov-units').textContent = totalUnits;
+  document.getElementById('ov-vacant').textContent = vacantUnits;
+  document.getElementById('ov-enq').textContent = newEnq;
+
+  const list = document.getElementById('ov-props-list');
+  if (!ownerProperties.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties yet</div><div class="empty-sub">Add your first listing to get started.</div><button class="btn btn-primary" style="margin-top:12px" onclick="navTo(\'add-property\',null)">+ Add Property</button></div>';
+    return;
+  }
+  list.innerHTML = '<div class="props-grid">' + ownerProperties.slice(0, 3).map(propCard).join('') + '</div>';
+}
+
+// ── Properties ────────────────────────────────────────────────
+function propCard(p) {
+  const lt = p.listing_type || p.type || 'rent';
+  const ltColors = { rent: '#0d3d22', buy: '#1e40af', lease: '#92400e' };
+  const ltLabels = { rent: '🔑 RENT', buy: '🏠 BUY', lease: '📋 LEASE' };
+  const statusBadge = {
+    live: '<span class="badge badge-green">● Live</span>',
+    pending: '<span class="badge badge-amber">⏳ Pending</span>',
+    review: '<span class="badge badge-blue">🔍 Review</span>',
+    rejected: '<span class="badge badge-red">✕ Rejected</span>',
+    inactive: '<span class="badge badge-gray">— Inactive</span>'
+  }[p.status] || '<span class="badge badge-gray">' + (p.status || '—') + '</span>';
+
+  const unitCount = parseInt(p.unit_count) || 0;
+  const vacantCount = parseInt(p.vacant_units) || 0;
+
+  return `<div class="prop-card" style="cursor:pointer" onclick="viewPropertyDetail('${p.id}')">
+    <div class="prop-img">
+      <img src="${p.img || ''}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:cover">
+      <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:#d9f2e3;font-size:2.5rem">🏠</div>
+      <div class="prop-type-badge" style="background:${ltColors[lt]||'#0d3d22'}">${ltLabels[lt]||lt.toUpperCase()}</div>
+    </div>
+    <div class="prop-body">
+      <div class="prop-title">${p.title}</div>
+      <div class="prop-price">${p.price || (p.monthly_rent ? '₦'+Number(p.monthly_rent).toLocaleString()+'/mo' : p.sale_price ? '₦'+Number(p.sale_price).toLocaleString() : '—')}</div>
+      <div class="prop-loc">📍 ${p.lga || p.state || p.address || '—'}</div>
+      ${unitCount > 0 ? `<div style="margin-top:8px"><span class="badge badge-blue">${unitCount} units</span> <span class="badge badge-green">${vacantCount} vacant</span></div>` : ''}
+    </div>
+    <div class="prop-footer">
+      ${statusBadge}
+      <div style="margin-left:auto;display:flex;gap:6px">
+        ${unitCount > 0 || true ? `<button class="btn btn-outline btn-xs" onclick="openUnitsModal('${p.id}','${p.title.replace(/'/g,"\\'")}')">Manage Units</button>` : ''}
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();viewPropertyDetail('${p.id}')">View</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();editProperty('${p.id}')">Edit</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderProperties(filter) {
+  const list = filter ? ownerProperties.filter(p => (p.listing_type||p.type) === filter) : ownerProperties;
+  document.getElementById('props-subtitle').textContent = list.length + ' propert' + (list.length === 1 ? 'y' : 'ies');
+  const grid = document.getElementById('props-grid');
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No properties found</div><button class="btn btn-primary" style="margin-top:12px" onclick="navTo(\'add-property\',null)">+ Add Property</button></div>';
+    return;
+  }
+  grid.innerHTML = list.map(propCard).join('');
+}
+
+function filterOwnerProps(type) { renderProperties(type || null); }
+
+// ── Add Property ──────────────────────────────────────────────
+function updatePriceFields() {
+  const lt = document.getElementById('fp-listing-type').value;
+  document.getElementById('fp-price-rent').style.display = lt === 'rent' ? 'block' : 'none';
+  document.getElementById('fp-price-buy').style.display = lt === 'buy' ? 'block' : 'none';
+  document.getElementById('fp-price-lease').style.display = lt === 'lease' ? 'block' : 'none';
+}
+
+async function checkVerificationForAdd() {
+  // Partners are pre-verified server-side (handlePartnerLogin sets
+  // is_verified=TRUE) — no verification gating needed here.
+  const form = document.getElementById('add-prop-form-wrap');
+  if (form) { form.style.opacity = '1'; form.style.pointerEvents = 'auto'; }
+}
+
+async function submitAddProperty() {
+  const lt = document.getElementById('fp-listing-type').value;
+  const title = document.getElementById('fp-title').value.trim();
+  if (!title) { toast('Please enter a property title before submitting', 'error'); return; }
+  const payload = {
+    title, listing_type: lt,
+    monthly_rent: lt === 'rent' ? (parseFloat(document.getElementById('fp-monthly-rent').value)||null) : null,
+    sale_price: lt === 'buy' ? (parseFloat(document.getElementById('fp-sale-price').value)||null) : null,
+    lease_price: lt === 'lease' ? (parseFloat(document.getElementById('fp-lease-price').value)||null) : null,
+    price: lt === 'rent' ? '₦'+(document.getElementById('fp-monthly-rent').value||'0')+'/mo' : lt === 'buy' ? '₦'+(document.getElementById('fp-sale-price').value||'0') : '₦'+(document.getElementById('fp-lease-price').value||'0'),
+    state: document.getElementById('fp-state').value,
+    lga: document.getElementById('fp-lga').value,
+    address: document.getElementById('fp-address').value,
+    bedrooms: parseInt(document.getElementById('fp-beds').value)||null,
+    bathrooms: parseInt(document.getElementById('fp-baths').value)||null,
+    size_sqm: parseFloat(document.getElementById('fp-sqm').value)||null,
+    description: document.getElementById('fp-desc').value,
+    img: document.getElementById('fp-img').value,
+    amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
+    notes: document.getElementById('fp-notes').value
+  };
+  const d = await GeoAPI.ownerFetch('/owner/add-property', { method: 'POST', body: payload });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('✅ Property submitted! It will go live once admin approves.', 'success');
+  // Clear form
+  ['fp-title','fp-lga','fp-address','fp-desc','fp-img','fp-amenities','fp-notes'].forEach(id => document.getElementById(id).value = '');
+  ['fp-beds','fp-baths','fp-sqm','fp-monthly-rent','fp-sale-price','fp-lease-price'].forEach(id => document.getElementById(id).value = '');
+  await loadAll();
+  navTo('my-properties', null);
+}
+
+// ── Unit Management ───────────────────────────────────────────
+async function openUnitsModal(propId, propTitle) {
+  currentUnitsPropId = propId;
+  document.getElementById('units-modal-title').textContent = 'Manage Units';
+  document.getElementById('units-modal-sub').textContent = propTitle;
+  document.getElementById('units-modal').style.display = 'flex';
+  await loadAndRenderUnits(propId);
+}
+
+function closeUnitsModal() {
+  document.getElementById('units-modal').style.display = 'none';
+  currentUnitsPropId = null;
+}
+
+async function loadAndRenderUnits(propId) {
+  const d = await GeoAPI.ownerFetch('/owner/property/' + propId + '/units').catch(() => ({}));
+  const units = d.units || [];
+  const stats = d.stats || {};
+
+  document.getElementById('units-stats-text').textContent =
+    `${stats.total||0} total · ${stats.vacant||0} vacant · ${stats.occupied||0} occupied · ${stats.reserved||0} reserved`;
+
+  const grid = document.getElementById('units-grid');
+  if (!units.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🚪</div><div class="empty-title">No units yet</div><div class="empty-sub">Add units below — rooms, flats, shops, etc.</div></div>';
+    return;
+  }
+  grid.innerHTML = units.map(u => `
+    <div class="unit-cell ${u.status}" onclick="openUnitEditModal(${u.id},'${u.unit_label.replace(/'/g,"\\'")}','${u.status}','${u.current_tenant_id||''}','${u.monthly_price||0}','${u.occupied_since||''}','${u.lease_end||''}')">
+      <div class="unit-label">${u.unit_label}</div>
+      <div style="font-size:.72rem;color:var(--muted)"><span class="unit-status-dot dot-${u.status}"></span>${u.status.charAt(0).toUpperCase()+u.status.slice(1)}</div>
+      ${u.monthly_price ? `<div class="unit-price">₦${Number(u.monthly_price).toLocaleString()}/mo</div>` : ''}
+      ${u.status === 'occupied' ? `<div class="unit-tenant">Tenant ID: ${u.current_tenant_id||'—'}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function openUnitEditModal(id, label, status, tenantId, price, since, leaseEnd) {
+  editingUnitId = id;
+  document.getElementById('unit-edit-title').textContent = 'Unit: ' + label;
+  document.getElementById('unit-edit-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="ue-status">
+        <option value="vacant" ${status==='vacant'?'selected':''}>Vacant</option>
+        <option value="occupied" ${status==='occupied'?'selected':''}>Occupied</option>
+        <option value="reserved" ${status==='reserved'?'selected':''}>Reserved</option>
+        <option value="maintenance" ${status==='maintenance'?'selected':''}>Maintenance</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tenant ID (if occupied)</label>
+      <input class="form-input" id="ue-tenant" value="${tenantId||''}" placeholder="USR-...">
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Monthly Price (₦)</label>
+        <input class="form-input" id="ue-price" type="number" value="${price||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Occupied Since</label>
+        <input class="form-input" id="ue-since" type="date" value="${since||''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lease End Date</label>
+      <input class="form-input" id="ue-end" type="date" value="${leaseEnd||''}">
+    </div>
+  `;
+  document.getElementById('unit-edit-modal').style.display = 'flex';
+}
+
+function closeUnitEditModal() {
+  document.getElementById('unit-edit-modal').style.display = 'none';
+  editingUnitId = null;
+}
+
+async function saveUnitEdit() {
+  if (!editingUnitId || !currentUnitsPropId) return;
+  const payload = {
+    status: document.getElementById('ue-status').value,
+    current_tenant_id: document.getElementById('ue-tenant').value || null,
+    monthly_price: parseFloat(document.getElementById('ue-price').value) || null,
+    occupied_since: document.getElementById('ue-since').value || null,
+    lease_end: document.getElementById('ue-end').value || null
+  };
+  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units/' + editingUnitId, { method: 'PATCH', body: payload });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Unit updated', 'success');
+  closeUnitEditModal();
+  await loadAndRenderUnits(currentUnitsPropId);
+  await loadAll();
+}
+
+function openAddUnitModal() {
+  document.getElementById('add-unit-modal').style.display = 'flex';
+}
+
+async function submitAddUnit() {
+  if (!currentUnitsPropId) return;
+  const payload = {
+    unit_label: document.getElementById('au-label').value.trim(),
+    unit_type: document.getElementById('au-type').value,
+    floor_level: document.getElementById('au-floor').value,
+    capacity: parseInt(document.getElementById('au-capacity').value)||1,
+    monthly_price: parseFloat(document.getElementById('au-price').value)||null,
+    notes: document.getElementById('au-notes').value
+  };
+  if (!payload.unit_label) { toast('Unit label is required', 'error'); return; }
+  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units', { method: 'POST', body: payload });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Unit added', 'success');
+  document.getElementById('add-unit-modal').style.display = 'none';
+  ['au-label','au-floor','au-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('au-capacity').value = '1';
+  document.getElementById('au-price').value = '';
+  await loadAndRenderUnits(currentUnitsPropId);
+}
+
+// ── Edit Property ─────────────────────────────────────────────
+// ── Property Detail View ─────────────────────────────────────
+async function viewPropertyDetail(propId) {
+  const p = ownerProperties.find(x => x.id === propId);
+  const modal = document.getElementById('prop-detail-modal');
+  const body  = document.getElementById('prop-detail-body');
+  const titleEl = document.getElementById('prop-detail-title');
+  if (!modal || !body) return;
+  if (titleEl) titleEl.textContent = p ? p.title : 'Loading…';
+  body.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:2rem;animation:spin 1s linear infinite;display:inline-block">⏳</div></div>';
+  modal.style.display = 'flex';
+
+  try {
+    const d = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(propId) + '/detail').catch(() => null);
+    const prop = (d && d.property) ? d.property : p;
+    if (!prop) { body.innerHTML = '<div style="text-align:center;color:var(--danger);padding:32px">Property not found</div>'; return; }
+
+    const lt = prop.listing_type || prop.type || 'rent';
+    let price = prop.price || '';
+    if (!price || price === '—') {
+      if (lt === 'rent' && prop.monthly_rent) price = '₦' + Number(prop.monthly_rent).toLocaleString() + '/mo';
+      else if (lt === 'buy' && prop.sale_price) price = '₦' + Number(prop.sale_price).toLocaleString();
+      else if (lt === 'lease' && prop.lease_price) price = '₦' + Number(prop.lease_price).toLocaleString() + ' lease';
+    }
+    if (titleEl) titleEl.textContent = prop.title;
+
+    const images = (typeof prop.images === 'string') ? JSON.parse(prop.images || '[]') : (prop.images || []);
+    const mainImg = prop.img || images[0] || '';
+    const amenities = (typeof prop.amenities === 'string') ? JSON.parse(prop.amenities || '[]') : (prop.amenities || []);
+
+    body.innerHTML = `
+      ${mainImg ? `<img src="${mainImg}" alt="${prop.title}" style="width:100%;height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px" onerror="this.style.display='none'">` : ''}
+      ${images.length > 1 ? `<div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px">${images.slice(1,4).map(img=>`<img src="${img}" style="height:72px;width:100px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">`).join('')}</div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Price</div><div style="font-weight:800;font-size:1.05rem;color:var(--green)">${price || '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Type</div><div style="font-weight:700">${lt.toUpperCase()}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Bedrooms</div><div style="font-weight:700">${prop.bedrooms || '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Bathrooms</div><div style="font-weight:700">${prop.bathrooms || '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Size</div><div style="font-weight:700">${prop.size_sqm ? prop.size_sqm + ' sqm' : '—'}</div></div>
+        <div><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Status</div><div style="font-weight:700">${prop.status || '—'}</div></div>
+      </div>
+      <div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Address</div><div style="font-weight:600">${prop.address || prop.lga || '—'}, ${prop.state || ''}</div></div>
+      ${prop.description ? `<div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Description</div><div style="font-size:.88rem;line-height:1.6;color:var(--text-secondary)">${prop.description}</div></div>` : ''}
+      ${amenities.length > 0 ? `<div style="margin-bottom:12px"><div style="font-size:.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Amenities</div><div style="display:flex;flex-wrap:wrap;gap:6px">${amenities.map(a=>`<span style="background:#d9f2e3;color:#0d3d22;border-radius:999px;padding:3px 10px;font-size:.78rem;font-weight:600">${a}</span>`).join('')}</div></div>` : ''}
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
+        <button class="btn btn-primary btn-sm" onclick="closeModal('prop-detail-modal');editProperty('${propId}')">Edit Property</button>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;color:var(--danger);padding:32px">Failed to load property details</div>';
+  }
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+function editProperty(propId) {
+  toast('Property editing — coming in next update. Contact admin for urgent changes.', 'info');
+}
+
+// ── Enquiries ─────────────────────────────────────────────────
+function renderEnquiries() {
+  const list = document.getElementById('enq-list');
+  if (!ownerEnquiries.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it appears here.</div></div>';
+    return;
+  }
+  list.innerHTML = ownerEnquiries.map(e => `
+    <div class="enq-item">
+      <div class="enq-avatar">${(e.name[0]||'?').toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="enq-name">${e.name}</div>
+        <div class="enq-prop">📍 ${e.property_title||'Property'} · ${e.email} · ${e.phone||'—'}</div>
+        ${e.message ? `<div class="enq-msg">"${e.message}"</div>` : ''}
+      </div>
+      <div style="font-size:.72rem;color:var(--subtle);white-space:nowrap">${new Date(e.created_at).toLocaleDateString('en-NG')}</div>
+    </div>
+  `).join('');
+}
+
+// ── Profile ───────────────────────────────────────────────────
+async function renderProfile() {
+  const d = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  const p = d.profile || (ownerSession ? ownerSession.owner : {});
+  document.getElementById('profile-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div style="width:60px;height:60px;border-radius:50%;background:var(--green-l);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800">${((p.fname||'?')[0]+(p.lname||'?')[0]).toUpperCase()}</div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:700">${p.fname||'—'} ${p.lname||''}</div>
+        <div style="font-size:.82rem;color:var(--muted)">${p.email||'—'}</div>
+        ${p.is_verified ? '<span class="badge badge-green" style="margin-top:6px">✓ Identity Verified</span>' : '<span class="badge badge-amber" style="margin-top:6px">⏳ Verification Pending</span>'}
+      </div>
+    </div>
+    <table><tbody>
+      <tr><td style="color:var(--muted);width:40%;padding:8px 0">Phone</td><td style="padding:8px 0">${p.phone||'—'}</td></tr>
+      <tr><td style="color:var(--muted);padding:8px 0">Role</td><td style="padding:8px 0">Partner</td></tr>
+      <tr><td style="color:var(--muted);padding:8px 0">Account Status</td><td style="padding:8px 0">${p.status||'—'}</td></tr>
+      <tr><td style="color:var(--muted);padding:8px 0">Properties</td><td style="padding:8px 0">${p.propertyCount||0}</td></tr>
+    </tbody></table>
+  `;
+}
+
+// ── Auto-login if session exists ──────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  const session = GeoAPI.getOwnerSession();
+  if (session && session.token) {
+    ownerSession = session;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initDashboard();
+  }
+
+  // SSE: refresh on property updates
+  GeoAPI.onSSE('property_updated', function() { loadAll(); });
+  GeoAPI.onSSE('new_enquiry', async function() {
+    await loadAll();
+    const b = document.getElementById('badge-enq');
+    b.textContent = ownerEnquiries.filter(e => e.status === 'new').length;
+    b.style.display = 'inline-flex';
+  });
+});
+
+  // ── Supabase upload helper (owner dashboard) ─────────────────────────────
+  // Accepts ALL images — geotagged and non-geotagged alike.
+  // Falls back to a base64 data URL so the image is always captured and shown.
+  async function ownerCloudinaryUpload(inputId, previewId) {
+    const API = 'https://api.geoestate.com.ng';
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    // Accept any image format; no geotag or EXIF required
+    fileInput.accept = 'image/*,application/pdf';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.onchange = async function() {
+      const file = fileInput.files[0];
+      if (!file) { document.body.removeChild(fileInput); return; }
+      document.body.removeChild(fileInput);
+      toast('⏳ Uploading…');
+
+      // Helper: show image in preview and store URL in input
+      function _setResult(url) {
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) inputEl.value = url;
+        const prev   = document.getElementById(previewId);
+        const prevImg = document.getElementById(previewId + '-img');
+        if (prev && prevImg) { prevImg.src = url; prev.style.display = 'block'; }
+      }
+
+      try {
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const s = await fetch(API + '/upload-sign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder: 'geoestate/property-images', ext })
+        });
+        if (!s.ok) throw new Error('Upload not configured on server yet');
+        const sign = await s.json();
+        if (sign.error) throw new Error(sign.error);
+
+        // PUT file bytes directly to Supabase — never hits Railway
+        const upRes = await fetch(sign.upload_url || sign.signed_url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'x-upsert': 'true'   // allow re-upload of same filename
+          },
+          body: file
+        });
+        if (!upRes.ok) throw new Error('Storage upload failed: HTTP ' + upRes.status);
+
+        _setResult(sign.public_url);
+        toast('✅ Image uploaded successfully!');
+      } catch(e) {
+        // Fallback: read as base64 data URL so the image is never lost.
+        // The data URL will be stored in the DB and displayed correctly.
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          _setResult(ev.target.result);
+          toast('⚠️ Cloud storage unavailable — image saved locally. It will display correctly.');
+        };
+        reader.onerror = function() {
+          toast('❌ Could not read image file: ' + e.message, 'error');
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    fileInput.click();
+  }
+
+</script>
+
+<!-- Property Detail Modal -->
+<div id="prop-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg-card,#fff);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.35)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border,#e5e7eb);position:sticky;top:0;background:var(--bg-card,#fff);z-index:1">
+      <div id="prop-detail-title" style="font-weight:800;font-size:1.05rem">Property Details</div>
+      <button onclick="closeModal('prop-detail-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted,#6b7280);padding:4px 8px">✕</button>
+    </div>
+    <div id="prop-detail-body" style="padding:20px 24px"></div>
+  </div>
+</div>
+
+
+<!-- ── Mobile Topbar ── -->
+<div class="mob-topbar" id="mob-topbar">
+  <div class="mob-topbar-brand">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="28" height="34" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.6"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg>
+    <span>Partner Portal</span>
+  </div>
+  <button class="mob-burger" id="mob-burger" onclick="ownerToggleDrawer()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<!-- ── Mobile Drawer Backdrop ── -->
+<div class="mob-drawer-backdrop" id="mob-backdrop" onclick="ownerToggleDrawer()"></div>
+
+<!-- ── Mobile Nav Drawer ── -->
+<div class="mob-drawer" id="mob-drawer">
+  <div class="mob-drawer-header">
+    <div class="mob-drawer-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="28" height="34" style="flex-shrink:0;display:block" aria-hidden="true">
+  <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
+  <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.6"/>
+  <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
+  <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
+  <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
+  <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
+</svg>
+      <span>GeoEstate</span>
+    </div>
+    <button class="mob-drawer-close" onclick="ownerToggleDrawer()">✕</button>
+  </div>
+  <div class="sb-section">Dashboard</div>
+  <div class="sb-item active" onclick="ownerNavTo('overview',this)"><span class="sb-icon">📊</span>Overview</div>
+  <div class="sb-section">Properties</div>
+  <div class="sb-item" onclick="ownerNavTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="mob-badge-props" style="display:none">0</span></div>
+  <div class="sb-item" onclick="ownerNavTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
+  <div class="sb-section">Leads</div>
+  <div class="sb-item" onclick="ownerNavTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="mob-badge-enq" style="display:none">0</span></div>
+  <div class="sb-section">Account</div>
+  <div class="sb-item" onclick="ownerNavTo('profile',this)"><span class="sb-icon">👤</span>My Profile</div>
+  <div class="sb-item" style="color:#ef4444;margin-top:8px" onclick="ownerLogout()"><span class="sb-icon">🚪</span>Sign Out</div>
+</div>
+
+<script>
+function ownerToggleDrawer() {
+  var drawer = document.getElementById('mob-drawer');
+  var backdrop = document.getElementById('mob-backdrop');
+  var burger = document.getElementById('mob-burger');
+  var isOpen = drawer.classList.contains('open');
+  if (isOpen) {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+    burger.classList.remove('open');
+    document.body.style.overflow = '';
+  } else {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+    burger.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+function ownerNavTo(section, el) {
+  // Close drawer
+  ownerToggleDrawer();
+  // Use existing navTo if available
+  if (typeof navTo === 'function') navTo(section, el);
+}
+// Sync badge counts from main sidebar to mobile drawer
+function syncMobBadges() {
+  var bProps = document.getElementById('badge-props');
+  var bEnq = document.getElementById('badge-enq');
+  var mobBProps = document.getElementById('mob-badge-props');
+  var mobBEnq = document.getElementById('mob-badge-enq');
+  if (bProps && mobBProps) { mobBProps.textContent = bProps.textContent; mobBProps.style.display = bProps.style.display; }
+  if (bEnq && mobBEnq) { mobBEnq.textContent = bEnq.textContent; mobBEnq.style.display = bEnq.style.display; }
+}
+setInterval(syncMobBadges, 2000);
+</script>
+
+
+<script>
+const NIGERIA_LGA = {
+  "abia": ["Aba North","Aba South","Arochukwu","Bende","Ikwuano","Isiala Ngwa North","Isiala Ngwa South","Isuikwuato","Obingwa","Ohafia","Osisioma","Ugwunagbo","Ukwa East","Ukwa West","Umuahia North","Umuahia South","Umu Nneochi"],
+  "adamawa": ["Demsa","Fufore","Ganye","Girei","Gombi","Guyuk","Hong","Jada","Lamurde","Madagali","Maiha","Mayo-Belwa","Michika","Mubi North","Mubi South","Numan","Shelleng","Song","Toungo","Yola North","Yola South"],
+  "akwa_ibom": ["Abak","Eastern Obolo","Eket","Esit Eket","Essien Udim","Etim Ekpo","Etinan","Ibeno","Ibesikpo Asutan","Ibiono Ibom","Ika","Ikono","Ikot Abasi","Ikot Ekpene","Ini","Itu","Mbo","Mkpat Enin","Nsit Atai","Nsit Ibom","Nsit Ubium","Obot Akara","Okobo","Onna","Oron","Oruk Anam","Udung Uko","Ukanafun","Uruan","Urue-Offong/Oruko","Uyo"],
+  "anambra": ["Aguata","Anambra East","Anambra West","Anaocha","Awka North","Awka South","Ayamelum","Dunukofia","Ekwusigo","Idemili North","Idemili South","Ihiala","Njikoka","Nnewi North","Nnewi South","Ogbaru","Onitsha North","Onitsha South","Orumba North","Orumba South","Oyi"],
+  "bauchi": ["Alkaleri","Bauchi","Bogoro","Dambam","Darazo","Dass","Gamawa","Ganjuwa","Giade","Itas/Gadau","Jama\'are","Katagum","Kirfi","Misau","Ningi","Shira","Tafawa Balewa","Toro","Warji","Zaki"],
+  "bayelsa": ["Brass","Ekeremor","Kolokuma/Opokuma","Nembe","Ogbia","Sagbama","Southern Ijaw","Yenagoa"],
+  "benue": ["Ado","Agatu","Apa","Buruku","Gboko","Guma","Gwer East","Gwer West","Katsina-Ala","Konshisha","Kwande","Logo","Makurdi","Obi","Ogbadibo","Ohimini","Oju","Okpokwu","Otukpo","Tarka","Ukum","Ushongo","Vandeikya"],
+  "borno": ["Abadam","Askira/Uba","Bama","Bayo","Biu","Chibok","Damboa","Dikwa","Gubio","Guzamala","Gwoza","Hawul","Jere","Kaga","Kala/Balge","Konduga","Kukawa","Kwaya Kusar","Mafa","Magumeri","Maiduguri","Marte","Mobbar","Monguno","Ngala","Nganzai","Shani"],
+  "cross_river": ["Abi","Akamkpa","Akpabuyo","Bakassi","Bekwarra","Biase","Boki","Calabar Municipal","Calabar South","Etung","Ikom","Obanliku","Obubra","Obudu","Odukpani","Ogoja","Yakuur","Yala"],
+  "delta": ["Aniocha North","Aniocha South","Bomadi","Burutu","Ethiope East","Ethiope West","Ika North East","Ika South","Isoko North","Isoko South","Ndokwa East","Ndokwa West","Okpe","Oshimili North","Oshimili South","Patani","Sapele","Udu","Ughelli North","Ughelli South","Ukwuani","Uvwie","Warri North","Warri South","Warri South West"],
+  "ebonyi": ["Abakaliki","Afikpo North","Afikpo South","Ebonyi","Ezza North","Ezza South","Ikwo","Ishielu","Ivo","Izzi","Ohaozara","Ohaukwu","Onicha"],
+  "edo": ["Akoko-Edo","Egor","Esan Central","Esan North-East","Esan South-East","Esan West","Etsako Central","Etsako East","Etsako West","Igueben","Ikpoba-Okha","Oredo","Orhionmwon","Ovia North-East","Ovia South-West","Owan East","Owan West","Uhunmwonde"],
+  "ekiti": ["Ado Ekiti","Efon","Ekiti East","Ekiti South-West","Ekiti West","Emure","Gbonyin","Ido Osi","Ijero","Ikere","Ikole","Ilejemeje","Irepodun/Ifelodun","Ise/Orun","Moba","Oye"],
+  "enugu": ["Aninri","Awgu","Enugu East","Enugu North","Enugu South","Ezeagu","Igbo Etiti","Igbo Eze North","Igbo Eze South","Isi Uzo","Nkanu East","Nkanu West","Nsukka","Oji River","Udenu","Udi","Uzo Uwani"],
+  "fct": ["Abaji","Abuja Municipal Area Council (AMAC)","Bwari","Gwagwalada","Kuje","Kwali"],
+  "gombe": ["Akko","Balanga","Billiri","Dukku","Funakaye","Gombe","Kaltungo","Kwami","Nafada","Shongom","Yamaltu/Deba"],
+  "imo": ["Aboh Mbaise","Ahiazu Mbaise","Ehime Mbano","Ezinihitte","Ideato North","Ideato South","Ihitte/Uboma","Ikeduru","Isiala Mbano","Isu","Mbaitoli","Ngor Okpala","Njaba","Nkwerre","Nwangele","Obowo","Oguta","Ohaji/Egbema","Okigwe","Orlu","Orsu","Oru East","Oru West","Owerri Municipal","Owerri North","Owerri West","Unuimo"],
+  "jigawa": ["Auyo","Babura","Biriniwa","Birnin Kudu","Buji","Dutse","Gagarawa","Garki","Gumel","Guri","Gwaram","Gwiwa","Hadejia","Jahun","Kafin Hausa","Kaugama","Kazaure","Kiri Kasama","Kiyawa","Maigatari","Malam Madori","Miga","Ringim","Roni","Sule Tankarkar","Taura","Yankwashi"],
+  "kaduna": ["Birnin Gwari","Chikun","Giwa","Igabi","Ikara","Jaba","Jema\'a","Kachia","Kaduna North","Kaduna South","Kagarko","Kajuru","Kaura","Kauru","Kubau","Kudan","Lere","Makarfi","Sabon Gari","Sanga","Soba","Zangon Kataf","Zaria"],
+  "kano": ["Ajingi","Albasu","Bagwai","Bebeji","Bichi","Bunkure","Dala","Dambatta","Dawakin Kudu","Dawakin Tofa","Doguwa","Fagge","Gabasawa","Garko","Garun Mallam","Gaya","Gezawa","Gwale","Gwarzo","Kabo","Kano Municipal","Karaye","Kibiya","Kiru","Kumbotso","Kunchi","Kura","Madobi","Makoda","Minjibir","Nasarawa","Rano","Rimin Gado","Rogo","Shanono","Sumaila","Takai","Tarauni","Tofa","Tsanyawa","Tudun Wada","Ungogo","Warawa","Wudil"],
+  "katsina": ["Bakori","Batagarawa","Batsari","Baure","Bindawa","Charanchi","Dandume","Danja","Dan Musa","Daura","Dutsi","Dutsin Ma","Faskari","Funtua","Ingawa","Jibia","Kafur","Kaita","Kankara","Kankia","Katsina","Kurfi","Kusada","Mai\'Adua","Malumfashi","Mani","Mashi","Matazu","Musawa","Rimi","Sabuwa","Safana","Sandamu","Zango"],
+  "kebbi": ["Aleiro","Arewa Dandi","Argungu","Augie","Bagudo","Birnin Kebbi","Bunza","Dandi","Fakai","Gwandu","Jega","Kalgo","Koko/Besse","Maiyama","Ngaski","Sakaba","Shanga","Suru","Wasagu/Danko","Yauri","Zuru"],
+  "kogi": ["Adavi","Ajaokuta","Ankpa","Bassa","Dekina","Ibaji","Idah","Igalamela Odolu","Ijumu","Kabba/Bunu","Kogi","Lokoja","Mopa Muro","Ofu","Ogori/Magongo","Okehi","Okene","Olamaboro","Omala","Yagba East","Yagba West"],
+  "kwara": ["Asa","Baruten","Edu","Ekiti","Ifelodun","Ilorin East","Ilorin South","Ilorin West","Irepodun","Isin","Kaiama","Moro","Offa","Oke Ero","Oyun","Pategi"],
+  "lagos": ["Agege","Ajeromi-Ifelodun","Alimosho","Amuwo-Odofin","Apapa","Badagry","Epe","Eti-Osa","Ibeju-Lekki","Ifako-Ijaiye","Ikeja","Ikorodu","Kosofe","Lagos Island","Lagos Mainland","Mushin","Ojo","Oshodi-Isolo","Shomolu","Surulere"],
+  "nasarawa": ["Akwanga","Awe","Doma","Karu","Keana","Keffi","Kokona","Lafia","Nasarawa","Nasarawa Egon","Obi","Toto","Wamba"],
+  "niger": ["Agaie","Agwara","Bida","Borgu","Bosso","Chanchaga","Edati","Gbako","Gurara","Katcha","Kontagora","Lapai","Lavun","Magama","Mariga","Mashegu","Mokwa","Muya","Paikoro","Rafi","Rijau","Shiroro","Suleja","Tafa","Wushishi"],
+  "ogun": ["Abeokuta North","Abeokuta South","Ado-Odo/Ota","Egbado North","Egbado South","Ewekoro","Ifo","Ijebu East","Ijebu North","Ijebu North East","Ijebu Ode","Ikenne","Imeko-Afon","Ipokia","Obafemi Owode","Odeda","Odogbolu","Ogun Waterside","Remo North","Shagamu"],
+  "ondo": ["Akoko North East","Akoko North West","Akoko South Akure","Akoko South West","Akure North","Akure South","Ese Odo","Idanre","Ifedore","Ilaje","Ile Oluji/Okeigbo","Irele","Odigbo","Odo Otin","Ondo East","Ondo West","Owo","Okeigbo"],
+  "osun": ["Atakunmosa East","Atakunmosa West","Ayedire","Boluwaduro","Boripe","Ede North","Ede South","Egbedore","Ejigbo","Ife Central","Ife East","Ife North","Ife South","Ifedayo","Ifelodun","Ila","Ilesa East","Ilesa West","Irepodun","Irewole","Isokan","Iwo","Obokun","Odo Otin","Ola Oluwa","Olorunda","Oriade","Orolu","Osogbo"],
+  "oyo": ["Afijio","Akinyele","Atiba","Atisbo","Egbeda","Ibadan North","Ibadan North East","Ibadan North West","Ibadan South East","Ibadan South West","Ibarapa Central","Ibarapa East","Ibarapa North","Ido","Irepo","Iseyin","Itesiwaju","Iwajowa","Kajola","Lagelu","Ogbomoso North","Ogbomoso South","Ogo Oluwa","Olorunsogo","Oluyole","Ona Ara","Orelope","Ori Ire","Oyo East","Oyo West","Saki East","Saki West","Surulere"],
+  "plateau": ["Barkin Ladi","Bassa","Bokkos","Jos East","Jos North","Jos South","Kanam","Kanke","Langtang North","Langtang South","Mangu","Mikang","Pankshin","Qua\'an Pan","Riyom","Shendam","Wase"],
+  "rivers": ["Abua/Odual","Ahoada West","Akuku-Toru","Andoni","Asari-Toru","Bonny","Degema","Eleme","Emohua","Etche","Gokana","Ikwerre","Khana","Obio/Akpor","Ogba/Egbema/Ndoni","Ogu/Bolo","Okrika","Omuma","Opobo/Nkoro","Oyigbo","Port Harcourt","Tai"],
+  "sokoto": ["Binji","Bodinga","Dange-Shuni","Gada","Goronyo","Gudu","Gwadabawa","Illela","Isa","Kebbe","Kware","Rabah","Sabon Birni","Shagari","Silame","Sokoto North","Sokoto South","Tambuwal","Tangaza","Tureta","Wamako","Wurno","Yabo"],
+  "taraba": ["Ardo Kola","Bali","Donga","Gashaka","Gassol","Ibi","Jalingo","Karim Lamido","Kurmi","Lau","Sardauna","Takum","Ussa","Wukari","Yorro","Zing"],
+  "yobe": ["Bade","Bursari","Damaturu","Fika","Fune","Geidam","Gujba","Gulani","Jakusko","Karasuwa","Machina","Nangere","Nguru","Potiskum","Tarmuwa","Yunusari","Yusufari"],
+  "zamfara": ["Anka","Bakura","Birnin Magaji/Kiyaw","Bukkuyum","Bungudu","Gummi","Gusau","Kaura Namoda","Maradun","Maru","Shinkafi","Talata Mafara","Tsafe","Zurmi"],
+};
+
+// ── Nigeria State → LGA cascade ──
+function populateLGA(stateSelectId, lgaSelectId) {
+  const stateEl = document.getElementById(stateSelectId);
+  const lgaEl   = document.getElementById(lgaSelectId);
+  if (!stateEl || !lgaEl) return;
+  stateEl.addEventListener('change', function() {
+    const key = this.value;
+    lgaEl.innerHTML = '<option value="">— Select LGA —</option>';
+    if (key && NIGERIA_LGA[key]) {
+      NIGERIA_LGA[key].forEach(function(lga) {
+        const opt = document.createElement('option');
+        opt.value = lga; opt.textContent = lga;
+        lgaEl.appendChild(opt);
+      });
+      lgaEl.disabled = false;
+    } else {
+      lgaEl.disabled = true;
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  populateLGA('fp-state', 'fp-lga');
+  populateLGA('vf-state', 'vf-lga');
+});
+</script>
+</body>
+</html>

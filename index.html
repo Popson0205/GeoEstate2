@@ -443,7 +443,10 @@ YPE html>
   <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
   <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
 </svg>
-      <span>GeoEstate</span>
+      <span style="display:flex;flex-direction:column;line-height:1.15">
+        <span>GeoEstate</span>
+        <span style="font-size:0.58rem;font-weight:600;letter-spacing:.03em;color:var(--text-muted,#6b7280)">RC: 9631300</span>
+      </span>
     </a>
     <ul class="geo-nav-links">
       <li><a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
@@ -472,7 +475,7 @@ YPE html>
         <div class="portal-dropdown-panel" id="portal-dropdown-panel">
           <div class="portal-dropdown-label">Portals</div>
           <a href="/owner-dashboard" title="Owner Portal">🏠 Owner</a>
-          <a href="#" onclick="closeDropdown&&closeDropdown();showPage('partner');document.getElementById('portal-dropdown-panel').classList.remove('open')" title="Partner Portal">🤝 Partner</a>
+          <a href="/partner" title="Partner Portal">🤝 Partner</a>
           <a href="/sales" title="Sales Portal">📊 Sales</a>
           <a href="/admin" title="Admin Portal">🔐 Admin</a>
         </div>
@@ -513,7 +516,7 @@ document.addEventListener('click', function(e){
   <a href="#" onclick="navTo('map')">🗺️ Browse Properties</a>
   <a href="#" onclick="navTo('list')">📋 List a Property</a>
   <a href="#" onclick="navTo('verify')">🪪 Verify Identity</a>
-  <a href="#" onclick="navTo('partner')">🤝 Partner Portal</a>
+  <a href="/partner">🤝 Partner Portal</a>
   <a href="#" onclick="navTo('team')">👥 Our Team</a>
   <a href="#" onclick="navTo('contact')">📞 Contact</a>
   <a href="#" onclick="navTo('dispute')" class="danger">⚠️ Report Dispute</a>
@@ -873,7 +876,7 @@ document.addEventListener('click', function(e){
       </div>
       <div>
         <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">₦0</div>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Illegal agent fees on Popson — ever</div>
+        <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Illegal agent fees on GeoEstate — ever</div>
       </div>
       <div>
         <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">72h</div>
@@ -887,7 +890,7 @@ document.addEventListener('click', function(e){
     <div class="geo-footer-inner">
       <div class="geo-footer-grid">
         <div>
-          <div class="geo-footer-brand">📍 Popson Geospatial Services</div>
+          <div class="geo-footer-brand">📍 GeoEstate NIG Limited</div>
           <p class="geo-footer-desc">Nigeria's first fully verified real estate marketplace. Every owner NIN-checked. Every property title-verified. Every transaction secured by GeoEstate.</p>
           <div class="geo-badges">
             <div class="geo-badge-item">🛡️ NDPR Compliant</div>
@@ -926,8 +929,8 @@ document.addEventListener('click', function(e){
         </div>
       </div>
       <div class="geo-footer-bottom">
-        <div>© 2026 Popson Geospatial Services. All rights reserved.</div>
-        <div style="color:rgba(255,255,255,0.4)">CAC Registered · NIMC Licensed · NPF MOU Active</div>
+        <div>© 2026 GeoEstate NIG Limited. All rights reserved.</div>
+        <div style="color:rgba(255,255,255,0.4)">CAC Registered · RC: 9631300 · NIMC Licensed · NPF MOU Active</div>
       </div>
     </div>
   </footer>
@@ -1686,115 +1689,6 @@ document.addEventListener('click', function(e){
 </div>
 
 
-<!-- ============================================================
-     PAGE: PARTNER PORTAL
-     ============================================================ -->
-<div id="page-partner" class="page page-padded">
-  <div style="max-width:760px;margin:0 auto;padding:var(--space-8) var(--space-4)">
-
-    <!-- Header -->
-    <div style="margin-bottom:var(--space-6)">
-      <div class="section-label">Partner Portal</div>
-      <h1 style="font-size:1.8rem;font-weight:900;letter-spacing:-0.03em;margin-bottom:8px">🤝 Partner Portal</h1>
-      <p style="color:var(--text-tertiary);font-size:.9rem;line-height:1.6">List and manage the properties you bring to Popson as a registered partner.</p>
-    </div>
-
-    <!-- Login form -->
-    <div id="partner-login-wrap" class="geo-card" style="padding:var(--space-5)">
-      <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-4)">Partner Sign In</h2>
-      <div id="partner-login-error" style="display:none;background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:14px"></div>
-      <label class="geo-label">Partner Name *</label>
-      <select id="partner-name" class="geo-input" style="margin-bottom:14px;cursor:pointer">
-        <option value="">— Select your name —</option>
-        <option value="Adebayo Taofeek">Adebayo Taofeek</option>
-        <option value="Olawale Ayuba">Olawale Ayuba</option>
-      </select>
-      <label class="geo-label">Access Token *</label>
-      <input id="partner-token" type="password" class="geo-input" placeholder="Enter your partner access token" style="margin-bottom:18px" onkeydown="if(event.key==='Enter')partnerLogin()">
-      <button class="btn btn-primary" style="width:100%" id="partner-login-btn" onclick="partnerLogin()">Sign In →</button>
-      <p style="color:var(--text-muted);font-size:.78rem;margin-top:12px;line-height:1.5">Don't have your access token? Contact the Popson admin team.</p>
-    </div>
-
-    <!-- Dashboard (shown after login) -->
-    <div id="partner-dashboard-wrap" style="display:none">
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);flex-wrap:wrap;gap:10px">
-        <div>
-          <div style="font-size:.78rem;color:var(--text-muted);font-weight:700">Signed in as</div>
-          <div id="partner-name-display" style="font-size:1.1rem;font-weight:900"></div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="showPage('list')">+ Add Property</button>
-          <button class="btn btn-ghost btn-sm" onclick="partnerLogout()">Sign Out</button>
-        </div>
-      </div>
-
-      <!-- Properties list -->
-      <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-3)">Your Properties</h2>
-      <div id="partner-properties-loading" style="color:var(--text-muted);font-size:.85rem">Loading your properties…</div>
-      <div id="partner-properties-empty" style="display:none;color:var(--text-muted);font-size:.85rem;padding:24px 0;text-align:center">You haven't listed any properties yet. Click "+ Add Property" above to get started.</div>
-      <div id="partner-properties-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px"></div>
-
-    </div>
-
-  </div>
-</div>
-
-<!-- Partner property detail / edit modal -->
-<div id="partner-prop-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePartnerPropModal()">
-  <div style="background:var(--surface-primary,#fff);border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;padding:var(--space-6)">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-4)">
-      <h2 id="pp-modal-title" style="font-size:1.1rem;font-weight:900">Property</h2>
-      <button onclick="closePartnerPropModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted)">✕</button>
-    </div>
-    <div id="pp-modal-error" style="display:none;background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:14px"></div>
-
-    <label class="geo-label">Property Title *</label>
-    <input id="ppm-title" class="geo-input" style="margin-bottom:12px">
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-      <div>
-        <label class="geo-label">Listing Type</label>
-        <select id="ppm-type" class="geo-input" style="cursor:pointer">
-          <option value="rent">For Rent</option>
-          <option value="buy">For Sale</option>
-          <option value="lease">For Lease</option>
-        </select>
-      </div>
-      <div>
-        <label class="geo-label">Price</label>
-        <input id="ppm-price" class="geo-input">
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-      <div>
-        <label class="geo-label">Bedrooms</label>
-        <input id="ppm-bedrooms" class="geo-input">
-      </div>
-      <div>
-        <label class="geo-label">Bathrooms</label>
-        <input id="ppm-bathrooms" class="geo-input">
-      </div>
-    </div>
-
-    <label class="geo-label">Address</label>
-    <input id="ppm-address" class="geo-input" style="margin-bottom:12px">
-
-    <label class="geo-label">Description</label>
-    <textarea id="ppm-desc" class="geo-input" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
-
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:700">Status:</span>
-      <span id="ppm-status-badge"></span>
-    </div>
-
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" id="ppm-save-btn" onclick="savePartnerPropertyEdit()">Save Changes</button>
-      <button class="btn btn-ghost" style="color:#b91c1c" onclick="deletePartnerProperty(window._ppModalId)">🗑️ Remove Listing</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- ============================================================
@@ -1804,7 +1698,7 @@ document.addEventListener('click', function(e){
   <div style="max-width:900px;margin:0 auto;padding:var(--space-8) var(--space-6);">
     <div class="text-center mb-8">
       <div class="section-label">The Platform</div>
-      <h1 class="section-title">How Popson Works</h1>
+      <h1 class="section-title">How GeoEstate Works</h1>
       <p class="section-subtitle" style="margin:0 auto">A verified, escrow-backed, lawyer-reviewed, police-linked real estate platform. Here's every layer of protection we've built.</p>
     </div>
 
@@ -1828,7 +1722,7 @@ document.addEventListener('click', function(e){
         <div style="font-size:2.5rem;flex-shrink:0">⚖️</div>
         <div>
           <h3 style="font-weight:800;font-size:1.05rem;margin-bottom:var(--space-2)">Layer 3 — Lawyer Panel</h3>
-          <p style="font-size:0.88rem;color:var(--text-tertiary);line-height:1.7">All buy transactions and commercial leases include a review by a Popson-panel lawyer registered with the Nigerian Bar Association (NBA). The lawyer reviews title documents, drafts or reviews the transaction agreement, and certifies the deal before funds are released from escrow. Legal fees are charged separately from the platform fee.</p>
+          <p style="font-size:0.88rem;color:var(--text-tertiary);line-height:1.7">All buy transactions and commercial leases include a review by a GeoEstate-panel lawyer registered with the Nigerian Bar Association (NBA). The lawyer reviews title documents, drafts or reviews the transaction agreement, and certifies the deal before funds are released from escrow. Legal fees are charged separately from the platform fee.</p>
         </div>
       </div>
       <div class="geo-card" style="padding:var(--space-6);display:flex;gap:var(--space-5);align-items:flex-start">
@@ -1842,7 +1736,7 @@ document.addEventListener('click', function(e){
         <div style="font-size:2.5rem;flex-shrink:0">👮</div>
         <div>
           <h3 style="font-weight:800;font-size:1.05rem;margin-bottom:var(--space-2)">Layer 5 — Nigeria Police Force CID Liaison</h3>
-          <p style="font-size:0.88rem;color:var(--text-tertiary);line-height:1.7">Popson Geospatial Services maintains a formal MOU with the Nigeria Police Force Criminal Investigation Department (CID). When a fraud complaint is raised, the platform automatically generates a case file containing the verified identities of both parties, the property records, and the full transaction trail — and submits it to the NPF liaison. Victims no longer need to "prove" fraud from scratch.</p>
+          <p style="font-size:0.88rem;color:var(--text-tertiary);line-height:1.7">GeoEstate NIG Limited maintains a formal MOU with the Nigeria Police Force Criminal Investigation Department (CID). When a fraud complaint is raised, the platform automatically generates a case file containing the verified identities of both parties, the property records, and the full transaction trail — and submits it to the NPF liaison. Victims no longer need to "prove" fraud from scratch.</p>
         </div>
       </div>
       <div class="geo-card" style="padding:var(--space-6);display:flex;gap:var(--space-5);align-items:flex-start">
@@ -2259,7 +2153,7 @@ document.addEventListener('click', function(e){
         <div style="display:flex;flex-direction:column;gap:12px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <span style="font-size:.82rem;color:var(--text-muted)">Account Name</span>
-            <span style="font-size:.88rem;font-weight:700">Popson Geospatial Services</span>
+            <span style="font-size:.88rem;font-weight:700">GeoEstate NIG Limited</span>
           </div>
           <div style="height:1px;background:var(--border-subtle)"></div>
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -2439,13 +2333,13 @@ document.addEventListener('click', function(e){
   <div style="max-width:820px;margin:0 auto;padding:var(--space-8) var(--space-6)">
     <div class="section-label">Legal</div>
     <h1 style="font-size:2rem;font-weight:900;letter-spacing:-.03em;margin-bottom:8px">Privacy Policy</h1>
-    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:40px">Effective date: 7 June 2026 · Popson Geospatial Services · In compliance with the Nigeria Data Protection Act 2023 (NDPA)</p>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:40px">Effective date: 7 June 2026 · GeoEstate NIG Limited · In compliance with the Nigeria Data Protection Act 2023 (NDPA)</p>
 
     <div style="display:flex;flex-direction:column;gap:32px;font-size:.92rem;line-height:1.8;color:var(--text-secondary)">
 
       <div>
         <h2 style="font-size:1.05rem;font-weight:800;color:var(--text-primary);margin-bottom:10px">1. Who We Are</h2>
-        <p>GeoEstate is a geospatial real estate marketplace operated by Popson Geospatial Services. Our platform connects verified property owners with verified renters and buyers across Nigeria. We are committed to protecting your personal data in compliance with the Nigeria Data Protection Act 2023 (NDPA) and the Nigeria Data Protection Regulation (NDPR).</p>
+        <p>GeoEstate is a geospatial real estate marketplace operated by GeoEstate NIG Limited. Our platform connects verified property owners with verified renters and buyers across Nigeria. We are committed to protecting your personal data in compliance with the Nigeria Data Protection Act 2023 (NDPA) and the Nigeria Data Protection Regulation (NDPR).</p>
         <p style="margin-top:10px"><strong>Contact:</strong> Popoola Idris Bamigboye · popson0205@gmail.com · +234 916 042 0100</p>
       </div>
 
@@ -2543,7 +2437,7 @@ document.addEventListener('click', function(e){
   <div style="max-width:820px;margin:0 auto;padding:var(--space-8) var(--space-6)">
     <div class="section-label">Legal</div>
     <h1 style="font-size:2rem;font-weight:900;letter-spacing:-.03em;margin-bottom:8px">Terms of Service</h1>
-    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:40px">Effective date: 7 June 2026 · Popson Geospatial Services · These terms govern your use of the GeoEstate platform.</p>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:40px">Effective date: 7 June 2026 · GeoEstate NIG Limited · These terms govern your use of the GeoEstate platform.</p>
 
     <div style="display:flex;flex-direction:column;gap:32px;font-size:.92rem;line-height:1.8;color:var(--text-secondary)">
 
@@ -3005,7 +2899,6 @@ function showPage(name) {
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
-  if (name === 'partner') initPartnerPage();
 }
 
 // ── PROFILE PAGE ─────────────────────────────────────────────────────────
@@ -3648,170 +3541,11 @@ async function submitListing() {
     });
     const prevPhotos = document.getElementById('prev-prop-photos'); if (prevPhotos) prevPhotos.innerHTML = '';
     showAuthToast('Property submitted for review.', 'success');
-    showPage('partner');
+    window.location.href = '/partner';
   } else {
     document.getElementById('list-success').style.display = 'block';
   }
   window.scrollTo(0, 0);
-}
-
-// ── PARTNER PORTAL ───────────────────────────────────────────────────────────
-// Partners sign in with their name + a shared access token (set server-side
-// as PARTNER_ACCESS_TOKEN). The server hands back a normal owner session
-// token, so we store it via GeoAPI's owner session and reuse the existing
-// /owner/* endpoints for everything else (add/list/delete properties).
-function initPartnerPage() {
-  const loginWrap = document.getElementById('partner-login-wrap');
-  const dashWrap  = document.getElementById('partner-dashboard-wrap');
-  if (GeoAPI.isOwnerLoggedIn()) {
-    const session = GeoAPI.getOwnerSession();
-    loginWrap.style.display = 'none';
-    dashWrap.style.display  = 'block';
-    const nameEl = document.getElementById('partner-name-display');
-    if (nameEl && session && session.owner) nameEl.textContent = (session.owner.fname || '') + ' ' + (session.owner.lname || '');
-    loadPartnerProperties();
-  } else {
-    loginWrap.style.display = 'block';
-    dashWrap.style.display  = 'none';
-  }
-}
-
-async function partnerLogin() {
-  const errEl = document.getElementById('partner-login-error');
-  const btn   = document.getElementById('partner-login-btn');
-  if (errEl) errEl.style.display = 'none';
-  const name  = (document.getElementById('partner-name')  || {}).value || '';
-  const token = (document.getElementById('partner-token') || {}).value || '';
-  if (!name)  { errEl.textContent = 'Please select your name.'; errEl.style.display = 'block'; return; }
-  if (!token) { errEl.textContent = 'Please enter your access token.'; errEl.style.display = 'block'; return; }
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
-  try {
-    const res  = await fetch(GEO_API_BASE + '/partner/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, token })
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'Sign in failed. Please try again.');
-    GeoAPI.setOwnerSession({ token: data.token, owner: data.owner, loginTime: Date.now() });
-    document.getElementById('partner-token').value = '';
-    initPartnerPage();
-  } catch (err) {
-    if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Sign In →'; }
-  }
-}
-
-function partnerLogout() {
-  GeoAPI.clearOwnerSession();
-  initPartnerPage();
-}
-
-let _partnerPropsCache = [];
-
-async function loadPartnerProperties() {
-  const loadingEl = document.getElementById('partner-properties-loading');
-  const emptyEl   = document.getElementById('partner-properties-empty');
-  const listEl    = document.getElementById('partner-properties-list');
-  if (loadingEl) loadingEl.style.display = 'block';
-  if (emptyEl)   emptyEl.style.display   = 'none';
-  if (listEl)    listEl.innerHTML = '';
-
-  const result = await GeoAPI.ownerFetch('/owner/properties');
-  if (loadingEl) loadingEl.style.display = 'none';
-  const props = (result && result.properties) || [];
-  _partnerPropsCache = props;
-  if (!props.length) { if (emptyEl) emptyEl.style.display = 'block'; return; }
-
-  const statusColors = { live: '#16a34a', pending: '#d97706', rejected: '#dc2626', inactive: '#6b7280' };
-  listEl.innerHTML = props.map(p => {
-    const color = statusColors[p.status] || '#6b7280';
-    const priceDisplay = p.price || p.monthly_rent || p.sale_price || p.lease_price || '—';
-    return `
-      <div class="geo-card" style="overflow:hidden;cursor:pointer" onclick="openPartnerPropModal('${p.id}')">
-        <div style="height:120px;background:${p.img ? "url('"+p.img.replace(/'/g,"")+"') center/cover" : 'linear-gradient(135deg,#d9f2e3,#a8dfc0)'};display:flex;align-items:center;justify-content:center;font-size:1.8rem">${p.img ? '' : '🏠'}</div>
-        <div style="padding:14px">
-          <div style="font-weight:800;font-size:.9rem;margin-bottom:2px">${(p.title || '').replace(/</g,'&lt;')}</div>
-          <div style="font-size:.76rem;color:var(--text-muted);margin-bottom:8px">${(p.address || p.lga || p.state || '').replace(/</g,'&lt;')}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:.72rem;font-weight:800;color:${color};background:${color}1a;padding:4px 10px;border-radius:20px;text-transform:capitalize">${p.status || 'pending'}</span>
-            <span style="font-size:.8rem;font-weight:700">${priceDisplay}</span>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function openPartnerPropModal(id) {
-  const p = _partnerPropsCache.find(x => String(x.id) === String(id));
-  if (!p) return;
-  window._ppModalId = p.id;
-  document.getElementById('pp-modal-title').textContent = p.title || 'Property';
-  document.getElementById('pp-modal-error').style.display = 'none';
-  document.getElementById('ppm-title').value      = p.title || '';
-  document.getElementById('ppm-type').value       = p.listing_type || p.type || 'rent';
-  document.getElementById('ppm-price').value      = p.price || p.monthly_rent || p.sale_price || p.lease_price || '';
-  document.getElementById('ppm-bedrooms').value   = p.bedrooms || '';
-  document.getElementById('ppm-bathrooms').value  = p.bathrooms || '';
-  document.getElementById('ppm-address').value    = p.address || '';
-  document.getElementById('ppm-desc').value       = p.description || '';
-  const statusColors = { live: '#16a34a', pending: '#d97706', rejected: '#dc2626', inactive: '#6b7280' };
-  const color = statusColors[p.status] || '#6b7280';
-  document.getElementById('ppm-status-badge').innerHTML =
-    `<span style="font-size:.72rem;font-weight:800;color:${color};background:${color}1a;padding:4px 10px;border-radius:20px;text-transform:capitalize">${p.status || 'pending'}</span>` +
-    (p.status === 'pending' ? ' <span style="font-size:.72rem;color:var(--text-muted)">— awaiting admin review</span>' : '');
-  document.getElementById('partner-prop-overlay').style.display = 'flex';
-}
-
-function closePartnerPropModal() {
-  document.getElementById('partner-prop-overlay').style.display = 'none';
-  window._ppModalId = null;
-}
-
-async function savePartnerPropertyEdit() {
-  const id = window._ppModalId;
-  if (!id) return;
-  const errEl = document.getElementById('pp-modal-error');
-  const btn   = document.getElementById('ppm-save-btn');
-  errEl.style.display = 'none';
-
-  const title = (document.getElementById('ppm-title').value || '').trim();
-  if (!title) { errEl.textContent = 'Property title is required.'; errEl.style.display = 'block'; return; }
-
-  const payload = {
-    title,
-    listing_type: document.getElementById('ppm-type').value || 'rent',
-    price:        document.getElementById('ppm-price').value || '',
-    bedrooms:     document.getElementById('ppm-bedrooms').value || '',
-    bathrooms:    document.getElementById('ppm-bathrooms').value || '',
-    address:      document.getElementById('ppm-address').value || '',
-    description:  document.getElementById('ppm-desc').value || ''
-  };
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-  try {
-    const result = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(id), { method: 'PATCH', body: payload });
-    if (result && result.error) throw new Error(result.error);
-    closePartnerPropModal();
-    showAuthToast('Property updated.', 'success');
-    loadPartnerProperties();
-  } catch (err) {
-    errEl.textContent = err.message;
-    errEl.style.display = 'block';
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; }
-  }
-}
-
-async function deletePartnerProperty(id) {
-  if (!id || !confirm('Remove this property listing?')) return;
-  const result = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(id), { method: 'DELETE' });
-  if (result && result.error) { showAuthToast(result.error, 'error'); return; }
-  closePartnerPropModal();
-  showAuthToast('Listing removed.', 'success');
-  loadPartnerProperties();
 }
 
 // ── IDENTITY VERIFICATION ────────────────────────────────────────────────────
@@ -5628,7 +5362,7 @@ function openDisputeModal(idx){
         NIGERIA POLICE FORCE — CID CASE FILE<br>
         ══════════════════════════════════════<br>
         Case Ref: ${d.id} | Date: ${d.filed}<br>
-        Platform: GeoEstate (Popson Geospatial Services)<br>
+        Platform: GeoEstate (GeoEstate NIG Limited)<br>
         ──────────────────────────────────────<br>
         COMPLAINANT: ${d.complainant} [ID: ${d.complainantId}]<br>
         RESPONDENT:  ${d.respondent} [ID: ${d.respondentId}]<br>
@@ -5665,7 +5399,7 @@ FRAUD CASE REPORT FORM
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CASE REFERENCE: ${d.id}
 DATE FILED: ${d.filed}
-REPORTING PLATFORM: GeoEstate (Popson Geospatial Services)
+REPORTING PLATFORM: GeoEstate (GeoEstate NIG Limited)
 PLATFORM CONTACT: admin@geoestate.ng | +234 000 000 0000
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
