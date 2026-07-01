@@ -258,6 +258,7 @@
     .p-unit-btn.active { border-color:var(--green);background:var(--green-bg);color:var(--green-d); }
     .p-unit-row { background:var(--card2);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:0; }
 </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
@@ -858,6 +859,7 @@
 <!-- Toast container -->
 <div id="toast"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="geo-api.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
@@ -2040,6 +2042,24 @@ async function partnerSubmitListing() {
   navTo('my-properties', null);
 }
 
+
+function partnerUseCurrentLocation() {
+  if (!navigator.geolocation) { toast('Geolocation not supported by your browser', 'error'); return; }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    var lat = pos.coords.latitude;
+    var lng = pos.coords.longitude;
+    if (_pMapInst) {
+      _pMapInst.setView([lat, lng], 15);
+      if (_pMapMarker) _pMapInst.removeLayer(_pMapMarker);
+      _pMapMarker = L.marker([lat, lng]).addTo(_pMapInst);
+      var coordsEl = document.getElementById('listing-map-coords');
+      if (coordsEl) coordsEl.textContent = 'Your location: ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+    }
+  }, function() {
+    toast('Could not get your location. Please click on the map to pin manually.', 'info');
+  });
+}
+
 // ── LGA cascade for listing form ──────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   var stateEl = document.getElementById('lp-state');
@@ -2063,5 +2083,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
+
+<!-- Map Modal (Pin Property Location) -->
+<div id="modal-listing-map" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--card);border-radius:16px;width:100%;max-width:640px;box-shadow:0 24px 64px rgba(0,0,0,0.35);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:800;font-size:1.05rem">📍 Pin Your Property's Location</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:2px">Click map to pin, or tap the auto-locate button</div>
+      </div>
+      <button onclick="document.getElementById('modal-listing-map').style.display='none'" style="border:none;background:transparent;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:4px 8px">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <button type="button" class="btn btn-outline btn-sm" onclick="partnerUseCurrentLocation()" style="margin-bottom:10px">📡 Use My Current Location</button>
+      <div id="listing-map-canvas" style="height:340px;border-radius:10px;overflow:hidden;background:var(--card2)"></div>
+      <div id="listing-map-coords" style="font-size:.82rem;color:var(--muted);margin-top:8px">No location selected — click the map to pin your property.</div>
+    </div>
+    <div style="display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--border)">
+      <button class="btn btn-primary" onclick="confirmPartnerMapPick()" style="flex:1">✓ Use This Location</button>
+      <button class="btn btn-outline" onclick="document.getElementById('modal-listing-map').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
