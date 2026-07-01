@@ -3934,9 +3934,14 @@ function goToAdmin(e) {
 
       <!-- Prop Queue -->
       <div id="adm-page-prop-queue" class="page">
-        <div class="section-header" style="margin-bottom:16px"><span style="font-weight:700">Property Listing Queue</span><span id="prop-queue-count" style="font-size:.78rem;color:var(--a-muted);margin-left:8px"></span></div>
+        <div class="section-header" style="margin-bottom:12px"><span style="font-weight:700">Property Listing Queue</span><span id="prop-queue-count" style="font-size:.78rem;color:var(--a-muted);margin-left:8px"></span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="btn btn-approve btn-sm" onclick="renderPropQueue('all')">All Properties</button>
+          <button class="btn btn-approve btn-sm" onclick="renderPropQueueFiltered('partner')" style="background:#1e40af">🤝 Partner Listings</button>
+          <button class="btn btn-approve btn-sm" onclick="renderPropQueueFiltered('direct')" style="background:#6b7280">Direct Listings</button>
+        </div>
         <table class="data-table" style="width:100%">
-          <thead><tr><th>Property</th><th>Owner</th><th>Type</th><th>Price</th><th>Location</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Property</th><th>Owner</th><th>Source</th><th>Type</th><th>Price</th><th>Location</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="prop-queue-table"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
@@ -4019,7 +4024,7 @@ function goToAdmin(e) {
           <button class="btn btn-approve btn-sm" onclick="openAddPropertyModal()">+ Add Property</button>
         </div>
         <table class="data-table" style="width:100%">
-          <thead><tr><th>Title</th><th>Owner</th><th>Type</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Title</th><th>Owner</th><th>Source</th><th>Type</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="adminProperties-mgmt-table"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
@@ -5736,6 +5741,7 @@ function renderPropQueue(filterStatus){
     <tr class="clickable-row" onclick="openPropModal(${i})">
       <td><div class="name-link" style="font-weight:700">${p.title}</div><div style="font-size:.75rem;color:var(--adm-text-subtle)">${p.id}</div></td>
       <td style="font-size:.82rem">${p.owner||'—'}</td>
+      <td>${(p.owner_id||'').startsWith('partner-') ? '<span style="background:#eff6ff;color:#1e40af;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px;white-space:nowrap">🤝 Partner</span>' : '<span style="background:#f3f4f6;color:#6b7280;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px">Direct</span>'}</td>
       <td><span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span></td>
       <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
       <td style="font-size:.78rem">${[p.lga,p.state].filter(Boolean).join(', ')||p.address||'—'}</td>
@@ -5745,6 +5751,47 @@ function renderPropQueue(filterStatus){
       <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
     </tr>`; }).join('');
 }
+
+// ── Partner-filtered property queue ──────────────────────────
+function renderPropQueueFiltered(source) {
+  const pqc = document.getElementById('prop-queue-count');
+  const isPartner = source === 'partner';
+  const isDirect  = source === 'direct';
+  const filtered = adminProperties.filter(p => {
+    const isPartnerProp = (p.owner_id||'').startsWith('partner-');
+    if (isPartner) return isPartnerProp;
+    if (isDirect)  return !isPartnerProp;
+    return true;
+  });
+  if (pqc) pqc.textContent = filtered.length + (isPartner ? ' Partner Listings' : isDirect ? ' Direct Listings' : ' Total');
+  if (!filtered.length) {
+    const el = document.getElementById('prop-queue-table');
+    if (el) el.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--adm-text-subtle);font-size:.85rem">No ' + (isPartner ? 'partner' : 'direct') + ' listings found</td></tr>';
+    return;
+  }
+  // Render using same template as renderPropQueue but with pre-filtered list
+  const el = document.getElementById('prop-queue-table');
+  if (!el) return;
+  el.innerHTML = filtered.map((p) => {
+    const i = adminProperties.indexOf(p);
+    const isPartnerProp = (p.owner_id||'').startsWith('partner-');
+    const sourceBadge = isPartnerProp
+      ? '<span style="background:#eff6ff;color:#1e40af;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px;white-space:nowrap">🤝 Partner</span>'
+      : '<span style="background:#f3f4f6;color:#6b7280;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px">Direct</span>';
+    return `<tr class="clickable-row" onclick="openPropModal(${i})">
+      <td><div class="name-link" style="font-weight:700">${p.title}</div><div style="font-size:.75rem;color:var(--adm-text-subtle)">${p.id}</div></td>
+      <td style="font-size:.82rem">${p.owner||'—'}</td>
+      <td>${sourceBadge}</td>
+      <td><span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span></td>
+      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
+      <td style="font-size:.78rem">${[p.lga,p.state].filter(Boolean).join(', ')||p.address||'—'}</td>
+      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split('T')[0]}</td>
+      <td>${statusPill(p.status)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPropModal(${i})">Review →</button></td>
+    </tr>`;
+  }).join('');
+}
+
 function renderUsers(){
   if (!verifiedUsers.length) {
     document.getElementById('users-table').innerHTML='<tr><td colspan="9" class="empty-state">No verified users yet — submissions will appear here after identity review</td></tr>';
@@ -6242,6 +6289,7 @@ function renderPropertiesMgmt(list){
         ${isCompleted?'<span style="font-size:.7rem;color:#15803d;font-weight:700">✓ Transaction complete — archived from portal</span>':''}
       </td>
       <td style="font-size:.82rem">${p.owner}</td>
+      <td>${(p.owner_id||'').startsWith('partner-') ? '<span style="background:#eff6ff;color:#1e40af;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px">🤝 Partner</span>' : '<span style="background:#f3f4f6;color:#6b7280;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px">Direct</span>'}</td>
       <td><span class="tag">${(p.type||'').toUpperCase()}</span></td>
       <td style="font-weight:700;color:#1a6b3c">${p.price}</td>
       <td>${statusPill(p.status)}</td>

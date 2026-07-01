@@ -245,7 +245,19 @@
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
       .content { padding: 16px; }
     }
-  </style>
+  
+    /* ── Partner Listing Flow Styles ── */
+    .p-step-dot { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;flex-shrink:0; }
+    .p-step-dot.active { background:var(--green);color:#fff; }
+    .p-step-dot.done   { background:var(--green-l);color:var(--green-d); }
+    .p-step-dot.todo   { background:var(--card2);color:var(--muted); }
+    .p-step-line { flex:1;height:2px;background:var(--border);margin:0 6px; }
+    .p-step-line.done { background:var(--green-l); }
+    .p-unit-btn { flex:1;min-width:140px;padding:14px 16px;border:2px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-family:var(--font);font-size:.85rem;font-weight:700;cursor:pointer;text-align:left;transition:all .15s;line-height:1.3; }
+    .p-unit-btn:hover { border-color:var(--green); background:var(--green-bg); }
+    .p-unit-btn.active { border-color:var(--green);background:var(--green-bg);color:var(--green-d); }
+    .p-unit-row { background:var(--card2);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:0; }
+</style>
 </head>
 <body>
 
@@ -374,140 +386,309 @@
         </div>
       </div>
 
-      <!-- Add Property -->
+<!-- ─────────────────────────────────────────────────────────────────────────
+     PARTNER ADD PROPERTY — Full listing flow (copied from index.html)
+     Partners are pre-verified, so we skip Step 1 (Identity).
+     Steps: 1→Property Details  2→Documents  3→Consent & Submit
+     ───────────────────────────────────────────────────────────────────── -->
       <div id="page-add-property" class="page-section" style="display:none">
-        <div style="max-width:680px">
-          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Add New Property</h2>
-          <div id="add-verify-warning" style="display:none;border-radius:10px;padding:16px;margin-bottom:20px"></div>
-          <div class="card" id="add-prop-form-wrap">
+        <div style="max-width:720px">
+          <div style="margin-bottom:24px">
+            <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:4px">➕ Add New Property</h2>
+            <p style="font-size:.82rem;color:var(--muted)">Fill in the property details below. Your listing will go live after admin approval.</p>
+          </div>
+
+          <!-- Step progress (3 steps for partners — no identity step) -->
+          <div id="partner-list-steps" style="display:flex;align-items:center;margin-bottom:8px">
+            <div class="p-step-dot active" id="p-sdot-1">1</div>
+            <div class="p-step-line" id="p-sline-1"></div>
+            <div class="p-step-dot todo" id="p-sdot-2">2</div>
+            <div class="p-step-line" id="p-sline-2"></div>
+            <div class="p-step-dot todo" id="p-sdot-3">3</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:20px">
+            <span>Property Details</span><span style="text-align:center">Documents</span><span style="text-align:right">Consent &amp; Submit</span>
+          </div>
+
+          <!-- ── STEP 1: Property Details ── -->
+          <div id="p-list-step-1" class="card">
             <div class="card-body">
+              <h3 style="font-size:.95rem;font-weight:800;margin-bottom:20px">🏠 Property Details</h3>
+
               <div class="form-group">
                 <label class="form-label">Property Title *</label>
-                <input class="form-input" id="fp-title" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
+                <input class="form-input" id="lp-title" type="text" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
               </div>
+
               <div class="form-grid">
                 <div class="form-group">
-                  <label class="form-label">Listing Type *</label>
-                  <select class="form-select" id="fp-listing-type" onchange="updatePriceFields()">
+                  <label class="form-label">Transaction Type *</label>
+                  <select class="form-select" id="lp-type">
                     <option value="rent">🔑 Rent</option>
-                    <option value="buy">🏠 Buy / Sale</option>
                     <option value="lease">📋 Lease</option>
+                    <option value="buy">🏠 Buy / Sale</option>
                   </select>
                 </div>
-                <div class="form-group" id="fp-price-rent">
-                  <label class="form-label">Monthly Rent (₦)</label>
-                  <input class="form-input" id="fp-monthly-rent" type="number" placeholder="e.g. 250000">
-                </div>
-                <div class="form-group" id="fp-price-buy" style="display:none">
-                  <label class="form-label">Sale Price (₦)</label>
-                  <input class="form-input" id="fp-sale-price" type="number" placeholder="e.g. 45000000">
-                </div>
-                <div class="form-group" id="fp-price-lease" style="display:none">
-                  <label class="form-label">Lease Fee (₦)</label>
-                  <input class="form-input" id="fp-lease-price" type="number" placeholder="e.g. 1500000">
+                <div class="form-group">
+                  <label class="form-label">Property Type *</label>
+                  <select class="form-select" id="lp-prop-type">
+                    <option>Apartment / Flat</option>
+                    <option>Detached House</option>
+                    <option>Semi-Detached</option>
+                    <option>Terrace / Townhouse</option>
+                    <option>Duplex</option>
+                    <option>Land / Plot</option>
+                    <option>Commercial Space</option>
+                    <option>Warehouse</option>
+                  </select>
                 </div>
               </div>
+
+              <div class="form-group">
+                <label class="form-label">Property Address *</label>
+                <input class="form-input" id="lp-address" type="text" placeholder="Full address of the property">
+              </div>
+
+              <!-- Map pin -->
+              <div class="form-group">
+                <label class="form-label">Pin Exact Location on Map <span style="font-weight:400;color:var(--muted)">(recommended)</span></label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="form-input" id="lp-lat" placeholder="Latitude" readonly style="flex:1">
+                  <input class="form-input" id="lp-lng" placeholder="Longitude" readonly style="flex:1">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="openPartnerMapPicker()" style="white-space:nowrap">📍 Pin on Map</button>
+                </div>
+                <div id="lp-map-status" style="font-size:.75rem;color:var(--muted);margin-top:4px">Pinning helps buyers find your property on the map.</div>
+              </div>
+
               <div class="form-grid">
                 <div class="form-group">
-                  <label class="form-label">State</label>
-                  <select class="form-select" id="fp-state">
-                    <option value="">Select state</option>
-                    <option value="abia">Abia</option>
-                    <option value="adamawa">Adamawa</option>
-                    <option value="akwa_ibom">Akwa Ibom</option>
-                    <option value="anambra">Anambra</option>
-                    <option value="bauchi">Bauchi</option>
-                    <option value="bayelsa">Bayelsa</option>
-                    <option value="benue">Benue</option>
-                    <option value="borno">Borno</option>
-                    <option value="cross_river">Cross River</option>
-                    <option value="delta">Delta</option>
-                    <option value="ebonyi">Ebonyi</option>
-                    <option value="edo">Edo</option>
-                    <option value="ekiti">Ekiti</option>
-                    <option value="enugu">Enugu</option>
-                    <option value="fct">FCT - Abuja</option>
-                    <option value="gombe">Gombe</option>
-                    <option value="imo">Imo</option>
-                    <option value="jigawa">Jigawa</option>
-                    <option value="kaduna">Kaduna</option>
-                    <option value="kano">Kano</option>
-                    <option value="katsina">Katsina</option>
-                    <option value="kebbi">Kebbi</option>
-                    <option value="kogi">Kogi</option>
-                    <option value="kwara">Kwara</option>
-                    <option value="lagos">Lagos</option>
-                    <option value="nasarawa">Nasarawa</option>
-                    <option value="niger">Niger</option>
-                    <option value="ogun">Ogun</option>
-                    <option value="ondo">Ondo</option>
-                    <option value="osun">Osun</option>
-                    <option value="oyo">Oyo</option>
-                    <option value="plateau">Plateau</option>
-                    <option value="rivers">Rivers</option>
-                    <option value="sokoto">Sokoto</option>
-                    <option value="taraba">Taraba</option>
-                    <option value="yobe">Yobe</option>
+                  <label class="form-label">State *</label>
+                  <select class="form-select" id="lp-state">
+                    <option value="">— Select State —</option>
+                    <option value="abia">Abia</option><option value="adamawa">Adamawa</option>
+                    <option value="akwa_ibom">Akwa Ibom</option><option value="anambra">Anambra</option>
+                    <option value="bauchi">Bauchi</option><option value="bayelsa">Bayelsa</option>
+                    <option value="benue">Benue</option><option value="borno">Borno</option>
+                    <option value="cross_river">Cross River</option><option value="delta">Delta</option>
+                    <option value="ebonyi">Ebonyi</option><option value="edo">Edo</option>
+                    <option value="ekiti">Ekiti</option><option value="enugu">Enugu</option>
+                    <option value="fct">FCT - Abuja</option><option value="gombe">Gombe</option>
+                    <option value="imo">Imo</option><option value="jigawa">Jigawa</option>
+                    <option value="kaduna">Kaduna</option><option value="kano">Kano</option>
+                    <option value="katsina">Katsina</option><option value="kebbi">Kebbi</option>
+                    <option value="kogi">Kogi</option><option value="kwara">Kwara</option>
+                    <option value="lagos">Lagos</option><option value="nasarawa">Nasarawa</option>
+                    <option value="niger">Niger</option><option value="ogun">Ogun</option>
+                    <option value="ondo">Ondo</option><option value="osun">Osun</option>
+                    <option value="oyo">Oyo</option><option value="plateau">Plateau</option>
+                    <option value="rivers">Rivers</option><option value="sokoto">Sokoto</option>
+                    <option value="taraba">Taraba</option><option value="yobe">Yobe</option>
                     <option value="zamfara">Zamfara</option>
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">LGA / Area</label>
-                  <select class="form-select" id="fp-lga" disabled>
+                  <label class="form-label">LGA *</label>
+                  <select class="form-select" id="lp-lga" disabled>
                     <option value="">— Select State first —</option>
                   </select>
                 </div>
               </div>
+
+              <!-- Unit Structure -->
               <div class="form-group">
-                <label class="form-label">Full Address</label>
-                <input class="form-input" id="fp-address" placeholder="e.g. 12 Akin Adesola Street, Lekki Phase 1">
+                <label class="form-label">Unit Structure *</label>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button type="button" class="p-unit-btn" data-val="single" onclick="partnerSelectUnitType('single')">
+                    🏠 Single Unit
+                    <span style="display:block;font-size:.72rem;font-weight:400;opacity:.7;margin-top:2px">One property, one price</span>
+                  </button>
+                  <button type="button" class="p-unit-btn" data-val="multi" onclick="partnerSelectUnitType('multi')">
+                    🏢 Multi-Unit
+                    <span style="display:block;font-size:.72rem;font-weight:400;opacity:.7;margin-top:2px">Multiple rooms / unit types</span>
+                  </button>
+                </div>
+                <input type="hidden" id="lp-unit-structure" value="">
               </div>
-              <div class="form-grid-3">
-                <div class="form-group">
-                  <label class="form-label">Bedrooms</label>
-                  <input class="form-input" id="fp-beds" type="number" min="0" placeholder="0">
+
+              <!-- Single unit panel -->
+              <div id="lp-single-panel" style="display:none">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Bedrooms</label>
+                    <select class="form-select" id="lp-bedrooms">
+                      <option value="studio">Studio / Self-contain</option>
+                      <option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option>
+                      <option value="3">3 Bedrooms</option><option value="4">4 Bedrooms</option>
+                      <option value="5+">5+ Bedrooms</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Bathrooms</label>
+                    <select class="form-select" id="lp-bathrooms">
+                      <option value="1">1</option><option value="2">2</option>
+                      <option value="3">3</option><option value="4+">4+</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Bathrooms</label>
-                  <input class="form-input" id="fp-baths" type="number" min="0" placeholder="0">
+                  <label class="form-label">Price (₦) *</label>
+                  <input class="form-input" id="lp-price" type="number" placeholder="e.g. 2,500,000">
                 </div>
+              </div>
+
+              <!-- Multi-unit panel -->
+              <div id="lp-multi-panel" style="display:none">
                 <div class="form-group">
-                  <label class="form-label">Size (sqm)</label>
-                  <input class="form-input" id="fp-sqm" type="number" min="0" placeholder="0">
+                  <label class="form-label">Total Number of Units *</label>
+                  <input class="form-input" id="lp-total-units" type="number" min="1" placeholder="e.g. 12" style="max-width:180px">
                 </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <label class="form-label" style="margin:0">Unit Types &amp; Pricing</label>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="partnerAddUnitRow()">＋ Add Unit Type</button>
+                </div>
+                <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">
+                  Add each unit type (e.g. Room, Self-contain, 1-Bed, 2-Bed…). Mix types freely.
+                </div>
+                <div id="lp-units-list" style="display:flex;flex-direction:column;gap:10px"></div>
+                <div id="lp-units-summary" style="display:none;margin-top:14px;background:var(--green-bg);border-radius:8px;padding:12px 14px;font-size:.82rem;color:var(--green-d);border:1px solid var(--green-l)"></div>
+                <input type="hidden" id="lp-units-json" value="[]">
+                <input type="hidden" id="lp-price" value="">
               </div>
-              <div class="form-group">
-                <label class="form-label">Description</label>
-                <textarea class="form-textarea" id="fp-desc" placeholder="Describe the property — features, neighbourhood, access..." rows="4"></textarea>
+
+              <!-- Shared description & photos -->
+              <div class="form-group" id="lp-shared-desc-wrap">
+                <label class="form-label">Property Description *</label>
+                <textarea class="form-textarea" id="lp-desc" rows="4" placeholder="Describe the property — condition, features, amenities, access, neighbourhood…"></textarea>
               </div>
-              <div class="form-group">
-                <label class="form-label">Main Image URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
-                <div style="display:flex;gap:8px;align-items:center">
-                <input class="form-input" id="fp-img" placeholder="https://... or use Upload button (optional)" style="flex:1">
-                <button type="button" onclick="ownerCloudinaryUpload('fp-img','fp-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
+
+              <div class="form-group" id="lp-shared-photo-wrap">
+                <label class="form-label">Property Photos <span style="font-weight:400;color:var(--muted)">(min. 4 recommended)</span></label>
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--muted)"
+                     onclick="document.getElementById('upload-prop-photos').click()">
+                  <input type="file" accept="image/*" multiple style="display:none" id="upload-prop-photos" onchange="partnerHandlePropPhotos(this)">
+                  <div style="font-size:1.8rem;margin-bottom:8px">📸</div>
+                  <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">Click to upload property photos</div>
+                  <div style="font-size:.75rem">Images upload to Supabase · Min. 4 recommended</div>
+                  <div id="prop-upload-status" style="margin-top:8px;font-size:.78rem;color:var(--green);display:none"></div>
+                </div>
+                <div id="prev-prop-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+                <input type="hidden" id="list-img-main" value="">
+                <input type="hidden" id="list-images-json" value="[]">
               </div>
-              <div id="fp-img-preview" style="display:none;margin-top:6px">
-                <img id="fp-img-preview-img" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px">
-              </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Amenities (comma-separated)</label>
-                <input class="form-input" id="fp-amenities" placeholder="e.g. Parking, Security, Generator, Swimming Pool">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Notes for Admin (optional)</label>
-                <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know..." rows="2"></textarea>
-              </div>
-              <div style="display:flex;gap:10px;margin-top:4px">
-                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Property →</button>
-                <button class="btn btn-outline" onclick="navTo('my-properties',null)">Cancel</button>
+
+              <div style="display:flex;justify-content:flex-end;margin-top:8px">
+                <button class="btn btn-primary" onclick="partnerListStep(2)">Continue to Documents →</button>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Enquiries -->
+          <!-- ── STEP 2: Documents ── -->
+          <div id="p-list-step-2" style="display:none">
+            <div class="card">
+              <div class="card-body">
+                <h3 style="font-size:.95rem;font-weight:800;margin-bottom:4px">📄 Title Documents</h3>
+                <p style="font-size:.82rem;color:var(--muted);margin-bottom:20px">Upload applicable title documents. Our team verifies these before your listing is approved.</p>
+
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                    <div style="flex:1">
+                      <div style="font-weight:700;font-size:.88rem">Certificate of Occupancy (C of O)</div>
+                      <div style="font-size:.75rem;color:var(--muted)">Required for most residential and commercial properties</div>
+                      <div id="prev-doc-coo" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
+                    </div>
+                    <input type="file" accept="image/*,application/pdf" id="doc-coo" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-coo')">
+                    <label for="doc-coo" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
+                  </div>
+                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                    <div style="flex:1">
+                      <div style="font-weight:700;font-size:.88rem">Survey Plan</div>
+                      <div style="font-size:.75rem;color:var(--muted)">Boundary and land area confirmation</div>
+                      <div id="prev-doc-survey" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
+                    </div>
+                    <input type="file" accept="image/*,application/pdf" id="doc-survey" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-survey')">
+                    <label for="doc-survey" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
+                  </div>
+                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                    <div style="flex:1">
+                      <div style="font-weight:700;font-size:.88rem">Deed of Assignment / Governor's Consent</div>
+                      <div style="font-size:.75rem;color:var(--muted)">Required if property was transferred from a previous owner</div>
+                      <div id="prev-doc-deed" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
+                    </div>
+                    <input type="file" accept="image/*,application/pdf" id="doc-deed" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-deed')">
+                    <label for="doc-deed" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
+                  </div>
+                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                    <div style="flex:1">
+                      <div style="font-weight:700;font-size:.88rem">Excision / Gazette (if applicable)</div>
+                      <div style="font-size:.75rem;color:var(--muted)">For community or excised land</div>
+                      <div id="prev-doc-excision" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
+                    </div>
+                    <input type="file" accept="image/*,application/pdf" id="doc-excision" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-excision')">
+                    <label for="doc-excision" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
+                  </div>
+                </div>
+
+                <div style="background:var(--green-bg);border-radius:8px;padding:12px 14px;margin-top:20px;border:1px solid var(--green-l)">
+                  <div style="font-size:.83rem;color:var(--green);font-weight:600">⏱ Verification SLA: 3–5 business days</div>
+                  <div style="font-size:.78rem;color:var(--green);margin-top:4px">Our team will review your documents and contact you if anything is missing.</div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:20px">
+                  <button class="btn btn-outline" onclick="partnerListStep(1)">← Back</button>
+                  <button class="btn btn-primary" onclick="partnerListStep(3)">Continue to Consent →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── STEP 3: Consent & Submit ── -->
+          <div id="p-list-step-3" style="display:none">
+            <div class="card">
+              <div class="card-body">
+                <h3 style="font-size:.95rem;font-weight:800;margin-bottom:4px">✍️ Consent Agreement</h3>
+                <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Read and confirm the GeoEstate Platform Consent Agreement.</p>
+
+                <div style="background:var(--card2);border-radius:10px;padding:16px;max-height:260px;overflow-y:auto;font-size:.8rem;line-height:1.7;color:var(--muted);margin-bottom:20px">
+                  <strong>GEOESTATE PLATFORM CONSENT AGREEMENT — PARTNER / PROPERTY OWNER</strong><br><br>
+                  By submitting this listing, I confirm and agree to the following:<br><br>
+                  <strong>1. Property Ownership:</strong> I confirm I am the lawful owner or authorized representative of the listed property, and that all title documents submitted are genuine.<br><br>
+                  <strong>2. Platform Fee:</strong> I agree to GeoEstate's 10% platform service fee, deducted upon successful deal close.<br><br>
+                  <strong>3. No Off-Platform Payments:</strong> I agree NOT to request, accept, or facilitate any payment outside the GeoEstate escrow system.<br><br>
+                  <strong>4. Accuracy:</strong> All property information, photos, and pricing are accurate. Misleading listings will be removed immediately.<br><br>
+                  <strong>5. Law Enforcement Cooperation:</strong> I consent to GeoEstate sharing my verified identity and transaction records with the NPF CID in the event of fraud or dispute.<br><br>
+                  <strong>6. Data Protection:</strong> I consent to GeoEstate storing my verification status and property records per the Nigeria Data Protection Act 2023.
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem">
+                    <input type="checkbox" id="partner-consent-1" style="margin-top:2px;accent-color:var(--green)">
+                    <span>I have read and understood the GeoEstate Platform Consent Agreement</span>
+                  </label>
+                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem">
+                    <input type="checkbox" id="partner-consent-2" style="margin-top:2px;accent-color:var(--green)">
+                    <span>I confirm all property information and documents are accurate and genuine</span>
+                  </label>
+                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem">
+                    <input type="checkbox" id="partner-consent-3" style="margin-top:2px;accent-color:var(--green)">
+                    <span>I agree to GeoEstate's 10% platform fee on successful transactions</span>
+                  </label>
+                </div>
+
+                <div id="p-submit-error" style="display:none;background:var(--red-bg);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--red);margin-bottom:12px;border:1px solid #fecaca"></div>
+
+                <div style="display:flex;justify-content:space-between">
+                  <button class="btn btn-outline" onclick="partnerListStep(2)">← Back</button>
+                  <button class="btn btn-primary" id="p-submit-btn" onclick="partnerSubmitListing()">Submit Property →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /max-width -->
+      </div><!-- /page-add-property -->
+
+
+            <!-- Enquiries -->
       <div id="page-enquiries" class="page-section" style="display:none">
         <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">📬 Enquiries</h2>
         <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Inbound interest on your listed properties — respond directly from here.</p>
@@ -1495,6 +1676,376 @@ document.addEventListener('DOMContentLoaded', function() {
   populateLGA('fp-state', 'fp-lga');
   populateLGA('vf-state', 'vf-lga');
 });
+
+// ══════════════════════════════════════════════════════════════
+// PARTNER LISTING FLOW — Full property submission (mirrors index.html)
+// ══════════════════════════════════════════════════════════════
+const PARTNER_API = 'https://api.geoestate.com.ng';
+
+// ── Step Navigation ──────────────────────────────────────────
+function partnerListStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el  = document.getElementById('p-list-step-' + i);
+    const dot = document.getElementById('p-sdot-' + i);
+    const line = document.getElementById('p-sline-' + i);
+    if (el)   el.style.display = i === n ? 'block' : 'none';
+    if (dot)  { dot.className = 'p-step-dot ' + (i < n ? 'done' : i === n ? 'active' : 'todo'); dot.textContent = i < n ? '✓' : i; }
+    if (line) line.className = 'p-step-line' + (i < n ? ' done' : '');
+  }
+  window.scrollTo(0, 0);
+}
+
+// ── Unit Structure ────────────────────────────────────────────
+function partnerSelectUnitType(val) {
+  document.querySelectorAll('.p-unit-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === val);
+  });
+  document.getElementById('lp-unit-structure').value = val;
+  const single = document.getElementById('lp-single-panel');
+  const multi  = document.getElementById('lp-multi-panel');
+  const sharedDesc  = document.getElementById('lp-shared-desc-wrap');
+  const sharedPhoto = document.getElementById('lp-shared-photo-wrap');
+  if (val === 'single') {
+    single.style.display = 'block'; multi.style.display = 'none';
+    if (sharedDesc)  sharedDesc.style.display  = 'block';
+    if (sharedPhoto) sharedPhoto.style.display = 'block';
+  } else {
+    single.style.display = 'none'; multi.style.display = 'block';
+    if (sharedDesc)  sharedDesc.style.display  = 'none';
+    if (sharedPhoto) sharedPhoto.style.display = 'none';
+    if (document.querySelectorAll('.p-unit-row').length === 0) partnerAddUnitRow();
+  }
+}
+
+// Unit type options
+const P_UNIT_TYPE_OPTIONS = [
+  { value: 'room',      label: 'Room' },
+  { value: 'selfcon',   label: 'Self-contain' },
+  { value: '1bed',      label: '1-Bedroom Flat' },
+  { value: '2bed',      label: '2-Bedroom Flat' },
+  { value: '3bed',      label: '3-Bedroom Flat' },
+  { value: '4bed',      label: '4-Bedroom Flat' },
+  { value: '5bed',      label: '5-Bedroom / Duplex' },
+  { value: 'shop',      label: 'Shop / Office Space' },
+  { value: 'warehouse', label: 'Warehouse / Store' },
+  { value: 'other',     label: 'Other' },
+];
+let _pUnitRowCount = 0;
+
+function partnerAddUnitRow() {
+  _pUnitRowCount++;
+  const id = _pUnitRowCount;
+  const typeOpts = P_UNIT_TYPE_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'p-unit-row';
+  row.id = `p-unit-row-${id}`;
+  row.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-weight:700;font-size:.85rem">Unit Type ${id}</span>
+      <button type="button" onclick="partnerRemoveUnitRow(${id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem" title="Remove">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Unit Type *</label>
+        <select class="form-select p-unit-type-sel" id="pu-type-${id}" onchange="partnerUpdateUnitSummary()">
+          <option value="">— Select —</option>${typeOpts}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Custom Name <span style="font-weight:400;opacity:.65">(optional)</span></label>
+        <input class="form-input p-unit-name-inp" id="pu-name-${id}" type="text" placeholder="e.g. Room A" oninput="partnerUpdateUnitSummary()">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Units Available *</label>
+        <input class="form-input p-unit-qty-inp" id="pu-qty-${id}" type="number" min="1" value="1" oninput="partnerUpdateUnitSummary()">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Price per Unit (₦) *</label>
+        <input class="form-input p-unit-price-inp" id="pu-price-${id}" type="number" min="0" placeholder="e.g. 250000" oninput="partnerUpdateUnitSummary()">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Unit Description</label>
+      <textarea class="form-textarea p-unit-desc-inp" id="pu-desc-${id}" rows="2" oninput="partnerUpdateUnitSummary()" placeholder="Features, condition, what's included…"></textarea>
+    </div>`;
+  document.getElementById('lp-units-list').appendChild(row);
+  partnerUpdateUnitSummary();
+}
+
+function partnerRemoveUnitRow(id) {
+  const row = document.getElementById(`p-unit-row-${id}`);
+  if (row) row.remove();
+  partnerUpdateUnitSummary();
+}
+
+function partnerUpdateUnitSummary() {
+  const rows  = document.querySelectorAll('.p-unit-row');
+  const units = [];
+  rows.forEach(row => {
+    const idSuffix = row.id.replace('p-unit-row-', '');
+    const typeEl  = document.getElementById(`pu-type-${idSuffix}`);
+    const nameEl  = document.getElementById(`pu-name-${idSuffix}`);
+    const qtyEl   = document.getElementById(`pu-qty-${idSuffix}`);
+    const priceEl = document.getElementById(`pu-price-${idSuffix}`);
+    const descEl  = document.getElementById(`pu-desc-${idSuffix}`);
+    if (!typeEl) return;
+    const typeVal   = typeEl.value;
+    const typeLabel = P_UNIT_TYPE_OPTIONS.find(o => o.value === typeVal)?.label || typeVal;
+    const name  = nameEl?.value.trim() || '';
+    const qty   = parseInt(qtyEl?.value)   || 0;
+    const price = parseFloat(priceEl?.value) || 0;
+    const desc  = descEl?.value.trim() || '';
+    if (typeVal && qty > 0 && price > 0) {
+      units.push({ type: typeVal, label: typeLabel, name, qty, price, desc, photos: [] });
+    }
+  });
+  document.getElementById('lp-units-json').value = JSON.stringify(units);
+  const summaryEl = document.getElementById('lp-units-summary');
+  if (!summaryEl) return;
+  if (units.length === 0) { summaryEl.style.display = 'none'; return; }
+  const fmt = n => '₦' + Number(n).toLocaleString('en-NG');
+  const totalUnits = units.reduce((s, u) => s + u.qty, 0);
+  summaryEl.style.display = 'block';
+  summaryEl.innerHTML = `<div style="font-weight:800;margin-bottom:8px">📋 Summary — ${totalUnits} unit(s) across ${units.length} type(s)</div>` +
+    units.map(u => {
+      const display = u.name ? `${u.label} — "${u.name}"` : u.label;
+      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06)"><span>${display} × ${u.qty}</span><strong>${fmt(u.price)} / unit</strong></div>`;
+    }).join('');
+}
+
+// ── Photo upload ──────────────────────────────────────────────
+let _pUploadedImgUrls = [];
+
+async function partnerHandlePropPhotos(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const statusEl  = document.getElementById('prop-upload-status');
+  const previewEl = document.getElementById('prev-prop-photos');
+  if (statusEl) { statusEl.textContent = `⏳ Uploading ${files.length} image(s)…`; statusEl.style.display = 'block'; }
+  let uploaded = 0;
+  for (const file of files) {
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const signRes = await fetch(PARTNER_API + '/upload-sign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'geoestate/properties', ext })
+      });
+      if (!signRes.ok) throw new Error('Upload service unavailable');
+      const sign = await signRes.json();
+      const upRes = await fetch(sign.upload_url || sign.signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+        body: file
+      });
+      if (!upRes.ok) throw new Error('Upload failed: ' + upRes.status);
+      _pUploadedImgUrls.push(sign.public_url);
+      if (previewEl) previewEl.innerHTML += `<img src="${sign.public_url}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
+      uploaded++;
+    } catch(e) {
+      await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          _pUploadedImgUrls.push(ev.target.result);
+          if (previewEl) previewEl.innerHTML += `<img src="${ev.target.result}" style="width:80px;height:60px;object-fit:cover;border-radius:6px">`;
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    if (statusEl) statusEl.textContent = `⏳ Uploaded ${uploaded}/${files.length}…`;
+  }
+  const mainEl = document.getElementById('list-img-main');
+  const jsonEl = document.getElementById('list-images-json');
+  if (mainEl) mainEl.value = _pUploadedImgUrls[0] || '';
+  if (jsonEl) jsonEl.value = JSON.stringify(_pUploadedImgUrls);
+  if (statusEl) statusEl.textContent = `✅ ${uploaded} photo(s) uploaded`;
+}
+
+// ── Document preview ──────────────────────────────────────────
+function partnerPreviewDoc(input, previewId) {
+  const prev = document.getElementById(previewId);
+  if (!prev || !input.files || !input.files[0]) return;
+  const file = input.files[0];
+  prev.textContent = '📎 ' + file.name;
+}
+
+// ── Map Picker (simple passthrough to partner.html's existing modal or inline) ─
+// We reuse any existing map modal elements if Leaflet is loaded,
+// otherwise show a simple lat/lng input prompt.
+var _pMapInst = null, _pMapMarker = null;
+function openPartnerMapPicker() {
+  // Try to use existing modal if available
+  var modalEl = document.getElementById('modal-listing-map');
+  if (modalEl) {
+    modalEl.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => initPartnerMapPicker()));
+    return;
+  }
+  // Fallback: prompt
+  toast('Map picker not available. Enter lat/lng manually if needed.', 'info');
+}
+function initPartnerMapPicker() {
+  if (typeof L === 'undefined') return;
+  const el = document.getElementById('listing-map-canvas');
+  if (!el) return;
+  if (_pMapInst) { try { _pMapInst.remove(); } catch(e){} _pMapInst = null; _pMapMarker = null; }
+  const existingLat = parseFloat(document.getElementById('lp-lat').value);
+  const existingLng = parseFloat(document.getElementById('lp-lng').value);
+  const startLat = !isNaN(existingLat) ? existingLat : 9.0765;
+  const startLng = !isNaN(existingLng) ? existingLng : 7.3986;
+  _pMapInst = L.map('listing-map-canvas').setView([startLat, startLng], !isNaN(existingLat) ? 15 : 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(_pMapInst);
+  if (!isNaN(existingLat) && !isNaN(existingLng)) {
+    _pMapMarker = L.marker([existingLat, existingLng]).addTo(_pMapInst);
+  }
+  _pMapInst.on('click', function(e) {
+    if (_pMapMarker) _pMapInst.removeLayer(_pMapMarker);
+    _pMapMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(_pMapInst);
+    var coordsEl = document.getElementById('listing-map-coords');
+    if (coordsEl) coordsEl.textContent = 'Selected: ' + e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6);
+  });
+  setTimeout(() => { if (_pMapInst) _pMapInst.invalidateSize(); }, 200);
+}
+function confirmPartnerMapPick() {
+  if (!_pMapMarker) { toast('Please click a location on the map first', 'error'); return; }
+  const latlng = _pMapMarker.getLatLng();
+  document.getElementById('lp-lat').value = latlng.lat.toFixed(7);
+  document.getElementById('lp-lng').value = latlng.lng.toFixed(7);
+  var statusEl = document.getElementById('lp-map-status');
+  if (statusEl) statusEl.textContent = '✅ Location pinned: ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+  var modalEl = document.getElementById('modal-listing-map');
+  if (modalEl) modalEl.style.display = 'none';
+}
+
+// ── Submit ────────────────────────────────────────────────────
+async function partnerSubmitListing() {
+  const errEl = document.getElementById('p-submit-error');
+  const btn   = document.getElementById('p-submit-btn');
+  if (errEl) errEl.style.display = 'none';
+
+  // Consent check
+  const c1 = document.getElementById('partner-consent-1');
+  const c2 = document.getElementById('partner-consent-2');
+  const c3 = document.getElementById('partner-consent-3');
+  if (!c1?.checked || !c2?.checked || !c3?.checked) {
+    if (errEl) { errEl.textContent = '❌ Please check all consent boxes before submitting.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  const ownerSession = GeoAPI.getOwnerSession();
+  if (!ownerSession || !ownerSession.token) {
+    toast('Session expired. Please sign in again.', 'error');
+    ownerLogout();
+    return;
+  }
+
+  const listing_type   = (document.getElementById('lp-type')||{}).value || 'rent';
+  const listLat        = (document.getElementById('lp-lat')||{}).value || '';
+  const listLng        = (document.getElementById('lp-lng')||{}).value || '';
+  const _unitStructure = (document.getElementById('lp-unit-structure')||{}).value || 'single';
+  const _unitsJson     = (document.getElementById('lp-units-json')||{}).value || '[]';
+  const _singlePrice   = (document.getElementById('lp-price')||{}).value || '';
+  const _bedrooms      = (document.getElementById('lp-bedrooms')||{}).value || '';
+  const _bathrooms     = (document.getElementById('lp-bathrooms')||{}).value || '';
+  const _totalUnits    = (document.getElementById('lp-total-units')||{}).value || '';
+
+  const listData = {
+    title:          ((document.getElementById('lp-title')||{}).value || '').trim(),
+    listing_type,
+    price:          _unitStructure === 'single' ? _singlePrice : '',
+    unit_structure: _unitStructure,
+    units_json:     _unitStructure === 'multi' ? _unitsJson : '[]',
+    total_units:    _unitStructure === 'multi' ? _totalUnits : '',
+    bedrooms:       _unitStructure === 'single' ? _bedrooms : '',
+    bathrooms:      _unitStructure === 'single' ? _bathrooms : '',
+    state:          (document.getElementById('lp-state')||{}).value || '',
+    lga:            (document.getElementById('lp-lga')||{}).value || '',
+    address:        (document.getElementById('lp-address')||{}).value || '',
+    description:    _unitStructure === 'single' ? ((document.getElementById('lp-desc')||{}).value||'') : '',
+    img:            _unitStructure === 'single' ? ((document.getElementById('list-img-main')||{}).value || '') : '',
+    images:         _unitStructure === 'single' ? ((document.getElementById('list-images-json')||{}).value || '[]') : '[]',
+  };
+
+  if (listLat && listLng) {
+    listData.lat = parseFloat(listLat);
+    listData.lng = parseFloat(listLng);
+    listData.geo = true;
+  } else {
+    listData.geo = false;
+  }
+
+  if (!listData.title) {
+    if (errEl) { errEl.textContent = '❌ Please enter a property title.'; errEl.style.display = 'block'; }
+    partnerListStep(1);
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Submitting…'; }
+
+  try {
+    const res = await fetch(PARTNER_API + '/owner/add-property', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ownerSession.token },
+      body: JSON.stringify(listData)
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) {
+      if (errEl) { errEl.textContent = '❌ ' + (result.error || result.message || 'Submission failed. Please try again.'); errEl.style.display = 'block'; }
+      return;
+    }
+  } catch(e) {
+    if (errEl) { errEl.textContent = '❌ Submission failed. Please check your connection.'; errEl.style.display = 'block'; }
+    return;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Property →'; }
+  }
+
+  // Reset form
+  _pUploadedImgUrls = [];
+  ['lp-title','lp-address','lp-lat','lp-lng','lp-price','lp-desc','list-img-main','list-images-json'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['lp-total-units','lp-units-json'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'lp-units-json' ? '[]' : ''; });
+  const pp = document.getElementById('prev-prop-photos'); if (pp) pp.innerHTML = '';
+  const st = document.getElementById('prop-upload-status'); if (st) { st.textContent = ''; st.style.display = 'none'; }
+  const ul = document.getElementById('lp-units-list'); if (ul) ul.innerHTML = '';
+  const us = document.getElementById('lp-units-summary'); if (us) us.style.display = 'none';
+  if (c1) c1.checked = false; if (c2) c2.checked = false; if (c3) c3.checked = false;
+  partnerListStep(1);
+  ['lp-single-panel','lp-multi-panel'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  document.querySelectorAll('.p-unit-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('lp-unit-structure').value = '';
+  if (errEl) errEl.style.display = 'none';
+  _pUnitRowCount = 0;
+  _pUploadedImgUrls = [];
+
+  toast('✅ Property submitted! It will go live once admin approves.', 'success');
+  await loadAll();
+  navTo('my-properties', null);
+}
+
+// ── LGA cascade for listing form ──────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var stateEl = document.getElementById('lp-state');
+  var lgaEl   = document.getElementById('lp-lga');
+  if (stateEl && lgaEl) {
+    stateEl.addEventListener('change', function() {
+      var key = this.value;
+      lgaEl.innerHTML = '<option value="">— Select LGA —</option>';
+      if (key && NIGERIA_LGA[key]) {
+        NIGERIA_LGA[key].forEach(function(lga) {
+          var opt = document.createElement('option');
+          opt.value = lga; opt.textContent = lga;
+          lgaEl.appendChild(opt);
+        });
+        lgaEl.disabled = false;
+      } else {
+        lgaEl.disabled = true;
+      }
+    });
+  }
+});
+
 </script>
 </body>
 </html>
