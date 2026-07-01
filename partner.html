@@ -412,297 +412,795 @@
           </div>
 
           <!-- ── STEP 1: Property Details ── -->
-          <div id="p-list-step-1" class="card">
+
+          <!-- STEP 1: Transaction Type Selector -->
+          <div class="card" style="margin-bottom:16px">
             <div class="card-body">
-              <h3 style="font-size:.95rem;font-weight:800;margin-bottom:20px">🏠 Property Details</h3>
-
-              <div class="form-group">
-                <label class="form-label">Property Title *</label>
-                <input class="form-input" id="lp-title" type="text" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
-              </div>
-
-              <!-- Transaction Type Selector (button-based, matches owner-dashboard) -->
-              <div class="form-group" style="margin-bottom:20px">
-                <label class="form-label" style="font-size:.9rem;font-weight:700">What type of transaction is this? *</label>
-                <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Your selection determines the form fields below.</p>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-                  <button type="button" id="ptn-txn-btn-rent" onclick="ptnSetTxnType('rent')"
-                    style="border:2px solid var(--green);background:var(--green-bg);color:var(--green-d);border-radius:12px;padding:14px 8px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
-                    <div style="font-size:1.4rem;margin-bottom:4px">🔑</div>Rent
-                    <div style="font-size:.7rem;font-weight:400;color:var(--muted);margin-top:3px">Monthly / Yearly</div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label" style="font-size:.9rem;font-weight:700;color:var(--text)">What type of transaction is this? *</label>
+                <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Your selection determines the form you'll complete below.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                  <button type="button" id="txn-btn-rent" onclick="setTransactionType('rent')" class="txn-type-btn active" style="border:2px solid var(--green);background:var(--green-bg);color:var(--green-d);border-radius:12px;padding:16px 10px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.85rem;text-align:center;transition:all .2s">
+                    <div style="font-size:1.5rem;margin-bottom:6px">🔑</div>
+                    Rent
+                    <div style="font-size:.72rem;font-weight:400;color:var(--muted);margin-top:4px">Monthly tenancy</div>
                   </button>
-                  <button type="button" id="ptn-txn-btn-buy" onclick="ptnSetTxnType('buy')"
-                    style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:12px;padding:14px 8px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
-                    <div style="font-size:1.4rem;margin-bottom:4px">🏠</div>Sell
-                    <div style="font-size:.7rem;font-weight:400;color:var(--muted);margin-top:3px">Outright purchase</div>
+                  <button type="button" id="txn-btn-buy" onclick="setTransactionType('buy')" class="txn-type-btn" style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:12px;padding:16px 10px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.85rem;text-align:center;transition:all .2s">
+                    <div style="font-size:1.5rem;margin-bottom:6px">🏠</div>
+                    Sell
+                    <div style="font-size:.72rem;font-weight:400;color:var(--muted);margin-top:4px">Outright purchase</div>
                   </button>
-                  <button type="button" id="ptn-txn-btn-lease" onclick="ptnSetTxnType('lease')"
-                    style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:12px;padding:14px 8px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:center;transition:all .2s">
-                    <div style="font-size:1.4rem;margin-bottom:4px">📋</div>Lease
-                    <div style="font-size:.7rem;font-weight:400;color:var(--muted);margin-top:3px">Long-term rights</div>
+                  <button type="button" id="txn-btn-lease" onclick="setTransactionType('lease')" class="txn-type-btn" style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:12px;padding:16px 10px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.85rem;text-align:center;transition:all .2s">
+                    <div style="font-size:1.5rem;margin-bottom:6px">📋</div>
+                    Lease
+                    <div style="font-size:.72rem;font-weight:400;color:var(--muted);margin-top:4px">Long-term use rights</div>
                   </button>
                 </div>
-                <!-- Hidden compat field — submit logic reads from this -->
-                <input type="hidden" id="lp-type" value="rent">
+              </div>
+            </div>
+          </div>
+
+          <!-- hidden type tracker -->
+          <input type="hidden" id="fp-listing-type" value="rent">
+
+          <!-- ═══════════════════════════════════════ -->
+          <!-- RENT FORM -->
+          <!-- ═══════════════════════════════════════ -->
+          <div id="form-section-rent" class="card" id="add-prop-form-wrap">
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+                <span style="font-size:1.3rem">🔑</span>
+                <div>
+                  <div style="font-weight:700;font-size:.95rem">Rental Listing</div>
+                  <div style="font-size:.78rem;color:var(--muted)">Yearly tenancy (standard in Nigeria) — or shortlet for daily pricing</div>
+                </div>
+              </div>
+
+              <!-- Property basics -->
+              <div class="form-group">
+                <label class="form-label">Property Title *</label>
+                <input class="form-input" id="fp-title" placeholder="e.g. 3-Bedroom Flat in Lekki Phase 1">
+              </div>
+
+              <!-- Rent Sub-Type -->
+              <div class="form-group" style="margin-bottom:18px">
+                <label class="form-label" style="font-size:.82rem;font-weight:700">Rental Category *</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+                  <button type="button" id="rent-cat-btn-standard" onclick="setRentCategory('standard')"
+                    style="border:2px solid var(--green);background:var(--green-bg);color:var(--green-d);border-radius:10px;padding:12px 10px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:left;transition:all .2s;display:flex;align-items:center;gap:8px">
+                    <span style="font-size:1.1rem">🏠</span>
+                    <div>
+                      <div>Standard Tenancy</div>
+                      <div style="font-size:.7rem;font-weight:400;color:var(--muted)">Yearly basis (most common in Nigeria)</div>
+                    </div>
+                  </button>
+                  <button type="button" id="rent-cat-btn-shortlet" onclick="setRentCategory('shortlet')"
+                    style="border:2px solid var(--border);background:var(--card2);color:var(--text);border-radius:10px;padding:12px 10px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:.82rem;text-align:left;transition:all .2s;display:flex;align-items:center;gap:8px">
+                    <span style="font-size:1.1rem">🌟</span>
+                    <div>
+                      <div>Shortlet</div>
+                      <div style="font-size:.7rem;font-weight:400;color:var(--muted)">Daily pricing — Airbnb style</div>
+                    </div>
+                  </button>
+                </div>
+                <input type="hidden" id="fp-rent-category" value="standard">
               </div>
 
               <div class="form-grid">
                 <div class="form-group">
                   <label class="form-label">Property Type *</label>
-                  <select class="form-select" id="lp-prop-type">
-                    <option>Apartment / Flat</option>
-                    <option>Detached House</option>
-                    <option>Semi-Detached</option>
-                    <option>Terrace / Townhouse</option>
-                    <option>Duplex</option>
-                    <option>Land / Plot</option>
-                    <option>Commercial Space</option>
-                    <option>Warehouse</option>
+                  <select class="form-select" id="fp-prop-type">
+                    <option value="">Select type</option>
+                    <option value="flat">Flat / Apartment</option>
+                    <option value="house">House / Duplex</option>
+                    <option value="room">Self-Contain / Room</option>
+                    <option value="bungalow">Bungalow</option>
+                    <option value="shortlet-apartment">Shortlet Apartment</option>
+                    <option value="shortlet-studio">Studio Apartment</option>
+                    <option value="shortlet-villa">Villa / Luxury Home</option>
+                    <option value="office">Office Space</option>
+                    <option value="shop">Shop / Store</option>
+                    <option value="warehouse">Warehouse</option>
+                    <option value="land">Land</option>
                   </select>
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Property Address *</label>
-                <input class="form-input" id="lp-address" type="text" placeholder="Full address of the property">
-              </div>
-
-              <!-- Map pin -->
-              <div class="form-group">
-                <label class="form-label">Pin Exact Location on Map <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input class="form-input" id="lp-lat" placeholder="Latitude" readonly style="flex:1">
-                  <input class="form-input" id="lp-lng" placeholder="Longitude" readonly style="flex:1">
-                  <button type="button" class="btn btn-primary btn-sm" onclick="openPartnerMapPicker()" style="white-space:nowrap">📍 Pin on Map</button>
+                <!-- Standard: Annual Rent | Shortlet: Price per Night -->
+                <div class="form-group" id="fp-price-standard-wrap">
+                  <label class="form-label">Annual Rent (₦) *</label>
+                  <input class="form-input" id="fp-annual-rent" type="number" placeholder="e.g. 1,200,000">
+                  <div style="font-size:.75rem;color:var(--muted);margin-top:4px">₦ per year — standard Nigerian tenancy</div>
                 </div>
-                <div id="lp-map-status" style="font-size:.75rem;color:var(--muted);margin-top:4px">Pinning helps buyers find your property on the map.</div>
+                <div class="form-group" id="fp-price-shortlet-wrap" style="display:none">
+                  <label class="form-label">Price per Night (₦) *</label>
+                  <input class="form-input" id="fp-nightly-rate" type="number" placeholder="e.g. 35,000">
+                  <div style="font-size:.75rem;color:var(--muted);margin-top:4px">₦ per day / night</div>
+                </div>
+              </div>
+
+              <!-- Standard Tenancy fields -->
+              <div id="fp-standard-fields">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Tenancy Duration *</label>
+                    <select class="form-select" id="fp-rent-frequency">
+                      <option value="annual" selected>Annual — 1 Year (standard)</option>
+                      <option value="biannual">Bi-Annual — 6 Months</option>
+                      <option value="quarterly">Quarterly — 3 Months</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="2years">2 Years</option>
+                      <option value="3years">3 Years</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Advance Payment Required</label>
+                    <select class="form-select" id="fp-advance">
+                      <option value="1year">1 Year Advance</option>
+                      <option value="2years">2 Years Advance</option>
+                      <option value="6months">6 Months Advance</option>
+                      <option value="3months">3 Months Advance</option>
+                      <option value="negotiable">Negotiable</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Shortlet fields -->
+              <div id="fp-shortlet-fields" style="display:none">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Minimum Stay (Nights) *</label>
+                    <select class="form-select" id="fp-min-nights">
+                      <option value="1">1 Night</option>
+                      <option value="2">2 Nights</option>
+                      <option value="3" selected>3 Nights</option>
+                      <option value="5">5 Nights</option>
+                      <option value="7">1 Week</option>
+                      <option value="14">2 Weeks</option>
+                      <option value="30">1 Month</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Maximum Stay (Nights)</label>
+                    <select class="form-select" id="fp-max-nights">
+                      <option value="7">7 Nights</option>
+                      <option value="14">14 Nights</option>
+                      <option value="30" selected>30 Nights</option>
+                      <option value="60">60 Nights</option>
+                      <option value="90">90 Nights</option>
+                      <option value="none">No Limit</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Weekend Rate (₦/night)</label>
+                    <input class="form-input" id="fp-weekend-rate" type="number" placeholder="Leave blank if same as weekday">
+                    <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Optional — Fri/Sat premium pricing</div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Cleaning Fee (₦)</label>
+                    <input class="form-input" id="fp-cleaning-fee" type="number" placeholder="e.g. 10,000 (optional)">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Check-in / Check-out Times</label>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div>
+                      <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">Check-in from</div>
+                      <input class="form-input" id="fp-checkin-time" type="time" value="14:00">
+                    </div>
+                    <div>
+                      <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">Check-out by</div>
+                      <input class="form-input" id="fp-checkout-time" type="time" value="11:00">
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Shortlet House Rules</label>
+                  <textarea class="form-textarea" id="fp-shortlet-rules" placeholder="e.g. No parties or events. No smoking indoors. Quiet hours after 10pm..." rows="2"></textarea>
+                </div>
               </div>
 
               <div class="form-grid">
                 <div class="form-group">
+                  <label class="form-label">Caution / Security Deposit (₦)</label>
+                  <input class="form-input" id="fp-caution-fee" type="number" placeholder="e.g. 250,000 (optional)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Agency Fee (₦)</label>
+                  <input class="form-input" id="fp-agency-fee" type="number" placeholder="e.g. 250,000 (optional)">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">What is included in the rent?</label>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="rent-includes-wrap">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer"><input type="checkbox" id="ri-water" value="Water"> Water</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer"><input type="checkbox" id="ri-electricity" value="Electricity"> Electricity</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer"><input type="checkbox" id="ri-security" value="Security"> Security</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer"><input type="checkbox" id="ri-internet" value="Internet"> Internet</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer"><input type="checkbox" id="ri-waste" value="Waste Disposal"> Waste Disposal</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;cursor:pointer"><input type="checkbox" id="ri-parking" value="Parking"> Parking</label>
+                </div>
+              </div>
+
+              <!-- Location -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📍 Location</div>
+              <div class="form-grid">
+                <div class="form-group">
                   <label class="form-label">State *</label>
-                  <select class="form-select" id="lp-state">
-                    <option value="">— Select State —</option>
-                    <option value="abia">Abia</option><option value="adamawa">Adamawa</option>
-                    <option value="akwa_ibom">Akwa Ibom</option><option value="anambra">Anambra</option>
-                    <option value="bauchi">Bauchi</option><option value="bayelsa">Bayelsa</option>
-                    <option value="benue">Benue</option><option value="borno">Borno</option>
-                    <option value="cross_river">Cross River</option><option value="delta">Delta</option>
-                    <option value="ebonyi">Ebonyi</option><option value="edo">Edo</option>
-                    <option value="ekiti">Ekiti</option><option value="enugu">Enugu</option>
-                    <option value="fct">FCT - Abuja</option><option value="gombe">Gombe</option>
-                    <option value="imo">Imo</option><option value="jigawa">Jigawa</option>
-                    <option value="kaduna">Kaduna</option><option value="kano">Kano</option>
-                    <option value="katsina">Katsina</option><option value="kebbi">Kebbi</option>
-                    <option value="kogi">Kogi</option><option value="kwara">Kwara</option>
-                    <option value="lagos">Lagos</option><option value="nasarawa">Nasarawa</option>
-                    <option value="niger">Niger</option><option value="ogun">Ogun</option>
-                    <option value="ondo">Ondo</option><option value="osun">Osun</option>
-                    <option value="oyo">Oyo</option><option value="plateau">Plateau</option>
-                    <option value="rivers">Rivers</option><option value="sokoto">Sokoto</option>
-                    <option value="taraba">Taraba</option><option value="yobe">Yobe</option>
-                    <option value="zamfara">Zamfara</option>
+                  <select class="form-select" id="fp-state" onchange="populateLGAs('fp-state','fp-lga')">
+                    <option value="">Select state</option>
+                    <option value="abia">Abia</option><option value="adamawa">Adamawa</option><option value="akwa_ibom">Akwa Ibom</option><option value="anambra">Anambra</option><option value="bauchi">Bauchi</option><option value="bayelsa">Bayelsa</option><option value="benue">Benue</option><option value="borno">Borno</option><option value="cross_river">Cross River</option><option value="delta">Delta</option><option value="ebonyi">Ebonyi</option><option value="edo">Edo</option><option value="ekiti">Ekiti</option><option value="enugu">Enugu</option><option value="fct">FCT - Abuja</option><option value="gombe">Gombe</option><option value="imo">Imo</option><option value="jigawa">Jigawa</option><option value="kaduna">Kaduna</option><option value="kano">Kano</option><option value="katsina">Katsina</option><option value="kebbi">Kebbi</option><option value="kogi">Kogi</option><option value="kwara">Kwara</option><option value="lagos">Lagos</option><option value="nasarawa">Nasarawa</option><option value="niger">Niger</option><option value="ogun">Ogun</option><option value="ondo">Ondo</option><option value="osun">Osun</option><option value="oyo">Oyo</option><option value="plateau">Plateau</option><option value="rivers">Rivers</option><option value="sokoto">Sokoto</option><option value="taraba">Taraba</option><option value="yobe">Yobe</option><option value="zamfara">Zamfara</option>
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">LGA *</label>
-                  <select class="form-select" id="lp-lga" disabled>
+                  <label class="form-label">LGA / Area *</label>
+                  <select class="form-select" id="fp-lga" disabled>
                     <option value="">— Select State first —</option>
                   </select>
                 </div>
               </div>
-
-              <!-- Unit Structure -->
               <div class="form-group">
-                <label class="form-label">Unit Structure *</label>
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
-                  <button type="button" class="p-unit-btn" data-val="single" onclick="partnerSelectUnitType('single')">
-                    🏠 Single Unit
-                    <span style="display:block;font-size:.72rem;font-weight:400;opacity:.7;margin-top:2px">One property, one price</span>
-                  </button>
-                  <button type="button" class="p-unit-btn" data-val="multi" onclick="partnerSelectUnitType('multi')">
-                    🏢 Multi-Unit
-                    <span style="display:block;font-size:.72rem;font-weight:400;opacity:.7;margin-top:2px">Multiple rooms / unit types</span>
-                  </button>
-                </div>
-                <input type="hidden" id="lp-unit-structure" value="">
+                <label class="form-label">Full Address *</label>
+                <input class="form-input" id="fp-address" placeholder="e.g. 12 Akin Adesola Street, Lekki Phase 1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nearest Landmark</label>
+                <input class="form-input" id="fp-landmark" placeholder="e.g. Close to Shoprite, behind NNPC filling station">
               </div>
 
-              <!-- Single unit panel -->
-              <div id="lp-single-panel" style="display:none">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label class="form-label">Bedrooms</label>
-                    <select class="form-select" id="lp-bedrooms">
-                      <option value="studio">Studio / Self-contain</option>
-                      <option value="1">1 Bedroom</option><option value="2">2 Bedrooms</option>
-                      <option value="3">3 Bedrooms</option><option value="4">4 Bedrooms</option>
-                      <option value="5+">5+ Bedrooms</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Bathrooms</label>
-                    <select class="form-select" id="lp-bathrooms">
-                      <option value="1">1</option><option value="2">2</option>
-                      <option value="3">3</option><option value="4+">4+</option>
-                    </select>
-                  </div>
+              <!-- Property details -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🏗️ Property Details</div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label">Bedrooms</label>
+                  <input class="form-input" id="fp-beds" type="number" min="0" placeholder="0">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Price (₦) *</label>
-                  <input class="form-input" id="lp-price" type="number" placeholder="e.g. 2,500,000">
+                  <label class="form-label">Bathrooms</label>
+                  <input class="form-input" id="fp-baths" type="number" min="0" placeholder="0">
                 </div>
-              </div>
-
-              <!-- Multi-unit panel -->
-              <div id="lp-multi-panel" style="display:none">
                 <div class="form-group">
-                  <label class="form-label">Total Number of Units *</label>
-                  <input class="form-input" id="lp-total-units" type="number" min="1" placeholder="e.g. 12" style="max-width:180px">
+                  <label class="form-label">Toilets</label>
+                  <input class="form-input" id="fp-toilets" type="number" min="0" placeholder="0">
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                  <label class="form-label" style="margin:0">Unit Types &amp; Pricing</label>
-                  <button type="button" class="btn btn-outline btn-sm" onclick="partnerAddUnitRow()">＋ Add Unit Type</button>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Size (sqm)</label>
+                  <input class="form-input" id="fp-sqm" type="number" min="0" placeholder="e.g. 120">
                 </div>
-                <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">
-                  Add each unit type (e.g. Room, Self-contain, 1-Bed, 2-Bed…). Mix types freely.
+                <div class="form-group">
+                  <label class="form-label">Year Built</label>
+                  <input class="form-input" id="fp-year-built" type="number" min="1900" max="2026" placeholder="e.g. 2018">
                 </div>
-                <div id="lp-units-list" style="display:flex;flex-direction:column;gap:10px"></div>
-                <div id="lp-units-summary" style="display:none;margin-top:14px;background:var(--green-bg);border-radius:8px;padding:12px 14px;font-size:.82rem;color:var(--green-d);border:1px solid var(--green-l)"></div>
-                <input type="hidden" id="lp-units-json" value="[]">
-                <input type="hidden" id="lp-price" value="">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-textarea" id="fp-desc" placeholder="Describe the property — layout, condition, neighbourhood, access roads, security..." rows="4"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amenities (comma-separated)</label>
+                <input class="form-input" id="fp-amenities" placeholder="e.g. Parking, Security, Generator, Swimming Pool, CCTV">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Furnishing Status</label>
+                <select class="form-select" id="fp-furnishing">
+                  <option value="unfurnished">Unfurnished</option>
+                  <option value="semi-furnished">Semi-Furnished</option>
+                  <option value="furnished">Fully Furnished</option>
+                </select>
               </div>
 
-              <!-- Shared description & photos -->
-              <div class="form-group" id="lp-shared-desc-wrap">
-                <label class="form-label">Property Description *</label>
-                <textarea class="form-textarea" id="lp-desc" rows="4" placeholder="Describe the property — condition, features, amenities, access, neighbourhood…"></textarea>
+              <!-- Tenant requirements -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">👤 Tenant Requirements</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Who can rent this property?</label>
+                  <select class="form-select" id="fp-tenant-type">
+                    <option value="anyone">Anyone</option>
+                    <option value="family">Family only</option>
+                    <option value="single">Single occupant</option>
+                    <option value="corporate">Corporate / Company</option>
+                    <option value="students">Students</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Pets Allowed?</label>
+                  <select class="form-select" id="fp-pets">
+                    <option value="no">No Pets</option>
+                    <option value="yes">Pets Allowed</option>
+                    <option value="negotiable">Negotiable</option>
+                  </select>
+                </div>
               </div>
 
-              <div class="form-group" id="lp-shared-photo-wrap">
-                <label class="form-label">Property Photos <span style="font-weight:400;color:var(--muted)">(min. 4 recommended)</span></label>
-                <div style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--muted)"
-                     onclick="document.getElementById('upload-prop-photos').click()">
-                  <input type="file" accept="image/*" multiple style="display:none" id="upload-prop-photos" onchange="partnerHandlePropPhotos(this)">
-                  <div style="font-size:1.8rem;margin-bottom:8px">📸</div>
-                  <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">Click to upload property photos</div>
-                  <div style="font-size:.75rem">Images upload to Supabase · Min. 4 recommended</div>
-                  <div id="prop-upload-status" style="margin-top:8px;font-size:.78rem;color:var(--green);display:none"></div>
+              <!-- Media -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📸 Media</div>
+              <div class="form-group">
+                <label class="form-label">Main Image URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="form-input" id="fp-img" placeholder="https://... or use Upload button" style="flex:1">
+                  <button type="button" onclick="ownerUpload('fp-img','fp-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
                 </div>
-                <div id="prev-prop-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
-                <input type="hidden" id="list-img-main" value="">
-                <input type="hidden" id="list-images-json" value="[]">
+                <div id="fp-img-preview" style="display:none;margin-top:6px">
+                  <img id="fp-img-preview-img" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px">
+                </div>
               </div>
 
-              <div style="display:flex;justify-content:flex-end;margin-top:8px">
-                <button class="btn btn-primary" onclick="partnerListStep(2)">Continue to Documents →</button>
+              <!-- Rental Agreement -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📄 Tenancy Agreement</div>
+              <div class="form-group">
+                <label class="form-label">Upload Tenancy Agreement <span style="color:var(--muted);font-weight:400">(optional — PDF/image)</span></label>
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;background:var(--card2)">
+                  <div style="font-size:1.5rem;margin-bottom:6px">📄</div>
+                  <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Upload your standard tenancy agreement template</div>
+                  <button type="button" onclick="ownerUpload('fp-rent-agreement','fp-rent-agreement-preview')" class="btn btn-outline btn-sm">📎 Upload Agreement</button>
+                  <input type="hidden" id="fp-rent-agreement">
+                  <div id="fp-rent-agreement-preview" style="display:none;margin-top:8px;font-size:.82rem;color:var(--green);font-weight:600">✅ Agreement uploaded</div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <!-- ── STEP 2: Documents ── -->
-          <div id="p-list-step-2" style="display:none">
-            <div class="card">
-              <div class="card-body">
-                <h3 style="font-size:.95rem;font-weight:800;margin-bottom:4px">📄 Title Documents</h3>
-                <p style="font-size:.82rem;color:var(--muted);margin-bottom:20px">Upload applicable title documents. Our team verifies these before your listing is approved.</p>
-
-                <div style="display:flex;flex-direction:column;gap:14px">
-                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-                    <div style="flex:1">
-                      <div style="font-weight:700;font-size:.88rem">Certificate of Occupancy (C of O)</div>
-                      <div style="font-size:.75rem;color:var(--muted)">Required for most residential and commercial properties</div>
-                      <div id="prev-doc-coo" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
-                    </div>
-                    <input type="file" accept="image/*,application/pdf" id="doc-coo" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-coo')">
-                    <label for="doc-coo" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
-                  </div>
-                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-                    <div style="flex:1">
-                      <div style="font-weight:700;font-size:.88rem">Survey Plan</div>
-                      <div style="font-size:.75rem;color:var(--muted)">Boundary and land area confirmation</div>
-                      <div id="prev-doc-survey" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
-                    </div>
-                    <input type="file" accept="image/*,application/pdf" id="doc-survey" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-survey')">
-                    <label for="doc-survey" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
-                  </div>
-                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-                    <div style="flex:1">
-                      <div style="font-weight:700;font-size:.88rem">Deed of Assignment / Governor's Consent</div>
-                      <div style="font-size:.75rem;color:var(--muted)">Required if property was transferred from a previous owner</div>
-                      <div id="prev-doc-deed" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
-                    </div>
-                    <input type="file" accept="image/*,application/pdf" id="doc-deed" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-deed')">
-                    <label for="doc-deed" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
-                  </div>
-                  <div style="background:var(--card2);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-                    <div style="flex:1">
-                      <div style="font-weight:700;font-size:.88rem">Excision / Gazette (if applicable)</div>
-                      <div style="font-size:.75rem;color:var(--muted)">For community or excised land</div>
-                      <div id="prev-doc-excision" style="font-size:.72rem;color:var(--green);margin-top:4px"></div>
-                    </div>
-                    <input type="file" accept="image/*,application/pdf" id="doc-excision" style="display:none" onchange="partnerPreviewDoc(this,'prev-doc-excision')">
-                    <label for="doc-excision" class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 Upload</label>
-                  </div>
-                </div>
-
-                <div style="background:var(--green-bg);border-radius:8px;padding:12px 14px;margin-top:20px;border:1px solid var(--green-l)">
-                  <div style="font-size:.83rem;color:var(--green);font-weight:600">⏱ Verification SLA: 3–5 business days</div>
-                  <div style="font-size:.78rem;color:var(--green);margin-top:4px">Our team will review your documents and contact you if anything is missing.</div>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;margin-top:20px">
-                  <button class="btn btn-outline" onclick="partnerListStep(1)">← Back</button>
-                  <button class="btn btn-primary" onclick="partnerListStep(3)">Continue to Consent →</button>
-                </div>
+              <div class="form-group">
+                <label class="form-label">Notes for Admin (optional)</label>
+                <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know about this listing..." rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Rental Listing →</button>
+                <button class="btn btn-outline" onclick="ownerNavTo('my-properties',null)">Cancel</button>
               </div>
             </div>
           </div>
 
-          <!-- ── STEP 3: Consent & Submit ── -->
-          <div id="p-list-step-3" style="display:none">
-            <div class="card">
-              <div class="card-body">
-                <h3 style="font-size:.95rem;font-weight:800;margin-bottom:4px">✍️ Consent Agreement</h3>
-                <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Read and confirm the GeoEstate Platform Consent Agreement.</p>
-
-                <div style="background:var(--card2);border-radius:10px;padding:16px;max-height:260px;overflow-y:auto;font-size:.8rem;line-height:1.7;color:var(--muted);margin-bottom:20px">
-                  <strong>GEOESTATE PLATFORM CONSENT AGREEMENT — PARTNER / PROPERTY OWNER</strong><br><br>
-                  By submitting this listing, I confirm and agree to the following:<br><br>
-                  <strong>1. Property Ownership:</strong> I confirm I am the lawful owner or authorized representative of the listed property, and that all title documents submitted are genuine.<br><br>
-                  <strong>2. Platform Fee:</strong> I agree to GeoEstate's 10% platform service fee, deducted upon successful deal close.<br><br>
-                  <strong>3. No Off-Platform Payments:</strong> I agree NOT to request, accept, or facilitate any payment outside the GeoEstate escrow system.<br><br>
-                  <strong>4. Accuracy:</strong> All property information, photos, and pricing are accurate. Misleading listings will be removed immediately.<br><br>
-                  <strong>5. Law Enforcement Cooperation:</strong> I consent to GeoEstate sharing my verified identity and transaction records with the NPF CID in the event of fraud or dispute.<br><br>
-                  <strong>6. Data Protection:</strong> I consent to GeoEstate storing my verification status and property records per the Nigeria Data Protection Act 2023.
+          <!-- ═══════════════════════════════════════ -->
+          <!-- SELL / BUY FORM -->
+          <!-- ═══════════════════════════════════════ -->
+          <div id="form-section-buy" class="card" style="display:none">
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+                <span style="font-size:1.3rem">🏠</span>
+                <div>
+                  <div style="font-weight:700;font-size:.95rem">Sale Listing</div>
+                  <div style="font-size:.78rem;color:var(--muted)">Outright purchase — full ownership transfer to buyer</div>
                 </div>
+              </div>
 
-                <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem">
-                    <input type="checkbox" id="partner-consent-1" style="margin-top:2px;accent-color:var(--green)">
-                    <span>I have read and understood the GeoEstate Platform Consent Agreement</span>
-                  </label>
-                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem">
-                    <input type="checkbox" id="partner-consent-2" style="margin-top:2px;accent-color:var(--green)">
-                    <span>I confirm all property information and documents are accurate and genuine</span>
-                  </label>
-                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem">
-                    <input type="checkbox" id="partner-consent-3" style="margin-top:2px;accent-color:var(--green)">
-                    <span>I agree to GeoEstate's 10% platform fee on successful transactions</span>
-                  </label>
+              <div class="form-group">
+                <label class="form-label">Property Title *</label>
+                <input class="form-input" id="buy-title" placeholder="e.g. 4-Bedroom Detached Duplex in Banana Island">
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Property Type *</label>
+                  <select class="form-select" id="buy-prop-type">
+                    <option value="">Select type</option>
+                    <option value="flat">Flat / Apartment</option>
+                    <option value="house">House / Duplex</option>
+                    <option value="bungalow">Bungalow</option>
+                    <option value="terraced">Terraced House</option>
+                    <option value="detached">Detached House</option>
+                    <option value="semi-detached">Semi-Detached</option>
+                    <option value="mansion">Mansion / Villa</option>
+                    <option value="office">Commercial Office</option>
+                    <option value="shop">Shop / Plaza</option>
+                    <option value="warehouse">Warehouse / Factory</option>
+                    <option value="land">Land / Plot</option>
+                    <option value="estate">Estate Unit</option>
+                  </select>
                 </div>
-
-                <div id="p-submit-error" style="display:none;background:var(--red-bg);border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--red);margin-bottom:12px;border:1px solid #fecaca"></div>
-
-                <div style="display:flex;justify-content:space-between">
-                  <button class="btn btn-outline" onclick="partnerListStep(2)">← Back</button>
-                  <button class="btn btn-primary" id="p-submit-btn" onclick="partnerSubmitListing()">Submit Property →</button>
+                <div class="form-group">
+                  <label class="form-label">Asking Price (₦) *</label>
+                  <input class="form-input" id="buy-sale-price" type="number" placeholder="e.g. 45,000,000">
                 </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Is the price negotiable?</label>
+                  <select class="form-select" id="buy-negotiable">
+                    <option value="no">Fixed Price — Not Negotiable</option>
+                    <option value="yes">Open to Negotiation</option>
+                    <option value="installment">Installment Payment Available</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Property Tenure</label>
+                  <select class="form-select" id="buy-tenure">
+                    <option value="freehold">Freehold (Outright Ownership)</option>
+                    <option value="leasehold">Leasehold</option>
+                    <option value="right-of-occupancy">Right of Occupancy (C of O)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Location -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📍 Location</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">State *</label>
+                  <select class="form-select" id="buy-state" onchange="populateLGAs('buy-state','buy-lga')">
+                    <option value="">Select state</option>
+                    <option value="abia">Abia</option><option value="adamawa">Adamawa</option><option value="akwa_ibom">Akwa Ibom</option><option value="anambra">Anambra</option><option value="bauchi">Bauchi</option><option value="bayelsa">Bayelsa</option><option value="benue">Benue</option><option value="borno">Borno</option><option value="cross_river">Cross River</option><option value="delta">Delta</option><option value="ebonyi">Ebonyi</option><option value="edo">Edo</option><option value="ekiti">Ekiti</option><option value="enugu">Enugu</option><option value="fct">FCT - Abuja</option><option value="gombe">Gombe</option><option value="imo">Imo</option><option value="jigawa">Jigawa</option><option value="kaduna">Kaduna</option><option value="kano">Kano</option><option value="katsina">Katsina</option><option value="kebbi">Kebbi</option><option value="kogi">Kogi</option><option value="kwara">Kwara</option><option value="lagos">Lagos</option><option value="nasarawa">Nasarawa</option><option value="niger">Niger</option><option value="ogun">Ogun</option><option value="ondo">Ondo</option><option value="osun">Osun</option><option value="oyo">Oyo</option><option value="plateau">Plateau</option><option value="rivers">Rivers</option><option value="sokoto">Sokoto</option><option value="taraba">Taraba</option><option value="yobe">Yobe</option><option value="zamfara">Zamfara</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">LGA / Area *</label>
+                  <select class="form-select" id="buy-lga" disabled>
+                    <option value="">— Select State first —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Address *</label>
+                <input class="form-input" id="buy-address" placeholder="e.g. 12 Bourdillon Road, Ikoyi, Lagos">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nearest Landmark</label>
+                <input class="form-input" id="buy-landmark" placeholder="e.g. Close to Falomo Bridge, opposite Silverbird Cinemas">
+              </div>
+
+              <!-- Property Details -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🏗️ Property Details</div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label">Bedrooms</label>
+                  <input class="form-input" id="buy-beds" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bathrooms</label>
+                  <input class="form-input" id="buy-baths" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Toilets</label>
+                  <input class="form-input" id="buy-toilets" type="number" min="0" placeholder="0">
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Land Size (sqm)</label>
+                  <input class="form-input" id="buy-land-sqm" type="number" min="0" placeholder="e.g. 500">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Building Size (sqm)</label>
+                  <input class="form-input" id="buy-sqm" type="number" min="0" placeholder="e.g. 350">
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Year Built</label>
+                  <input class="form-input" id="buy-year-built" type="number" min="1900" max="2026" placeholder="e.g. 2020">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Number of Floors / Storeys</label>
+                  <input class="form-input" id="buy-floors" type="number" min="0" placeholder="e.g. 2">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-textarea" id="buy-desc" placeholder="Describe the property — construction quality, finishes, estate facilities, investment potential, access..." rows="5"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amenities & Features (comma-separated)</label>
+                <input class="form-input" id="buy-amenities" placeholder="e.g. Swimming Pool, BQ, Boys Quarter, Smart Home, Solar, Inverter">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Furnishing Status</label>
+                <select class="form-select" id="buy-furnishing">
+                  <option value="unfurnished">Unfurnished</option>
+                  <option value="semi-furnished">Semi-Furnished</option>
+                  <option value="furnished">Fully Furnished</option>
+                </select>
+              </div>
+
+              <!-- Legal / Ownership Docs — COMPULSORY (at least 1) -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">
+                ⚖️ Legal Documents <span style="color:var(--red);font-size:.72rem;font-weight:700;background:var(--red-bg);padding:2px 8px;border-radius:999px;margin-left:6px">At least 1 required</span>
+              </div>
+              <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Upload proof of ownership to proceed. At least one document is <strong>mandatory</strong> for sale listings.</p>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="buy-docs-grid">
+                <!-- Doc 1: C of O -->
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:14px;background:var(--card2)" id="buy-doc-coo-wrap">
+                  <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">📜 Certificate of Occupancy (C of O)</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Government issued land / property certificate</div>
+                  <button type="button" onclick="ownerDocUpload('buy-doc-coo','buy-doc-coo-status')" class="btn btn-outline btn-sm" style="width:100%">📎 Upload C of O</button>
+                  <input type="hidden" id="buy-doc-coo">
+                  <div id="buy-doc-coo-status" style="display:none;margin-top:8px;font-size:.78rem;color:var(--green);font-weight:600">✅ Uploaded</div>
+                </div>
+                <!-- Doc 2: Deed of Assignment -->
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:14px;background:var(--card2)" id="buy-doc-deed-wrap">
+                  <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">📝 Deed of Assignment</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Transfer of ownership from seller to buyer</div>
+                  <button type="button" onclick="ownerDocUpload('buy-doc-deed','buy-doc-deed-status')" class="btn btn-outline btn-sm" style="width:100%">📎 Upload Deed</button>
+                  <input type="hidden" id="buy-doc-deed">
+                  <div id="buy-doc-deed-status" style="display:none;margin-top:8px;font-size:.78rem;color:var(--green);font-weight:600">✅ Uploaded</div>
+                </div>
+                <!-- Doc 3: Survey Plan -->
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:14px;background:var(--card2)" id="buy-doc-survey-wrap">
+                  <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">🗺️ Survey Plan</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Registered land survey document</div>
+                  <button type="button" onclick="ownerDocUpload('buy-doc-survey','buy-doc-survey-status')" class="btn btn-outline btn-sm" style="width:100%">📎 Upload Survey</button>
+                  <input type="hidden" id="buy-doc-survey">
+                  <div id="buy-doc-survey-status" style="display:none;margin-top:8px;font-size:.78rem;color:var(--green);font-weight:600">✅ Uploaded</div>
+                </div>
+                <!-- Doc 4: Building Approval / Permit -->
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:14px;background:var(--card2)" id="buy-doc-approval-wrap">
+                  <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">🏛️ Building Approval / Permit</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Planning or development permit</div>
+                  <button type="button" onclick="ownerDocUpload('buy-doc-approval','buy-doc-approval-status')" class="btn btn-outline btn-sm" style="width:100%">📎 Upload Permit</button>
+                  <input type="hidden" id="buy-doc-approval">
+                  <div id="buy-doc-approval-status" style="display:none;margin-top:8px;font-size:.78rem;color:var(--green);font-weight:600">✅ Uploaded</div>
+                </div>
+              </div>
+              <div id="buy-doc-error" style="display:none;margin-top:10px;color:var(--red);font-size:.82rem;font-weight:600;background:var(--red-bg);padding:10px 14px;border-radius:8px">⚠️ Please upload at least one legal document before submitting a sale listing.</div>
+
+              <!-- Sale Agreement -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📑 Sale Agreement</div>
+              <div class="form-group">
+                <label class="form-label">Upload Sale / Purchase Agreement <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;background:var(--card2)">
+                  <div style="font-size:1.5rem;margin-bottom:6px">📑</div>
+                  <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Upload the Sale and Purchase Agreement (SPA) template</div>
+                  <button type="button" onclick="ownerDocUpload('buy-sale-agreement','buy-sale-agreement-status')" class="btn btn-outline btn-sm">📎 Upload Sale Agreement</button>
+                  <input type="hidden" id="buy-sale-agreement">
+                  <div id="buy-sale-agreement-status" style="display:none;margin-top:8px;font-size:.82rem;color:var(--green);font-weight:600">✅ Sale Agreement uploaded</div>
+                </div>
+              </div>
+
+              <!-- Media -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📸 Media</div>
+              <div class="form-group">
+                <label class="form-label">Main Image URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="form-input" id="buy-img" placeholder="https://... or use Upload button" style="flex:1">
+                  <button type="button" onclick="ownerUpload('buy-img','buy-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
+                </div>
+                <div id="buy-img-preview" style="display:none;margin-top:6px">
+                  <img id="buy-img-preview-img" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Notes for Admin (optional)</label>
+                <textarea class="form-textarea" id="buy-notes" placeholder="Any notes, special conditions, or instructions for the admin..." rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Sale Listing →</button>
+                <button class="btn btn-outline" onclick="ownerNavTo('my-properties',null)">Cancel</button>
               </div>
             </div>
           </div>
 
-        </div><!-- /max-width -->
+          <!-- ═══════════════════════════════════════ -->
+          <!-- LEASE FORM -->
+          <!-- ═══════════════════════════════════════ -->
+          <div id="form-section-lease" class="card" style="display:none">
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+                <span style="font-size:1.3rem">📋</span>
+                <div>
+                  <div style="font-weight:700;font-size:.95rem">Lease Listing</div>
+                  <div style="font-size:.78rem;color:var(--muted)">Long-term use rights — ownership remains with the landlord</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Property Title *</label>
+                <input class="form-input" id="lease-title" placeholder="e.g. Commercial Property on Adeola Odeku for Lease">
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Property Type *</label>
+                  <select class="form-select" id="lease-prop-type">
+                    <option value="">Select type</option>
+                    <option value="office">Office Space</option>
+                    <option value="shop">Shop / Retail Space</option>
+                    <option value="warehouse">Warehouse / Storage</option>
+                    <option value="factory">Factory / Industrial</option>
+                    <option value="land">Land / Plot</option>
+                    <option value="plaza">Plaza / Mall Unit</option>
+                    <option value="residential">Residential Property</option>
+                    <option value="mixed-use">Mixed-Use Building</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Lease Type</label>
+                  <select class="form-select" id="lease-type">
+                    <option value="commercial">Commercial Lease</option>
+                    <option value="residential">Residential Lease</option>
+                    <option value="ground">Ground Lease (Land only)</option>
+                    <option value="finance">Finance Lease</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Pricing -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">💰 Lease Pricing</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Lease Price / Annual Fee (₦) *</label>
+                  <input class="form-input" id="lease-price" type="number" placeholder="e.g. 3,600,000">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Payment Frequency</label>
+                  <select class="form-select" id="lease-payment-freq">
+                    <option value="annual">Annual (Yearly)</option>
+                    <option value="biannual">Bi-Annual (Every 6 months)</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="lump-sum">Lump Sum (One-off)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Lease Duration (Years) *</label>
+                  <select class="form-select" id="lease-duration">
+                    <option value="1">1 Year</option>
+                    <option value="2">2 Years</option>
+                    <option value="3">3 Years</option>
+                    <option value="5">5 Years</option>
+                    <option value="10">10 Years</option>
+                    <option value="15">15 Years</option>
+                    <option value="20">20 Years</option>
+                    <option value="25">25 Years</option>
+                    <option value="50">50 Years</option>
+                    <option value="99">99 Years</option>
+                    <option value="custom">Custom (specify in notes)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Lease Commencement Date</label>
+                  <input class="form-input" id="lease-start-date" type="date">
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Renewal Option?</label>
+                  <select class="form-select" id="lease-renewal">
+                    <option value="no">No Renewal Option</option>
+                    <option value="yes">Renewal Option Available</option>
+                    <option value="negotiable">Negotiable</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Escalation Clause (% annual increase)</label>
+                  <input class="form-input" id="lease-escalation" type="number" min="0" max="100" placeholder="e.g. 5 (optional)">
+                </div>
+              </div>
+
+              <!-- Location -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📍 Location</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">State *</label>
+                  <select class="form-select" id="lease-state" onchange="populateLGAs('lease-state','lease-lga')">
+                    <option value="">Select state</option>
+                    <option value="abia">Abia</option><option value="adamawa">Adamawa</option><option value="akwa_ibom">Akwa Ibom</option><option value="anambra">Anambra</option><option value="bauchi">Bauchi</option><option value="bayelsa">Bayelsa</option><option value="benue">Benue</option><option value="borno">Borno</option><option value="cross_river">Cross River</option><option value="delta">Delta</option><option value="ebonyi">Ebonyi</option><option value="edo">Edo</option><option value="ekiti">Ekiti</option><option value="enugu">Enugu</option><option value="fct">FCT - Abuja</option><option value="gombe">Gombe</option><option value="imo">Imo</option><option value="jigawa">Jigawa</option><option value="kaduna">Kaduna</option><option value="kano">Kano</option><option value="katsina">Katsina</option><option value="kebbi">Kebbi</option><option value="kogi">Kogi</option><option value="kwara">Kwara</option><option value="lagos">Lagos</option><option value="nasarawa">Nasarawa</option><option value="niger">Niger</option><option value="ogun">Ogun</option><option value="ondo">Ondo</option><option value="osun">Osun</option><option value="oyo">Oyo</option><option value="plateau">Plateau</option><option value="rivers">Rivers</option><option value="sokoto">Sokoto</option><option value="taraba">Taraba</option><option value="yobe">Yobe</option><option value="zamfara">Zamfara</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">LGA / Area *</label>
+                  <select class="form-select" id="lease-lga" disabled>
+                    <option value="">— Select State first —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Address *</label>
+                <input class="form-input" id="lease-address" placeholder="e.g. Plot 14, Adeola Odeku Street, Victoria Island, Lagos">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nearest Landmark</label>
+                <input class="form-input" id="lease-landmark" placeholder="e.g. Opposite EcoBank HQ, beside GTB branch">
+              </div>
+
+              <!-- Property Details -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🏗️ Property Specifications</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Total Land Area (sqm)</label>
+                  <input class="form-input" id="lease-land-sqm" type="number" placeholder="e.g. 1000">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Usable / Built-up Area (sqm)</label>
+                  <input class="form-input" id="lease-sqm" type="number" placeholder="e.g. 750">
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Number of Floors</label>
+                  <input class="form-input" id="lease-floors" type="number" min="0" placeholder="e.g. 3">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Parking Spaces</label>
+                  <input class="form-input" id="lease-parking" type="number" min="0" placeholder="e.g. 10">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current Usage / Condition</label>
+                <select class="form-select" id="lease-condition">
+                  <option value="new">Brand New / Newly Built</option>
+                  <option value="good">Good Condition</option>
+                  <option value="fair">Fair Condition — minor repairs</option>
+                  <option value="shell">Shell (not finished)</option>
+                  <option value="bare-land">Bare Land</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Permitted Use / Activity</label>
+                <input class="form-input" id="lease-permitted-use" placeholder="e.g. Office use, Light manufacturing, Retail, Residential">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-textarea" id="lease-desc" placeholder="Describe the property in detail — structure, current state, facilities, access, zoning, any restrictions..." rows="5"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Facilities & Amenities (comma-separated)</label>
+                <input class="form-input" id="lease-amenities" placeholder="e.g. 3-phase power, Borehole, Generator, Loading bay, Perimeter fence">
+              </div>
+
+              <!-- Lease Agreement — required for lease -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📋 Lease Agreement</div>
+              <div class="form-group">
+                <label class="form-label">Upload Lease Agreement <span style="color:var(--muted);font-weight:400">(optional — PDF/image)</span></label>
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;background:var(--card2)">
+                  <div style="font-size:1.5rem;margin-bottom:6px">📋</div>
+                  <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Upload the Lease Agreement document for this property</div>
+                  <button type="button" onclick="ownerDocUpload('lease-agreement','lease-agreement-status')" class="btn btn-outline btn-sm">📎 Upload Lease Agreement</button>
+                  <input type="hidden" id="lease-agreement">
+                  <div id="lease-agreement-status" style="display:none;margin-top:8px;font-size:.82rem;color:var(--green);font-weight:600">✅ Lease Agreement uploaded</div>
+                </div>
+              </div>
+
+              <!-- Legal docs for lease (optional) -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">⚖️ Supporting Legal Documents <span style="font-size:.72rem;font-weight:400;color:var(--muted)">(optional)</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:14px;background:var(--card2)">
+                  <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">📜 C of O / Title Document</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Proof of ownership</div>
+                  <button type="button" onclick="ownerDocUpload('lease-doc-coo','lease-doc-coo-status')" class="btn btn-outline btn-sm" style="width:100%">📎 Upload</button>
+                  <input type="hidden" id="lease-doc-coo">
+                  <div id="lease-doc-coo-status" style="display:none;margin-top:8px;font-size:.78rem;color:var(--green);font-weight:600">✅ Uploaded</div>
+                </div>
+                <div style="border:2px dashed var(--border);border-radius:10px;padding:14px;background:var(--card2)">
+                  <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">🗺️ Survey Plan</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Registered survey document</div>
+                  <button type="button" onclick="ownerDocUpload('lease-doc-survey','lease-doc-survey-status')" class="btn btn-outline btn-sm" style="width:100%">📎 Upload</button>
+                  <input type="hidden" id="lease-doc-survey">
+                  <div id="lease-doc-survey-status" style="display:none;margin-top:8px;font-size:.78rem;color:var(--green);font-weight:600">✅ Uploaded</div>
+                </div>
+              </div>
+
+              <!-- Media -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📸 Media</div>
+              <div class="form-group">
+                <label class="form-label">Main Image URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="form-input" id="lease-img" placeholder="https://... or use Upload button" style="flex:1">
+                  <button type="button" onclick="ownerUpload('lease-img','lease-img-preview')" class="btn btn-outline btn-sm" style="white-space:nowrap">📸 Upload</button>
+                </div>
+                <div id="lease-img-preview" style="display:none;margin-top:6px">
+                  <img id="lease-img-preview-img" src="" style="width:100%;height:140px;object-fit:cover;border-radius:8px">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Notes for Admin (optional)</label>
+                <textarea class="form-textarea" id="lease-notes" placeholder="Special lease conditions, restrictions, or anything else the admin should know..." rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:4px">
+                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Lease Listing →</button>
+                <button class="btn btn-outline" onclick="ownerNavTo('my-properties',null)">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- max-width -->
       </div><!-- /page-add-property -->
 
 
@@ -1953,6 +2451,276 @@ function confirmPartnerMapPick() {
 }
 
 // ── Submit ────────────────────────────────────────────────────
+// ── Transaction Type Switcher ─────────────────────────────────
+function setTransactionType(type) {
+  // Update hidden input
+  document.getElementById('fp-listing-type').value = type;
+
+  // Highlight the active button
+  ['rent','buy','lease'].forEach(t => {
+    const btn = document.getElementById('txn-btn-' + t);
+    if (!btn) return;
+    if (t === type) {
+      btn.style.border = '2px solid var(--green)';
+      btn.style.background = 'var(--green-bg)';
+      btn.style.color = 'var(--green-d)';
+    } else {
+      btn.style.border = '2px solid var(--border)';
+      btn.style.background = 'var(--card2)';
+      btn.style.color = 'var(--text)';
+    }
+  });
+
+  // Show only the relevant form section
+  ['rent','buy','lease'].forEach(t => {
+    const sec = document.getElementById('form-section-' + t);
+    if (sec) sec.style.display = (t === type) ? 'block' : 'none';
+  });
+}
+
+// ── Rent Category Switcher (Standard / Shortlet) ──────────────
+function setRentCategory(cat) {
+  document.getElementById('fp-rent-category').value = cat;
+
+  // Style the sub-buttons
+  ['standard','shortlet'].forEach(c => {
+    const btn = document.getElementById('rent-cat-btn-' + c);
+    if (!btn) return;
+    if (c === cat) {
+      btn.style.border = '2px solid var(--green)';
+      btn.style.background = 'var(--green-bg)';
+      btn.style.color = 'var(--green-d)';
+    } else {
+      btn.style.border = '2px solid var(--border)';
+      btn.style.background = 'var(--card2)';
+      btn.style.color = 'var(--text)';
+    }
+  });
+
+  // Toggle price fields
+  const standardWrap = document.getElementById('fp-price-standard-wrap');
+  const shortletWrap = document.getElementById('fp-price-shortlet-wrap');
+  const standardFields = document.getElementById('fp-standard-fields');
+  const shortletFields = document.getElementById('fp-shortlet-fields');
+
+  if (cat === 'shortlet') {
+    if (standardWrap) standardWrap.style.display = 'none';
+    if (shortletWrap) shortletWrap.style.display = 'block';
+    if (standardFields) standardFields.style.display = 'none';
+    if (shortletFields) shortletFields.style.display = 'block';
+  } else {
+    if (standardWrap) standardWrap.style.display = 'block';
+    if (shortletWrap) shortletWrap.style.display = 'none';
+    if (standardFields) standardFields.style.display = 'block';
+    if (shortletFields) shortletFields.style.display = 'none';
+  }
+}
+
+// ── submitAddProperty — now transaction-type aware ────────────────────────
+async function submitAddProperty() {
+  const lt = document.getElementById('fp-listing-type').value;
+
+  // ── Verification guard ────────────────────────────────────────────────
+  const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  if (_vp.profile && !_vp.profile.is_verified) {
+    if (_vp.profile.status === 'review') {
+      toast('Your identity verification is still under review — listing submitted but will only go live once approved.', 'info');
+    } else {
+      toast('Please complete identity verification before listing a property.', 'error');
+      setTimeout(() => navTo('verification', null), 1500);
+      return;
+    }
+  }
+
+  let payload = {};
+
+  if (lt === 'rent') {
+    // ── RENT ──
+    const title = document.getElementById('fp-title').value.trim();
+    if (!title) { toast('Please enter a property title', 'error'); return; }
+    const rentCategory = document.getElementById('fp-rent-category').value; // 'standard' or 'shortlet'
+    const includes = ['ri-water','ri-electricity','ri-security','ri-internet','ri-waste','ri-parking']
+      .filter(id => document.getElementById(id)?.checked)
+      .map(id => document.getElementById(id).value);
+
+    if (rentCategory === 'shortlet') {
+      // ── Shortlet ──
+      const nightlyRate = parseFloat(document.getElementById('fp-nightly-rate').value) || null;
+      if (!nightlyRate) { toast('Please enter the price per night', 'error'); return; }
+      const minNights = parseInt(document.getElementById('fp-min-nights').value) || 1;
+      payload = {
+        title,
+        listing_type: 'rent',
+        rent_category: 'shortlet',
+        property_type: document.getElementById('fp-prop-type').value,
+        nightly_rate: nightlyRate,
+        monthly_rent: nightlyRate * 30, // approximate for DB compat
+        price: '₦' + nightlyRate.toLocaleString() + '/night',
+        min_nights: minNights,
+        max_nights: document.getElementById('fp-max-nights').value || null,
+        weekend_rate: parseFloat(document.getElementById('fp-weekend-rate').value) || null,
+        cleaning_fee: parseFloat(document.getElementById('fp-cleaning-fee').value) || null,
+        checkin_time: document.getElementById('fp-checkin-time').value,
+        checkout_time: document.getElementById('fp-checkout-time').value,
+        house_rules: document.getElementById('fp-shortlet-rules').value,
+        caution_fee: parseFloat(document.getElementById('fp-caution-fee').value) || null,
+        rent_includes: includes,
+        furnishing: document.getElementById('fp-furnishing').value,
+        state: document.getElementById('fp-state').value,
+        lga: document.getElementById('fp-lga').value,
+        address: document.getElementById('fp-address').value,
+        landmark: document.getElementById('fp-landmark').value,
+        bedrooms: parseInt(document.getElementById('fp-beds').value) || null,
+        bathrooms: parseInt(document.getElementById('fp-baths').value) || null,
+        toilets: parseInt(document.getElementById('fp-toilets').value) || null,
+        size_sqm: parseFloat(document.getElementById('fp-sqm').value) || null,
+        year_built: parseInt(document.getElementById('fp-year-built').value) || null,
+        description: document.getElementById('fp-desc').value,
+        amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
+        img: document.getElementById('fp-img').value,
+        agreement_doc: document.getElementById('fp-rent-agreement').value || null,
+        notes: document.getElementById('fp-notes').value
+      };
+    } else {
+      // ── Standard Tenancy ──
+      const annualRent = parseFloat(document.getElementById('fp-annual-rent').value) || null;
+      if (!annualRent) { toast('Please enter the annual rent amount', 'error'); return; }
+      payload = {
+        title,
+        listing_type: 'rent',
+        rent_category: 'standard',
+        property_type: document.getElementById('fp-prop-type').value,
+        annual_rent: annualRent,
+        monthly_rent: Math.round(annualRent / 12), // derived monthly for DB compat
+        price: '₦' + annualRent.toLocaleString() + '/yr',
+        rent_frequency: document.getElementById('fp-rent-frequency').value,
+        advance_payment: document.getElementById('fp-advance').value,
+        caution_fee: parseFloat(document.getElementById('fp-caution-fee').value) || null,
+        agency_fee: parseFloat(document.getElementById('fp-agency-fee').value) || null,
+        rent_includes: includes,
+        tenant_type: document.getElementById('fp-tenant-type').value,
+        pets_allowed: document.getElementById('fp-pets').value,
+        furnishing: document.getElementById('fp-furnishing').value,
+        state: document.getElementById('fp-state').value,
+        lga: document.getElementById('fp-lga').value,
+        address: document.getElementById('fp-address').value,
+        landmark: document.getElementById('fp-landmark').value,
+        bedrooms: parseInt(document.getElementById('fp-beds').value) || null,
+        bathrooms: parseInt(document.getElementById('fp-baths').value) || null,
+        toilets: parseInt(document.getElementById('fp-toilets').value) || null,
+        size_sqm: parseFloat(document.getElementById('fp-sqm').value) || null,
+        year_built: parseInt(document.getElementById('fp-year-built').value) || null,
+        description: document.getElementById('fp-desc').value,
+        amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
+        img: document.getElementById('fp-img').value,
+        agreement_doc: document.getElementById('fp-rent-agreement').value || null,
+        notes: document.getElementById('fp-notes').value
+      };
+    }
+
+  } else if (lt === 'buy') {
+    // ── SELL ──
+    const title = document.getElementById('buy-title').value.trim();
+    if (!title) { toast('Please enter a property title', 'error'); return; }
+    const salePrice = parseFloat(document.getElementById('buy-sale-price').value) || null;
+    if (!salePrice) { toast('Please enter the asking price', 'error'); return; }
+    // Validate at least 1 legal document uploaded
+    const docUploaded = ['buy-doc-coo','buy-doc-deed','buy-doc-survey','buy-doc-approval']
+      .some(id => (document.getElementById(id)?.value || '').trim().length > 0);
+    if (!docUploaded) {
+      document.getElementById('buy-doc-error').style.display = 'block';
+      document.getElementById('buy-doc-error').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      toast('Please upload at least one legal document for a sale listing', 'error');
+      return;
+    }
+    document.getElementById('buy-doc-error').style.display = 'none';
+    payload = {
+      title,
+      listing_type: 'buy',
+      property_type: document.getElementById('buy-prop-type').value,
+      sale_price: salePrice,
+      price: '₦' + salePrice.toLocaleString(),
+      negotiable: document.getElementById('buy-negotiable').value,
+      tenure: document.getElementById('buy-tenure').value,
+      state: document.getElementById('buy-state').value,
+      lga: document.getElementById('buy-lga').value,
+      address: document.getElementById('buy-address').value,
+      landmark: document.getElementById('buy-landmark').value,
+      bedrooms: parseInt(document.getElementById('buy-beds').value) || null,
+      bathrooms: parseInt(document.getElementById('buy-baths').value) || null,
+      toilets: parseInt(document.getElementById('buy-toilets').value) || null,
+      land_size_sqm: parseFloat(document.getElementById('buy-land-sqm').value) || null,
+      size_sqm: parseFloat(document.getElementById('buy-sqm').value) || null,
+      year_built: parseInt(document.getElementById('buy-year-built').value) || null,
+      floors: parseInt(document.getElementById('buy-floors').value) || null,
+      description: document.getElementById('buy-desc').value,
+      amenities: document.getElementById('buy-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
+      furnishing: document.getElementById('buy-furnishing').value,
+      doc_coo: document.getElementById('buy-doc-coo').value || null,
+      doc_deed: document.getElementById('buy-doc-deed').value || null,
+      doc_survey: document.getElementById('buy-doc-survey').value || null,
+      doc_approval: document.getElementById('buy-doc-approval').value || null,
+      sale_agreement: document.getElementById('buy-sale-agreement').value || null,
+      img: document.getElementById('buy-img').value,
+      notes: document.getElementById('buy-notes').value
+    };
+
+  } else if (lt === 'lease') {
+    // ── LEASE ──
+    const title = document.getElementById('lease-title').value.trim();
+    if (!title) { toast('Please enter a property title', 'error'); return; }
+    const leasePrice = parseFloat(document.getElementById('lease-price').value) || null;
+    if (!leasePrice) { toast('Please enter the lease price / annual fee', 'error'); return; }
+    payload = {
+      title,
+      listing_type: 'lease',
+      property_type: document.getElementById('lease-prop-type').value,
+      lease_type: document.getElementById('lease-type').value,
+      lease_price: leasePrice,
+      price: '₦' + leasePrice.toLocaleString() + '/yr',
+      lease_payment_freq: document.getElementById('lease-payment-freq').value,
+      lease_duration_years: document.getElementById('lease-duration').value,
+      lease_start_date: document.getElementById('lease-start-date').value || null,
+      renewal_option: document.getElementById('lease-renewal').value,
+      escalation_pct: parseFloat(document.getElementById('lease-escalation').value) || null,
+      state: document.getElementById('lease-state').value,
+      lga: document.getElementById('lease-lga').value,
+      address: document.getElementById('lease-address').value,
+      landmark: document.getElementById('lease-landmark').value,
+      land_size_sqm: parseFloat(document.getElementById('lease-land-sqm').value) || null,
+      size_sqm: parseFloat(document.getElementById('lease-sqm').value) || null,
+      floors: parseInt(document.getElementById('lease-floors').value) || null,
+      parking_spaces: parseInt(document.getElementById('lease-parking').value) || null,
+      condition: document.getElementById('lease-condition').value,
+      permitted_use: document.getElementById('lease-permitted-use').value,
+      description: document.getElementById('lease-desc').value,
+      amenities: document.getElementById('lease-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
+      lease_agreement: document.getElementById('lease-agreement').value || null,
+      doc_coo: document.getElementById('lease-doc-coo').value || null,
+      doc_survey: document.getElementById('lease-doc-survey').value || null,
+      img: document.getElementById('lease-img').value,
+      notes: document.getElementById('lease-notes').value
+    };
+  }
+
+  const _ownerSession = GeoAPI.getOwnerSession();
+  if (!_ownerSession || !_ownerSession.token) { toast('Session expired. Please sign in again.', 'error'); return; }
+  const _resp = await fetch((typeof PARTNER_API !== 'undefined' ? PARTNER_API : 'https://api.geoestate.com.ng') + '/owner/add-property', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _ownerSession.token },
+    body: JSON.stringify(payload)
+  });
+  const d = await _resp.json();
+  if (d.error) { toast(d.error, 'error'); return; }
+
+  const typeLabel = { rent: 'Rental', buy: 'Sale', lease: 'Lease' }[lt] || lt;
+  toast('✅ ' + typeLabel + ' listing submitted! It will go live once admin approves.', 'success');
+  // Reset form
+  setTransactionType('rent');
+  await loadAll();
+  ownerNavTo('my-properties', null);
+}
+
 // ── ptnSetTxnType — button-based transaction type switcher for partner.html ──
 function ptnSetTxnType(type) {
   // Update hidden compat field
