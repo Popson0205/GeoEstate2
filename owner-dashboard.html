@@ -1922,15 +1922,13 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-  // ── Unified upload helper — Supabase Storage via Railway signed URL ──────
-  // Images: stores to Supabase, shows preview
-  // Documents: stores to Supabase, shows ✅ status
+  // ── Unified file upload — Supabase Storage via Railway ─────────────────────
   async function ownerUpload(inputId, previewOrStatusId, opts) {
     opts = opts || {};
-    const isDoc = opts.isDoc || false;
-    const API = 'https://api.geoestate.com.ng';
+    const isDoc  = opts.isDoc || false;
+    const API_URL = 'https://api.geoestate.com.ng';
     const fileInput = document.createElement('input');
-    fileInput.type  = 'file';
+    fileInput.type   = 'file';
     fileInput.accept = isDoc ? '.pdf,.jpg,.jpeg,.png,.webp' : 'image/*,application/pdf';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
@@ -1942,7 +1940,6 @@ window.addEventListener('DOMContentLoaded', function() {
       document.body.removeChild(fileInput);
       toast('⏳ Uploading…');
 
-      // Helper: set result URL
       function _setResult(url) {
         const inputEl = document.getElementById(inputId);
         if (inputEl) inputEl.value = url;
@@ -1953,7 +1950,6 @@ window.addEventListener('DOMContentLoaded', function() {
         } else {
           const statusEl = document.getElementById(previewOrStatusId);
           if (statusEl) statusEl.style.display = 'block';
-          // Highlight card border green
           const wrap = document.getElementById(inputId + '-wrap') ||
                        (statusEl ? statusEl.parentElement : null);
           if (wrap) { wrap.style.borderColor = 'var(--green)'; wrap.style.background = 'var(--green-bg)'; }
@@ -1961,9 +1957,9 @@ window.addEventListener('DOMContentLoaded', function() {
       }
 
       try {
-        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const ext    = (file.name.split('.').pop() || 'jpg').toLowerCase();
         const folder = isDoc ? 'geoestate/documents' : 'geoestate/property-images';
-        const s = await fetch(API + '/upload-sign', {
+        const s = await fetch(API_URL + '/upload-sign', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ folder, ext })
@@ -1971,22 +1967,18 @@ window.addEventListener('DOMContentLoaded', function() {
         if (!s.ok) throw new Error('Upload not configured on server');
         const sign = await s.json();
         if (sign.error) throw new Error(sign.error);
-
-        // PUT file bytes direct to Supabase — never hits Railway bandwidth
         const upRes = await fetch(sign.signed_url, {
           method: 'PUT',
           headers: { 'Content-Type': file.type || 'application/octet-stream' },
           body: file
         });
         if (!upRes.ok) throw new Error('Storage upload failed: HTTP ' + upRes.status);
-
         _setResult(sign.public_url);
         toast(isDoc ? '✅ Document uploaded!' : '✅ Image uploaded!', 'success');
       } catch(e) {
         if (!isDoc) {
-          // Image fallback: base64 data URL so nothing is lost
           const reader = new FileReader();
-          reader.onload = ev => { _setResult(ev.target.result); toast('📎 Saved locally (no storage configured)', 'info'); };
+          reader.onload = ev => { _setResult(ev.target.result); toast('📎 Saved locally', 'info'); };
           reader.readAsDataURL(file);
         } else {
           toast('Upload failed: ' + e.message, 'error');
@@ -1995,10 +1987,7 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Backward-compat aliases (called from HTML onclick attributes)
-  function ownerUpload(inputId, previewId) { ownerUpload(inputId, previewId, { isDoc: false }); }
-  function ownerDocUpload(inputId, statusId)          { ownerUpload(inputId, statusId, { isDoc: true });  }
-  function ownerSupabaseUpload(inputId, previewId)    { ownerUpload(inputId, previewId, { isDoc: false }); }
+  function ownerDocUpload(inputId, statusId) { ownerUpload(inputId, statusId, { isDoc: true }); }
 
 // ── submitAddProperty — now transaction-type aware ────────────────────────
 async function submitAddProperty() {

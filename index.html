@@ -4500,7 +4500,7 @@ async function geoUploadToSupabase(fileInput, folder) {
   return params.public_url;
 }
 // Legacy alias
-const geoUploadToSupabase_alias = geoUploadToSupabase; // legacy alias removed
+// upload alias — geoUploadToSupabase
 
 // ── REGISTER ─────────────────────────────────────────────────────────────────
 // Step 1: Validate form → store pendingRegData → fire OTP
@@ -4843,7 +4843,7 @@ async function loadFromDB() {
         idRef: r.nin, status: 'active', role: r.role || 'renter',
         initials: r.initials || (r.fname[0] + r.lname[0]),
         verifiedDate: r.registeredAt, activeListing: 0, transactions: 0,
-        // include real Supabase URLs from backend
+        // FIX 6: include real Supabase URLs from backend
         photo_url:     r.photoUrl     || r.photo_url     || '',
         id_doc_url:    r.idDocUrl     || r.id_doc_url     || '',
         other_doc_url: r.otherDocUrl  || r.other_doc_url  || '',
@@ -5123,7 +5123,7 @@ function openIdModal(idx){
   const s=submissions[idx];
   document.getElementById('modal-id-title').textContent=s.name+' — '+s.id;
   document.getElementById('modal-id-sub').textContent='Submitted '+s.submitted+' · '+s.doc+' · '+(s.type==='owner'?'Property Owner':'Renter/Buyer');
-  // Use real Supabase Storage URLs from registration data
+  // FIX 1 & 2: Use real Supabase URLs from registration data
   const idDocUrl   = s.id_doc_url   || s.idDocUrl   || '';
   const photoUrl   = s.photo_url    || s.photoUrl   || '';
   const otherDocUrl= s.other_doc_url|| s.otherDocUrl|| '';
@@ -7411,7 +7411,7 @@ document.addEventListener('click', function(e) {
 </script>
 
 <script>
-// ── Supabase Storage upload helpers ────────────────────────────────────────────
+// ── Supabase upload helpers (replaces legacy Supabase functions) ────────────
 // All uploads go via /upload-sign (server creates a Supabase signed PUT URL).
 // The browser then PUTs the file directly to Supabase Storage — file bytes
 // never touch the Railway server.
@@ -7473,7 +7473,7 @@ async function handlePropPhotosUpload(input) {
   if (statusEl) statusEl.textContent = `✅ ${uploaded} photo(s) uploaded`;
 }
 
-// ── Single image upload for admin fields ──────────────────────────────────────
+// ── Single image upload for admin fields (was adminSupabaseUpload) ──────────
 async function adminUpload(inputId) {
   const fileInput = document.createElement('input');
   fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
@@ -7507,7 +7507,7 @@ async function adminUpload(inputId) {
   fileInput.click();
 }
 
-// ── Single image upload for property/profile forms ────────────────────────────
+// ── Single image upload for property/profile forms (was supabaseUpload) ─────
 async function propertyImageUpload(inputId, previewId) {
   try {
     const signRes = await fetch(API_BASE + '/upload-sign', {
