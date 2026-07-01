@@ -1208,8 +1208,11 @@ document.addEventListener('click', function(e){
         </div>
         <div class="geo-form-group">
           <label class="geo-label">Transaction Type *</label>
-          <select class="geo-select" id="lp-type">
-            <option value="rent">Rent</option><option value="lease">Lease</option><option value="buy">Buy / Sale</option>
+          <select class="geo-select" id="lp-type" onchange="updateListingPriceFields()">
+            <option value="rent">🔑 Rent (Standard Tenancy)</option>
+            <option value="shortlet">🌟 Rent (Shortlet / Daily)</option>
+            <option value="lease">📋 Lease</option>
+            <option value="buy">🏠 Buy / Sale</option>
           </select>
         </div>
         <div class="geo-form-group">
@@ -1320,10 +1323,28 @@ document.addEventListener('click', function(e){
               </select>
             </div>
           </div>
-          <div class="geo-form-group">
-            <label class="geo-label">Price (₦) *</label>
-            <input class="geo-input" id="lp-price" type="number" placeholder="e.g. 2,500,000">
+          <!-- Price fields — shown/hidden by transaction type -->
+          <div class="geo-form-group" id="lp-price-rent-wrap">
+            <label class="geo-label">Annual Rent (₦) *</label>
+            <input class="geo-input" id="lp-price-rent" type="number" placeholder="e.g. 1,200,000">
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:4px">Yearly — standard in Nigeria</div>
           </div>
+          <div class="geo-form-group" id="lp-price-shortlet-wrap" style="display:none">
+            <label class="geo-label">Price per Night (₦) *</label>
+            <input class="geo-input" id="lp-price-shortlet" type="number" placeholder="e.g. 35,000">
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:4px">Daily rate — shortlet</div>
+          </div>
+          <div class="geo-form-group" id="lp-price-buy-wrap" style="display:none">
+            <label class="geo-label">Asking Price (₦) *</label>
+            <input class="geo-input" id="lp-price-buy" type="number" placeholder="e.g. 45,000,000">
+          </div>
+          <div class="geo-form-group" id="lp-price-lease-wrap" style="display:none">
+            <label class="geo-label">Annual Lease Fee (₦) *</label>
+            <input class="geo-input" id="lp-price-lease" type="number" placeholder="e.g. 3,600,000">
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:4px">Per year</div>
+          </div>
+          <!-- compat hidden field for old submit code -->
+          <input type="hidden" id="lp-price" value="">
         </div>
 
         <!-- ── MULTI-UNIT PANEL ── -->
@@ -3411,6 +3432,20 @@ document.addEventListener('click', function(e) {
 });
 
 // ── LIST FORM STEPS ─────────────────────────────────────────────────────────
+function updateListingPriceFields() {
+  const t = (document.getElementById('lp-type')||{}).value || 'rent';
+  const fields = {
+    'lp-price-rent-wrap':     ['rent'],
+    'lp-price-shortlet-wrap': ['shortlet'],
+    'lp-price-buy-wrap':      ['buy'],
+    'lp-price-lease-wrap':    ['lease']
+  };
+  Object.entries(fields).forEach(([id, types]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = types.includes(t) ? 'block' : 'none';
+  });
+}
+
 function listStep(n) {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('list-step-' + i);
@@ -3464,7 +3499,18 @@ async function submitListing() {
   }
 
   // Build payload matching server schema
-  const listing_type = (document.getElementById('lp-type')||{}).value || 'rent';
+  const raw_type = (document.getElementById('lp-type')||{}).value || 'rent';
+  // Map shortlet → rent (listing_type), track rent_category separately
+  const listing_type = raw_type === 'shortlet' ? 'rent' : raw_type;
+  const rent_category = raw_type === 'shortlet' ? 'shortlet' : 'standard';
+  // Resolve price from the active price field
+  let _price = '';
+  if (raw_type === 'rent')     _price = (document.getElementById('lp-price-rent')||{}).value || '';
+  else if (raw_type === 'shortlet') _price = (document.getElementById('lp-price-shortlet')||{}).value || '';
+  else if (raw_type === 'buy') _price = (document.getElementById('lp-price-buy')||{}).value || '';
+  else if (raw_type === 'lease') _price = (document.getElementById('lp-price-lease')||{}).value || '';
+  const _priceEl = document.getElementById('lp-price');
+  if (_priceEl) _priceEl.value = _price; // sync compat field
   const listLat = (document.getElementById('lp-lat')||{}).value || '';
   const listLng = (document.getElementById('lp-lng')||{}).value || '';
   const _unitStructure = (document.getElementById('lp-unit-structure')||{}).value || 'single';
@@ -4090,7 +4136,111 @@ function goToAdmin(e) {
 <div id="modal-release" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div class="modal-title">Release Funds</div><button class="modal-close" onclick="closeModal('modal-release')">✕</button></div><div id="modal-release-body" class="modal-body"></div><div id="modal-release-footer" class="modal-footer"></div></div></div>
 <div id="modal-confirm-payment" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div class="modal-title">Confirm Payment</div><button class="modal-close" onclick="closeModal('modal-confirm-payment')">✕</button></div><div id="modal-confirm-payment-body" class="modal-body"></div><div id="modal-confirm-payment-footer" class="modal-footer"></div></div></div>
 <div id="modal-tenancy-detail" class="modal-overlay"><div class="modal-box"><div class="modal-header"><div><div id="tn-detail-title" class="modal-title"></div></div><button class="modal-close" onclick="closeModal('modal-tenancy-detail')">✕</button></div><div id="tn-detail-body" class="modal-body"></div><div id="tn-detail-footer" class="modal-footer"></div></div></div>
-<div id="modal-pick-lawyer" class="modal-overlay"><div class="modal-box" style="max-width:520px"><div class="modal-header"><div><div class="modal-title">Assign Lawyer</div><div id="pick-lawyer-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-pick-lawyer')">✕</button></div><div class="modal-body"><input id="lawyer-picker-search" type="text" placeholder="Search by name, specialisation, state…" oninput="filterLawyerPicker(this.value)" style="width:100%;padding:10px 14px;border:none;border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.88rem;outline:none;box-shadow:0 0 0 1px var(--a-input-border);margin-bottom:14px;box-sizing:border-box"><div id="lawyer-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div></div></div></div>
+<div id="modal-pick-lawyer" class="modal-overlay"><div class="modal-box" style="max-width:520px"><div class="modal-header"><div><div class="modal-title">Assign Lawyer</div><div id="pick-lawyer-sub" class="modal-sub"></div></div><button class="modal-close" onclick="closeModal('modal-pick-lawyer')">✕</button></div><div class="modal-body"><input id="lawyer-picker-search" type="text" placeholder="Search by name, specialisation, state…" oninput="filterLawyerPicker(this.value)" style="width:100%;padding:10px 14px;border:none;border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.88rem;outline:none;box-shadow:0 0 0 1px var(--a-input-border);margin-bottom:14px;box-sizing:border-box"><div id="lawyer-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div></div></div>
+
+<div id="modal-property-edit" class="modal-overlay">
+  <div class="modal-box" style="max-width:700px">
+    <div class="modal-header">
+      <div><div id="prop-edit-title" class="modal-title">Edit Property</div></div>
+      <button class="modal-close" onclick="closeModal('modal-property-edit')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="pe-idx">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="modal-label">Property Title *</label>
+          <input class="adm-input" id="pe-title" placeholder="e.g. 3-Bedroom Flat in Lekki">
+        </div>
+        <div>
+          <label class="modal-label">Owner Name</label>
+          <input class="adm-input" id="pe-owner" placeholder="Owner full name">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="modal-label">Transaction Type *</label>
+          <select class="adm-input" id="pe-type" onchange="updatePropEditPriceFields()">
+            <option value="rent">🔑 Rent (Standard Tenancy)</option>
+            <option value="shortlet">🌟 Rent (Shortlet / Daily)</option>
+            <option value="lease">📋 Lease</option>
+            <option value="buy">🏠 Buy / Sale</option>
+          </select>
+        </div>
+        <div>
+          <label class="modal-label">Status</label>
+          <select class="adm-input" id="pe-status">
+            <option value="pending">Pending</option>
+            <option value="live">Live</option>
+            <option value="rejected">Rejected</option>
+            <option value="sold">Completed / Sold</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Price fields — transaction type aware -->
+      <div id="pe-price-rent-wrap">
+        <label class="modal-label">Annual Rent (₦)</label>
+        <input class="adm-input" id="pe-price-rent" type="number" placeholder="e.g. 1,200,000">
+      </div>
+      <div id="pe-price-shortlet-wrap" style="display:none">
+        <label class="modal-label">Price per Night (₦)</label>
+        <input class="adm-input" id="pe-price-shortlet" type="number" placeholder="e.g. 35,000">
+      </div>
+      <div id="pe-price-buy-wrap" style="display:none">
+        <label class="modal-label">Asking Price (₦)</label>
+        <input class="adm-input" id="pe-price-buy" type="number" placeholder="e.g. 45,000,000">
+      </div>
+      <div id="pe-price-lease-wrap" style="display:none">
+        <label class="modal-label">Annual Lease Fee (₦)</label>
+        <input class="adm-input" id="pe-price-lease" type="number" placeholder="e.g. 3,600,000">
+      </div>
+      <!-- compat field -->
+      <input type="hidden" id="pe-price">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="modal-label">Property Type</label>
+          <select class="adm-input" id="pe-property-type">
+            <option value="single">Single Unit</option>
+            <option value="multi">Multi-Unit</option>
+          </select>
+        </div>
+        <div>
+          <label class="modal-label">State</label>
+          <input class="adm-input" id="pe-state" placeholder="e.g. Lagos">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="modal-label">LGA / Area</label>
+          <input class="adm-input" id="pe-lga" placeholder="e.g. Lekki">
+        </div>
+        <div>
+          <label class="modal-label">Full Address</label>
+          <input class="adm-input" id="pe-address" placeholder="Street address">
+        </div>
+      </div>
+      <div>
+        <label class="modal-label">Main Image URL</label>
+        <input class="adm-input" id="pe-img" placeholder="https://...">
+      </div>
+      <div>
+        <label class="modal-label">Admin Notes</label>
+        <textarea class="adm-input" id="pe-notes" rows="2" placeholder="Internal notes..." style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:space-between">
+      <div style="display:flex;gap:8px">
+        <button id="pe-remove-btn" class="btn btn-reject btn-sm" onclick="removePropEditConfirm()" style="display:none">🗑 Remove</button>
+        <button id="pe-units-btn" class="btn btn-secondary btn-sm" style="display:none">📦 Manage Units</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeModal('modal-property-edit')">Cancel</button>
+        <button class="btn btn-approve" onclick="savePropertyEdit()">Save Changes ✓</button>
+      </div>
+    </div>
+  </div>
+</div></div>
 
 `;
         // Check for existing JWT and auto-login
@@ -4500,7 +4650,7 @@ async function geoUploadToSupabase(fileInput, folder) {
   return params.public_url;
 }
 // Legacy alias
-// upload alias — geoUploadToSupabase
+// upload alias
 
 // ── REGISTER ─────────────────────────────────────────────────────────────────
 // Step 1: Validate form → store pendingRegData → fire OTP
@@ -6316,6 +6466,15 @@ function filterPropertiesMgmtStatus(v){
   renderPropertiesMgmt(v==='all' ? all : all.filter(p => p.status === v));
 }
 
+
+function updatePropEditPriceFields() {
+  const t = (document.getElementById('pe-type')||{}).value || 'rent';
+  ['rent','shortlet','buy','lease'].forEach(type => {
+    const el = document.getElementById('pe-price-' + type + '-wrap');
+    if (el) el.style.display = (t === type) ? 'block' : 'none';
+  });
+}
+
 function openPropertyEditModal(propId){
   const all = getMergedProperties();
   const p = all.find(x => x.id === propId);
@@ -6327,7 +6486,17 @@ function openPropertyEditModal(propId){
   document.getElementById('pe-type').value = p ? (p.listing_type||p.type||'rent') : 'rent';
   document.getElementById('pe-property-type').value = p ? (p.property_type||'single') : 'single';
   document.getElementById('pe-status').value = p ? p.status : 'pending';
+  // Populate transaction-type specific price fields
+  const _peType = p ? (p.listing_type||p.type||'rent') : 'rent';
+  const _peRawType = p ? (p.rent_category === 'shortlet' ? 'shortlet' : _peType) : 'rent';
+  document.getElementById('pe-type').value = _peRawType;
+  const _pePrice = p ? (p.annual_rent || p.nightly_rate || p.sale_price || p.lease_price || p.price || '') : '';
+  if (_peRawType === 'rent')     { const e = document.getElementById('pe-price-rent');     if(e) e.value = p ? (p.annual_rent || p.monthly_rent * 12 || p.price || '') : ''; }
+  if (_peRawType === 'shortlet') { const e = document.getElementById('pe-price-shortlet'); if(e) e.value = p ? (p.nightly_rate || '') : ''; }
+  if (_peRawType === 'buy')      { const e = document.getElementById('pe-price-buy');      if(e) e.value = p ? (p.sale_price || p.price || '') : ''; }
+  if (_peRawType === 'lease')    { const e = document.getElementById('pe-price-lease');    if(e) e.value = p ? (p.lease_price || p.price || '') : ''; }
   document.getElementById('pe-price').value = p ? p.price : '';
+  updatePropEditPriceFields();
   document.getElementById('pe-state').value = p ? (p.state||'') : '';
   document.getElementById('pe-lga').value = p ? (p.lga||'') : '';
   document.getElementById('pe-address').value = p ? (p.address||'') : '';
@@ -6366,11 +6535,25 @@ function savePropertyEdit(){
     id: propId || 'PROP-' + Date.now(),
     title: document.getElementById('pe-title').value.trim(),
     owner: document.getElementById('pe-owner').value.trim(),
-    type: document.getElementById('pe-type').value,
-    listing_type: document.getElementById('pe-type').value,
+    type: (document.getElementById('pe-type').value === 'shortlet') ? 'rent' : document.getElementById('pe-type').value,
+    listing_type: (document.getElementById('pe-type').value === 'shortlet') ? 'rent' : document.getElementById('pe-type').value,
+    rent_category: document.getElementById('pe-type').value === 'shortlet' ? 'shortlet' : 'standard',
     property_type: document.getElementById('pe-property-type').value,
     status: newStatus,
-    price: document.getElementById('pe-price').value.trim(),
+    // Resolve correct price from active field
+    annual_rent:  document.getElementById('pe-type').value === 'rent'     ? (parseFloat((document.getElementById('pe-price-rent')||{}).value)||null) : null,
+    nightly_rate: document.getElementById('pe-type').value === 'shortlet'  ? (parseFloat((document.getElementById('pe-price-shortlet')||{}).value)||null) : null,
+    sale_price:   document.getElementById('pe-type').value === 'buy'       ? (parseFloat((document.getElementById('pe-price-buy')||{}).value)||null) : null,
+    lease_price:  document.getElementById('pe-type').value === 'lease'     ? (parseFloat((document.getElementById('pe-price-lease')||{}).value)||null) : null,
+    price: (function(){
+      const t = document.getElementById('pe-type').value;
+      const v = parseFloat((document.getElementById('pe-price-'+t)||{}).value)||0;
+      if (t==='rent')     return '₦'+v.toLocaleString()+'/yr';
+      if (t==='shortlet') return '₦'+v.toLocaleString()+'/night';
+      if (t==='buy')      return '₦'+v.toLocaleString();
+      if (t==='lease')    return '₦'+v.toLocaleString()+'/yr';
+      return '';
+    })(),
     state: document.getElementById('pe-state').value.trim(),
     lga: document.getElementById('pe-lga').value.trim(),
     address: document.getElementById('pe-address').value.trim(),
