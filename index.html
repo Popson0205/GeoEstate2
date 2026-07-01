@@ -1724,79 +1724,75 @@ document.addEventListener('click', function(e){
           <div id="partner-name-display" style="font-size:1.1rem;font-weight:900"></div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="togglePartnerAddForm()">+ Add Property</button>
+          <button class="btn btn-secondary btn-sm" onclick="showPage('list')">+ Add Property</button>
           <button class="btn btn-ghost btn-sm" onclick="partnerLogout()">Sign Out</button>
-        </div>
-      </div>
-
-      <!-- Add property form -->
-      <div id="partner-add-form" class="geo-card" style="padding:var(--space-5);margin-bottom:var(--space-5);display:none">
-        <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-4)">List a New Property</h2>
-        <div id="partner-add-error" style="display:none;background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:14px"></div>
-
-        <label class="geo-label">Property Title *</label>
-        <input id="pp-title" class="geo-input" placeholder="e.g. 3-Bedroom Flat, Lekki Phase 1" style="margin-bottom:12px">
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label class="geo-label">Listing Type *</label>
-            <select id="pp-type" class="geo-input" style="cursor:pointer">
-              <option value="rent">For Rent</option>
-              <option value="buy">For Sale</option>
-              <option value="lease">For Lease</option>
-            </select>
-          </div>
-          <div>
-            <label class="geo-label">Price *</label>
-            <input id="pp-price" class="geo-input" placeholder="e.g. 2500000">
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label class="geo-label">Bedrooms</label>
-            <input id="pp-bedrooms" type="number" min="0" class="geo-input">
-          </div>
-          <div>
-            <label class="geo-label">Bathrooms</label>
-            <input id="pp-bathrooms" type="number" min="0" class="geo-input">
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label class="geo-label">State *</label>
-            <input id="pp-state" class="geo-input" placeholder="e.g. Lagos">
-          </div>
-          <div>
-            <label class="geo-label">LGA</label>
-            <input id="pp-lga" class="geo-input" placeholder="e.g. Eti-Osa">
-          </div>
-        </div>
-
-        <label class="geo-label">Address *</label>
-        <input id="pp-address" class="geo-input" placeholder="Street address" style="margin-bottom:12px">
-
-        <label class="geo-label">Main Image URL</label>
-        <input id="pp-img" class="geo-input" placeholder="https://…" style="margin-bottom:12px">
-
-        <label class="geo-label">Description</label>
-        <textarea id="pp-desc" class="geo-input" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
-
-        <div style="display:flex;gap:10px">
-          <button class="btn btn-primary" id="partner-add-submit-btn" onclick="submitPartnerProperty()">Submit Property</button>
-          <button class="btn btn-ghost" onclick="togglePartnerAddForm()">Cancel</button>
         </div>
       </div>
 
       <!-- Properties list -->
       <h2 style="font-size:.95rem;font-weight:800;margin-bottom:var(--space-3)">Your Properties</h2>
       <div id="partner-properties-loading" style="color:var(--text-muted);font-size:.85rem">Loading your properties…</div>
-      <div id="partner-properties-empty" style="display:none;color:var(--text-muted);font-size:.85rem;padding:24px 0;text-align:center">You haven't listed any properties yet.</div>
-      <div id="partner-properties-list"></div>
+      <div id="partner-properties-empty" style="display:none;color:var(--text-muted);font-size:.85rem;padding:24px 0;text-align:center">You haven't listed any properties yet. Click "+ Add Property" above to get started.</div>
+      <div id="partner-properties-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px"></div>
 
     </div>
 
+  </div>
+</div>
+
+<!-- Partner property detail / edit modal -->
+<div id="partner-prop-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePartnerPropModal()">
+  <div style="background:var(--surface-primary,#fff);border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;padding:var(--space-6)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-4)">
+      <h2 id="pp-modal-title" style="font-size:1.1rem;font-weight:900">Property</h2>
+      <button onclick="closePartnerPropModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted)">✕</button>
+    </div>
+    <div id="pp-modal-error" style="display:none;background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:14px"></div>
+
+    <label class="geo-label">Property Title *</label>
+    <input id="ppm-title" class="geo-input" style="margin-bottom:12px">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <label class="geo-label">Listing Type</label>
+        <select id="ppm-type" class="geo-input" style="cursor:pointer">
+          <option value="rent">For Rent</option>
+          <option value="buy">For Sale</option>
+          <option value="lease">For Lease</option>
+        </select>
+      </div>
+      <div>
+        <label class="geo-label">Price</label>
+        <input id="ppm-price" class="geo-input">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <label class="geo-label">Bedrooms</label>
+        <input id="ppm-bedrooms" class="geo-input">
+      </div>
+      <div>
+        <label class="geo-label">Bathrooms</label>
+        <input id="ppm-bathrooms" class="geo-input">
+      </div>
+    </div>
+
+    <label class="geo-label">Address</label>
+    <input id="ppm-address" class="geo-input" style="margin-bottom:12px">
+
+    <label class="geo-label">Description</label>
+    <textarea id="ppm-desc" class="geo-input" rows="3" style="margin-bottom:16px;resize:vertical"></textarea>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <span style="font-size:.78rem;color:var(--text-muted);font-weight:700">Status:</span>
+      <span id="ppm-status-badge"></span>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" id="ppm-save-btn" onclick="savePartnerPropertyEdit()">Save Changes</button>
+      <button class="btn btn-ghost" style="color:#b91c1c" onclick="deletePartnerProperty(window._ppModalId)">🗑️ Remove Listing</button>
+    </div>
   </div>
 </div>
 
@@ -3554,12 +3550,22 @@ function previewDocUpload(input, previewId) {
 }
 
 async function submitListing() {
-  // Must be logged in. NOTE: this uses the regular user session (currentUser),
-  // the same one set by the normal Sign In modal — NOT GeoAPI's separate
-  // OTP-based "owner session" (that's a different, unrelated login flow that
-  // most users never go through, which was the cause of the app asking
-  // people to sign in again right after they had just signed in).
-  if (!currentUser || !currentUser.id) {
+  // Two people can reach this form: a regular signed-in user (currentUser,
+  // set by the normal Sign In modal) or a Partner who signed into the
+  // Partner Portal (GeoAPI owner session, set by partnerLogin()). Partners
+  // use the exact same "List a Property" flow as everyone else — we just
+  // need to know which auth to attach to the request.
+  const ownerSession = GeoAPI.getOwnerSession();
+  const isPartner = !!(ownerSession && ownerSession.token);
+  let ownerToken;
+  if (isPartner) {
+    ownerToken = ownerSession.token;
+  } else if (currentUser && currentUser.id) {
+    // Build owner token — format: owner:<userId>:<timestamp>
+    // requireOwner() on the server validates this exact format, same
+    // pattern submitVerification() already uses successfully.
+    ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
+  } else {
     openAuthModal('login');
     return;
   }
@@ -3605,10 +3611,6 @@ async function submitListing() {
     return;
   }
 
-  // Use /owner/add-property with a token built from the current sign-in
-  // session — format: owner:<userId>:<timestamp> — same format submitVerification()
-  // already uses successfully, and the exact format requireOwner() expects on the server.
-  const ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
   try {
     const res = await fetch(GEO_API_BASE + '/owner/add-property', {
       method: 'POST',
@@ -3621,6 +3623,7 @@ async function submitListing() {
     const result = await res.json();
     if (!res.ok || result.error) {
       if (result.needsVerification) {
+        // Partners are pre-verified server-side, so this only applies to regular users
         showAuthToast('Please complete identity verification before listing a property.', 'error');
         showPage('verify');
         return;
@@ -3634,7 +3637,21 @@ async function submitListing() {
   }
 
   for (let i = 1; i <= 4; i++) { const el = document.getElementById('list-step-' + i); if (el) el.style.display = 'none'; }
-  document.getElementById('list-success').style.display = 'block';
+
+  if (isPartner) {
+    // Send partners straight back to their dashboard with the fresh listing visible.
+    // Reset the form to step 1 so it's ready to go again next time they open it.
+    document.getElementById('list-success').style.display = 'none';
+    listStep(1);
+    ['lp-title','lp-address','lp-lat','lp-lng','lp-price','lp-desc','list-img-main','list-images-json'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const prevPhotos = document.getElementById('prev-prop-photos'); if (prevPhotos) prevPhotos.innerHTML = '';
+    showAuthToast('Property submitted for review.', 'success');
+    showPage('partner');
+  } else {
+    document.getElementById('list-success').style.display = 'block';
+  }
   window.scrollTo(0, 0);
 }
 
@@ -3692,54 +3709,7 @@ function partnerLogout() {
   initPartnerPage();
 }
 
-function togglePartnerAddForm() {
-  const form = document.getElementById('partner-add-form');
-  if (!form) return;
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
-
-async function submitPartnerProperty() {
-  const errEl = document.getElementById('partner-add-error');
-  const btn   = document.getElementById('partner-add-submit-btn');
-  if (errEl) errEl.style.display = 'none';
-
-  const title = ((document.getElementById('pp-title') || {}).value || '').trim();
-  const state = ((document.getElementById('pp-state') || {}).value || '').trim();
-  const address = ((document.getElementById('pp-address') || {}).value || '').trim();
-  if (!title)   { errEl.textContent = 'Please enter a property title.'; errEl.style.display = 'block'; return; }
-  if (!state)   { errEl.textContent = 'Please enter a state.'; errEl.style.display = 'block'; return; }
-  if (!address) { errEl.textContent = 'Please enter an address.'; errEl.style.display = 'block'; return; }
-
-  const payload = {
-    title,
-    listing_type: (document.getElementById('pp-type') || {}).value || 'rent',
-    price:        (document.getElementById('pp-price') || {}).value || '',
-    bedrooms:     (document.getElementById('pp-bedrooms') || {}).value || '',
-    bathrooms:    (document.getElementById('pp-bathrooms') || {}).value || '',
-    state,
-    lga:          (document.getElementById('pp-lga') || {}).value || '',
-    address,
-    img:          (document.getElementById('pp-img') || {}).value || '',
-    images:       '[]',
-    description:  (document.getElementById('pp-desc') || {}).value || ''
-  };
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
-  try {
-    const result = await GeoAPI.ownerFetch('/owner/add-property', { method: 'POST', body: payload });
-    if (result.error) throw new Error(result.message || result.error);
-    ['pp-title','pp-price','pp-bedrooms','pp-bathrooms','pp-state','pp-lga','pp-address','pp-img','pp-desc'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.value = '';
-    });
-    togglePartnerAddForm();
-    showAuthToast('Property submitted for review.', 'success');
-    loadPartnerProperties();
-  } catch (err) {
-    if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit Property'; }
-  }
-}
+let _partnerPropsCache = [];
 
 async function loadPartnerProperties() {
   const loadingEl = document.getElementById('partner-properties-loading');
@@ -3752,29 +3722,95 @@ async function loadPartnerProperties() {
   const result = await GeoAPI.ownerFetch('/owner/properties');
   if (loadingEl) loadingEl.style.display = 'none';
   const props = (result && result.properties) || [];
+  _partnerPropsCache = props;
   if (!props.length) { if (emptyEl) emptyEl.style.display = 'block'; return; }
 
+  const statusColors = { live: '#16a34a', pending: '#d97706', rejected: '#dc2626', inactive: '#6b7280' };
   listEl.innerHTML = props.map(p => {
-    const statusColors = { live: '#16a34a', pending: '#d97706', rejected: '#dc2626', inactive: '#6b7280' };
     const color = statusColors[p.status] || '#6b7280';
+    const priceDisplay = p.price || p.monthly_rent || p.sale_price || p.lease_price || '—';
     return `
-      <div class="geo-card" style="padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:800;font-size:.92rem">${(p.title || '').replace(/</g,'&lt;')}</div>
-          <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${(p.address || p.lga || p.state || '').replace(/</g,'&lt;')} · ${p.listing_type || p.type || ''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.72rem;font-weight:800;color:${color};background:${color}1a;padding:4px 10px;border-radius:20px;text-transform:capitalize">${p.status || 'pending'}</span>
-          <button class="btn btn-ghost btn-sm" onclick="deletePartnerProperty('${p.id}')" title="Remove listing">🗑️</button>
+      <div class="geo-card" style="overflow:hidden;cursor:pointer" onclick="openPartnerPropModal('${p.id}')">
+        <div style="height:120px;background:${p.img ? "url('"+p.img.replace(/'/g,"")+"') center/cover" : 'linear-gradient(135deg,#d9f2e3,#a8dfc0)'};display:flex;align-items:center;justify-content:center;font-size:1.8rem">${p.img ? '' : '🏠'}</div>
+        <div style="padding:14px">
+          <div style="font-weight:800;font-size:.9rem;margin-bottom:2px">${(p.title || '').replace(/</g,'&lt;')}</div>
+          <div style="font-size:.76rem;color:var(--text-muted);margin-bottom:8px">${(p.address || p.lga || p.state || '').replace(/</g,'&lt;')}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:.72rem;font-weight:800;color:${color};background:${color}1a;padding:4px 10px;border-radius:20px;text-transform:capitalize">${p.status || 'pending'}</span>
+            <span style="font-size:.8rem;font-weight:700">${priceDisplay}</span>
+          </div>
         </div>
       </div>`;
   }).join('');
 }
 
+function openPartnerPropModal(id) {
+  const p = _partnerPropsCache.find(x => String(x.id) === String(id));
+  if (!p) return;
+  window._ppModalId = p.id;
+  document.getElementById('pp-modal-title').textContent = p.title || 'Property';
+  document.getElementById('pp-modal-error').style.display = 'none';
+  document.getElementById('ppm-title').value      = p.title || '';
+  document.getElementById('ppm-type').value       = p.listing_type || p.type || 'rent';
+  document.getElementById('ppm-price').value      = p.price || p.monthly_rent || p.sale_price || p.lease_price || '';
+  document.getElementById('ppm-bedrooms').value   = p.bedrooms || '';
+  document.getElementById('ppm-bathrooms').value  = p.bathrooms || '';
+  document.getElementById('ppm-address').value    = p.address || '';
+  document.getElementById('ppm-desc').value       = p.description || '';
+  const statusColors = { live: '#16a34a', pending: '#d97706', rejected: '#dc2626', inactive: '#6b7280' };
+  const color = statusColors[p.status] || '#6b7280';
+  document.getElementById('ppm-status-badge').innerHTML =
+    `<span style="font-size:.72rem;font-weight:800;color:${color};background:${color}1a;padding:4px 10px;border-radius:20px;text-transform:capitalize">${p.status || 'pending'}</span>` +
+    (p.status === 'pending' ? ' <span style="font-size:.72rem;color:var(--text-muted)">— awaiting admin review</span>' : '');
+  document.getElementById('partner-prop-overlay').style.display = 'flex';
+}
+
+function closePartnerPropModal() {
+  document.getElementById('partner-prop-overlay').style.display = 'none';
+  window._ppModalId = null;
+}
+
+async function savePartnerPropertyEdit() {
+  const id = window._ppModalId;
+  if (!id) return;
+  const errEl = document.getElementById('pp-modal-error');
+  const btn   = document.getElementById('ppm-save-btn');
+  errEl.style.display = 'none';
+
+  const title = (document.getElementById('ppm-title').value || '').trim();
+  if (!title) { errEl.textContent = 'Property title is required.'; errEl.style.display = 'block'; return; }
+
+  const payload = {
+    title,
+    listing_type: document.getElementById('ppm-type').value || 'rent',
+    price:        document.getElementById('ppm-price').value || '',
+    bedrooms:     document.getElementById('ppm-bedrooms').value || '',
+    bathrooms:    document.getElementById('ppm-bathrooms').value || '',
+    address:      document.getElementById('ppm-address').value || '',
+    description:  document.getElementById('ppm-desc').value || ''
+  };
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    const result = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(id), { method: 'PATCH', body: payload });
+    if (result && result.error) throw new Error(result.error);
+    closePartnerPropModal();
+    showAuthToast('Property updated.', 'success');
+    loadPartnerProperties();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; }
+  }
+}
+
 async function deletePartnerProperty(id) {
-  if (!confirm('Remove this property listing?')) return;
+  if (!id || !confirm('Remove this property listing?')) return;
   const result = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(id), { method: 'DELETE' });
   if (result && result.error) { showAuthToast(result.error, 'error'); return; }
+  closePartnerPropModal();
+  showAuthToast('Listing removed.', 'success');
   loadPartnerProperties();
 }
 
