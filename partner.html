@@ -24,22 +24,37 @@
     body { background: var(--bg); font-family: var(--font); color: var(--text); min-height: 100vh; }
 
     /* ── Layout ── */
-    .layout { display: flex; height: 100vh; overflow: hidden; }
-    .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
-    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-    .topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
-    .content { padding: 24px; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
+    .layout { display: flex; flex-direction: column; min-height: 100vh; }
+    .sidebar { width: 220px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border); padding: 20px 12px; position: fixed; top: 60px; bottom: 0; left: 0; overflow-y: auto; }
+    .main { flex: 1; margin-left: 220px; padding-top: 60px; min-width: 0; }
+    .topbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--green-d); border-bottom: none; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.2); }
+    .topbar-badge { background: #1a9c55; color: #fff; font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .05em; margin-left: 10px; }
+    .content { padding: 28px; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
 
     /* ── Sidebar ── */
-    .sb-logo { padding: 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
-    .sb-logo-text { color: #fff; font-size: 1.1rem; font-weight: 900; }
-    .sb-logo-sub { color: rgba(255,255,255,.4); font-size: .7rem; margin-top: 2px; }
-    .sb-section { padding: 16px 12px 4px; font-size: .62rem; font-weight: 700; color: rgba(255,255,255,.3); letter-spacing: .08em; text-transform: uppercase; }
-    .sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 1px 8px; border-radius: 8px; color: rgba(255,255,255,.7); font-size: .85rem; font-weight: 500; cursor: pointer; transition: all .15s; }
-    .sb-item:hover { background: rgba(255,255,255,.08); color: #fff; }
-    .sb-item.active { background: var(--green); color: #fff; font-weight: 600; }
+    .sb-logo { display: none; }
+    .sb-section { padding: 16px 8px 6px; font-size: .7rem; font-weight: 700; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 1px 0; border-radius: 8px; color: var(--text-secondary, #3d3d3d); font-size: .88rem; font-weight: 500; cursor: pointer; transition: all .12s; }
+    .sb-item:hover { background: var(--card2); }
+    .sb-item.active { background: var(--green-bg); color: var(--green); font-weight: 700; }
     .sb-icon { width: 18px; text-align: center; }
     .sb-badge { margin-left: auto; background: #ef4444; color: #fff; border-radius: 999px; font-size: .65rem; font-weight: 700; padding: 1px 7px; min-width: 18px; text-align: center; }
+
+    /* ── Pipeline (Kanban) ── */
+    .sp-pipeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 860px) { .sp-pipeline { grid-template-columns: 1fr; } }
+    .pipeline-col { background: var(--card2); border-radius: 12px; padding: 14px; min-height: 200px; }
+    .pipeline-col-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+    .pipeline-card { background: var(--card); border-radius: 10px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); cursor: pointer; transition: transform .12s; }
+    .pipeline-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,.1); }
+    .pipeline-card-title { font-weight: 700; font-size: .85rem; margin-bottom: 3px; }
+    .pipeline-card-prop { font-size: .75rem; color: var(--muted); margin-bottom: 6px; }
+    .pipeline-card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .badge-new { background: #eff6ff; color: #1e40af; }
+    .badge-contacted { background: #fefce8; color: #92400e; }
+    .badge-closed, .badge-won { background: #f0fdf4; color: #166534; }
+    .badge-lost { background: #fee2e2; color: #b91c1c; }
+    .enq-tab.active { background: var(--green); color: #fff; border-color: var(--green); }
 
     /* ── Cards ── */
     .card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
@@ -225,7 +240,8 @@
       .mob-drawer { display: block; }
       .layout { flex-direction: column; }
       .sidebar { display: none !important; }
-      .main { flex: 1; padding-top: 56px; }
+      .main { flex: 1; padding-top: 56px; margin-left: 0; }
+      .topbar { display: none; }
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
       .content { padding: 16px; }
     }
@@ -280,46 +296,45 @@
 
 <!-- ── Main App ── -->
 <div class="layout" id="app" style="display:none">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sb-logo">
-      <div class="sb-logo-text" style="display:flex;align-items:center;gap:8px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="30" height="36" style="flex-shrink:0;display:block" aria-hidden="true">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px;color:#fff;font-weight:800;font-size:1.05rem"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="26" height="31" style="flex-shrink:0;display:block" aria-hidden="true">
   <path d="M20 2C11.163 2 4 9.163 4 18c0 10.5 16 28 16 28S36 28.5 36 18C36 9.163 28.837 2 20 2z" fill="#3db374"/>
   <path d="M20 2C28.837 2 36 9.163 36 18c0 10.5-16 28-16 28V2z" fill="#1a6b3c" opacity="0.6"/>
   <circle cx="20" cy="17" r="10.5" fill="white" opacity="0.92"/>
   <polygon points="20,8.5 11.5,15.5 28.5,15.5" fill="#1a6b3c"/>
   <rect x="14" y="15.5" width="12" height="8.5" rx="0.5" fill="#1a6b3c"/>
   <rect x="17.5" y="19" width="5" height="5" rx="0.5" fill="white"/>
-</svg><span>GeoEstate</span></div>
-      <div class="sb-logo-sub">Partner Portal</div>
+</svg>GeoEstate<span class="topbar-badge">PARTNER</span></div>
+      <span style="font-size:.78rem;color:rgba(255,255,255,.55);border-left:1px solid rgba(255,255,255,.2);padding-left:14px" id="topbar-title">Overview</span>
     </div>
-    <div style="flex:1;overflow-y:auto;padding-bottom:20px">
-      <div class="sb-section">Dashboard</div>
-      <div class="sb-item active" onclick="navTo('overview',this)"><span class="sb-icon">📊</span>Overview</div>
-      <div class="sb-section">Properties</div>
-      <div class="sb-item" onclick="navTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="badge-props" style="display:none">0</span></div>
-      <div class="sb-item" onclick="navTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
-      <div class="sb-section">Leads</div>
-      <div class="sb-item" onclick="navTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="badge-enq" style="display:none">0</span></div>
-      <div class="sb-section">Account</div>
-      <div class="sb-item" onclick="navTo('profile',this)"><span class="sb-icon">👤</span>My Profile</div>
-      <div class="sb-item" style="margin-top:auto;color:#ef4444" onclick="ownerLogout()"><span class="sb-icon">🚪</span>Sign Out</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="background:rgba(255,255,255,.1);border-radius:999px;padding:5px 12px 5px 6px;display:flex;align-items:center;gap:8px">
+        <div id="owner-avatar" style="width:26px;height:26px;border-radius:50%;background:#3db374;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem">?</div>
+        <span style="font-size:.82rem;font-weight:600;color:#fff" id="owner-name">—</span>
+      </div>
+      <button onclick="ownerLogout()" style="background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit">Sign Out</button>
     </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-section">Overview</div>
+    <div class="sb-item active" onclick="navTo('overview',this)"><span class="sb-icon">📊</span>Dashboard</div>
+    <div class="sb-section">Work</div>
+    <div class="sb-item" onclick="navTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="badge-enq" style="display:none">0</span></div>
+    <div class="sb-item" onclick="navTo('pipeline',this)"><span class="sb-icon">🎯</span>Pipeline</div>
+    <div class="sb-section">Listings</div>
+    <div class="sb-item" onclick="navTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="badge-props" style="display:none">0</span></div>
+    <div class="sb-item" onclick="navTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
+    <div class="sb-section">Account</div>
+    <div class="sb-item" onclick="navTo('profile',this)"><span class="sb-icon">👤</span>My Profile</div>
+    <div class="sb-item" style="color:#ef4444" onclick="ownerLogout()"><span class="sb-icon">🚪</span>Sign Out</div>
   </div>
 
   <!-- Main -->
   <div class="main">
-    <div class="topbar">
-      <div>
-        <span style="font-weight:700;font-size:.95rem" id="topbar-title">Overview</span>
-        <span style="font-size:.78rem;color:var(--muted);margin-left:12px" id="topbar-sub"></span>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <div id="owner-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--green-l);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem">?</div>
-        <span style="font-size:.85rem;font-weight:600" id="owner-name">—</span>
-      </div>
-    </div>
-
     <div class="content">
 
       <!-- Overview -->
@@ -494,10 +509,44 @@
 
       <!-- Enquiries -->
       <div id="page-enquiries" class="page-section" style="display:none">
-        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Enquiries</h2>
-        <div class="card">
-          <div class="card-body" id="enq-list">
-            <div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it shows here.</div></div>
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">📬 Enquiries</h2>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Inbound interest on your listed properties — respond directly from here.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+          <input class="form-input" style="max-width:260px" type="text" id="enq-search" placeholder="Search by name, email or property…" oninput="filterEnquiries()">
+          <button class="btn btn-outline btn-sm enq-tab active" onclick="setEnqTab('all',this)">All</button>
+          <button class="btn btn-outline btn-sm enq-tab" onclick="setEnqTab('new',this)">New</button>
+          <button class="btn btn-outline btn-sm enq-tab" onclick="setEnqTab('contacted',this)">Contacted</button>
+          <button class="btn btn-outline btn-sm enq-tab" onclick="setEnqTab('closed',this)">Closed</button>
+          <button class="btn btn-outline btn-sm" onclick="loadAll()" title="Refresh">⟳ Refresh</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrap">
+          <table id="enq-table">
+            <thead><tr><th>Date</th><th>Contact</th><th>Property</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="enq-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:40px">Loading…</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div id="page-pipeline" class="page-section" style="display:none">
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">🎯 Lead Pipeline</h2>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Kanban view of enquiries on your listings, by stage</p>
+        <div class="sp-pipeline">
+          <div class="pipeline-col">
+            <div class="pipeline-col-title">🔵 New Enquiries</div>
+            <div id="pipe-new"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-title">🟡 Contacted</div>
+            <div id="pipe-contacted"></div>
+          </div>
+          <div class="pipeline-col">
+            <div class="pipeline-col-title">✅ Closed / Won</div>
+            <div id="pipe-closed"></div>
           </div>
         </div>
       </div>
@@ -576,6 +625,51 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="document.getElementById('add-unit-modal').style.display='none'">Cancel</button>
       <button class="btn btn-primary" onclick="submitAddUnit()">Add Unit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Enquiry Detail Modal -->
+<div class="modal-overlay" id="enq-modal" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="enq-modal-name">Enquiry Detail</div>
+      <button class="modal-close" onclick="document.getElementById('enq-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div><div class="form-label">Name</div><div id="em-name">—</div></div>
+        <div><div class="form-label">Email</div><div id="em-email">—</div></div>
+        <div><div class="form-label">Phone</div><div id="em-phone">—</div></div>
+        <div><div class="form-label">Date</div><div id="em-date">—</div></div>
+      </div>
+      <div class="form-group"><div class="form-label">Property</div><div id="em-property">—</div></div>
+      <div class="form-group"><div class="form-label">Message</div><div id="em-message" style="white-space:pre-wrap">—</div></div>
+      <div class="form-group">
+        <label class="form-label">Update Status</label>
+        <select class="form-select" id="em-status">
+          <option value="new">🔵 New</option>
+          <option value="contacted">🟡 Contacted</option>
+          <option value="closed">✅ Closed / Won</option>
+          <option value="lost">❌ Lost</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="em-notes" placeholder="Add notes about this enquiry…"></textarea>
+      </div>
+      <input type="hidden" id="em-id">
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="em-call-btn" onclick="callCustomer()" style="background:var(--green);color:#fff">📞 Call</button>
+        <button class="btn" id="em-whatsapp-btn" onclick="whatsappCustomer()" style="background:#25D366;color:#fff">💬 WhatsApp</button>
+        <button class="btn" id="em-email-btn" onclick="emailCustomer()" style="background:#1d4ed8;color:#fff">✉️ Email</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="document.getElementById('enq-modal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEnquiryStatus()">Save Update</button>
+      </div>
     </div>
   </div>
 </div>
@@ -677,7 +771,7 @@ async function loadAll() {
 }
 
 // ── Nav ───────────────────────────────────────────────────────
-const pageTitles = { overview: 'Overview', 'my-properties': 'My Properties', 'add-property': 'Add New Property', enquiries: 'Enquiries', profile: 'My Profile' };
+const pageTitles = { overview: 'Overview', 'my-properties': 'My Properties', 'add-property': 'Add New Property', enquiries: 'Enquiries', pipeline: 'Pipeline', profile: 'My Profile' };
 function navTo(page, el) {
   document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
@@ -689,6 +783,7 @@ function navTo(page, el) {
   if (page === 'my-properties') renderProperties();
   if (page === 'profile') renderProfile();
   if (page === 'enquiries') renderEnquiries();
+  if (page === 'pipeline') renderPipeline();
   if (page === 'add-property') checkVerificationForAdd();
 }
 
@@ -992,24 +1087,136 @@ function editProperty(propId) {
   toast('Property editing — coming in next update. Contact admin for urgent changes.', 'info');
 }
 
-// ── Enquiries ─────────────────────────────────────────────────
+// ── Enquiries — table + detail modal (respond to leads on your listings) ──
+let currentEnqFilter = 'all';
+let _currentEnquiry = null;
+
+function filterEnqList() {
+  let list = [...ownerEnquiries];
+  const q = (document.getElementById('enq-search')||{}).value || '';
+  if (q) list = list.filter(e => (e.name+e.email+e.phone+e.property_title).toLowerCase().includes(q.toLowerCase()));
+  if (currentEnqFilter !== 'all') list = list.filter(e => (e.status||'new') === currentEnqFilter);
+  return list;
+}
+function filterEnquiries() { renderEnquiries(); }
+function setEnqTab(val, btn) {
+  currentEnqFilter = val;
+  document.querySelectorAll('.enq-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderEnquiries();
+}
+
 function renderEnquiries() {
-  const list = document.getElementById('enq-list');
-  if (!ownerEnquiries.length) {
-    list.innerHTML = '<div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it appears here.</div></div>';
+  const list = filterEnqList();
+  const tbody = document.getElementById('enq-tbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-icon">📬</div><div class="empty-title">No enquiries yet</div><div class="empty-sub">When someone expresses interest in your property, it appears here.</div></div></td></tr>';
     return;
   }
-  list.innerHTML = ownerEnquiries.map(e => `
-    <div class="enq-item">
-      <div class="enq-avatar">${(e.name[0]||'?').toUpperCase()}</div>
-      <div style="flex:1;min-width:0">
-        <div class="enq-name">${e.name}</div>
-        <div class="enq-prop">📍 ${e.property_title||'Property'} · ${e.email} · ${e.phone||'—'}</div>
-        ${e.message ? `<div class="enq-msg">"${e.message}"</div>` : ''}
-      </div>
-      <div style="font-size:.72rem;color:var(--subtle);white-space:nowrap">${new Date(e.created_at).toLocaleDateString('en-NG')}</div>
-    </div>
-  `).join('');
+  tbody.innerHTML = list.map(e => {
+    const idx = ownerEnquiries.indexOf(e);
+    const st = e.status || 'new';
+    const date = e.created_at ? new Date(e.created_at).toLocaleDateString('en-NG') : '—';
+    return `<tr style="cursor:pointer" onclick="openEnquiryModal(${idx})">
+      <td style="color:var(--muted);font-size:.78rem">${date}</td>
+      <td>
+        <div style="font-weight:700;font-size:.88rem">${e.name}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${e.email}</div>
+        ${e.phone ? `<div style="font-size:.72rem;color:var(--muted)">${e.phone}</div>` : ''}
+      </td>
+      <td style="font-size:.85rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.property_title||'—'}</td>
+      <td><span class="badge badge-${st}">${st}</span></td>
+      <td><button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEnquiryModal(${idx})">Open →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openEnquiryModal(idx) {
+  const e = ownerEnquiries[idx];
+  if (!e) return;
+  _currentEnquiry = e;
+  document.getElementById('enq-modal-name').textContent = e.name + ' — Enquiry';
+  document.getElementById('em-name').textContent     = e.name;
+  document.getElementById('em-email').innerHTML      = `<a href="mailto:${e.email}" style="color:var(--green)">${e.email}</a>`;
+  document.getElementById('em-phone').innerHTML      = e.phone ? `<a href="tel:${e.phone}" style="color:var(--green)">${e.phone}</a>` : '—';
+  document.getElementById('em-date').textContent     = e.created_at ? new Date(e.created_at).toLocaleString('en-NG') : '—';
+  document.getElementById('em-property').textContent = e.property_title || '—';
+  document.getElementById('em-message').textContent  = e.message || '(no message)';
+  const callBtn = document.getElementById('em-call-btn');
+  const waBtn   = document.getElementById('em-whatsapp-btn');
+  if (callBtn) callBtn.style.opacity = e.phone ? '1' : '0.4';
+  if (waBtn)   waBtn.style.opacity   = e.phone ? '1' : '0.4';
+  document.getElementById('em-status').value = e.status || 'new';
+  document.getElementById('em-notes').value  = e.notes || '';
+  document.getElementById('em-id').value     = e.id;
+  document.getElementById('enq-modal').style.display = 'flex';
+}
+
+async function saveEnquiryStatus() {
+  const id     = document.getElementById('em-id').value;
+  const status = document.getElementById('em-status').value;
+  const notes  = document.getElementById('em-notes').value;
+  document.getElementById('enq-modal').style.display = 'none';
+  try {
+    const d = await GeoAPI.ownerFetch('/owner/enquiry/' + encodeURIComponent(id), { method: 'PATCH', body: { status, notes } });
+    if (d && d.error) { toast(d.error, 'error'); return; }
+    const e = ownerEnquiries.find(x => x.id === id);
+    if (e) { e.status = status; e.notes = notes; }
+    renderEnquiries(); renderPipeline(); renderOverview();
+    toast('✅ Enquiry updated', 'success');
+  } catch(err) {
+    toast('⚠️ Could not save — check connection', 'error');
+  }
+}
+
+function callCustomer() {
+  if (!_currentEnquiry || !_currentEnquiry.phone) { toast('⚠️ No phone number for this enquirer', 'error'); return; }
+  window.open('tel:' + _currentEnquiry.phone);
+  autoMarkContacted();
+}
+function whatsappCustomer() {
+  if (!_currentEnquiry || !_currentEnquiry.phone) { toast('⚠️ No phone number for this enquirer', 'error'); return; }
+  const prop = _currentEnquiry.property_title || 'your enquiry';
+  const msg = encodeURIComponent('Hello ' + _currentEnquiry.name + ', this is ' + (ownerSession.owner.fname||'') + ' from GeoEstate reaching out about your interest in ' + prop + '. How can I help you proceed?');
+  window.open('https://wa.me/' + _currentEnquiry.phone.replace(/\D/g,'') + '?text=' + msg, '_blank');
+  autoMarkContacted();
+}
+function emailCustomer() {
+  if (!_currentEnquiry || !_currentEnquiry.email) return;
+  const prop = _currentEnquiry.property_title || 'the property';
+  const subject = encodeURIComponent('Your GeoEstate Enquiry — ' + prop);
+  const body = encodeURIComponent('Hello ' + _currentEnquiry.name + ',\n\nThank you for your interest in ' + prop + ' on GeoEstate.\n\nI would love to help you proceed with this. Please let me know your preferred time to connect.\n\nBest regards,\n' + (ownerSession.owner.fname||'') + ' — GeoEstate Partner');
+  window.open('mailto:' + _currentEnquiry.email + '?subject=' + subject + '&body=' + body);
+  autoMarkContacted();
+}
+function autoMarkContacted() {
+  const statusEl = document.getElementById('em-status');
+  if (statusEl && statusEl.value === 'new') { statusEl.value = 'contacted'; toast('ℹ️ Status set to Contacted — remember to Save.', 'info'); }
+}
+
+// ── Pipeline (Kanban) ──────────────────────────────────────────
+function renderPipeline() {
+  const cols = { new: [], contacted: [], closed: [] };
+  ownerEnquiries.forEach((e, idx) => {
+    const st = e.status || 'new';
+    const key = (st === 'closed' || st === 'won') ? 'closed' : (st === 'contacted' ? 'contacted' : 'new');
+    cols[key].push({ e, idx });
+  });
+  ['new','contacted','closed'].forEach(col => {
+    const el = document.getElementById('pipe-' + col);
+    if (!el) return;
+    if (!cols[col].length) { el.innerHTML = '<div style="text-align:center;padding:20px;font-size:.78rem;color:var(--muted)">Empty</div>'; return; }
+    el.innerHTML = cols[col].map(({ e, idx }) => `
+      <div class="pipeline-card" onclick="openEnquiryModal(${idx})">
+        <div class="pipeline-card-title">${e.name}</div>
+        <div class="pipeline-card-prop">📍 ${e.property_title||'—'}</div>
+        <div class="pipeline-card-footer">
+          <div style="font-size:.72rem;color:var(--muted)">${e.email}</div>
+          <span class="badge badge-${e.status||'new'}">${e.status||'new'}</span>
+        </div>
+      </div>`).join('');
+  });
 }
 
 // ── Profile ───────────────────────────────────────────────────
@@ -1172,13 +1379,14 @@ window.addEventListener('DOMContentLoaded', function() {
     </div>
     <button class="mob-drawer-close" onclick="ownerToggleDrawer()">✕</button>
   </div>
-  <div class="sb-section">Dashboard</div>
-  <div class="sb-item active" onclick="ownerNavTo('overview',this)"><span class="sb-icon">📊</span>Overview</div>
-  <div class="sb-section">Properties</div>
+  <div class="sb-section">Overview</div>
+  <div class="sb-item active" onclick="ownerNavTo('overview',this)"><span class="sb-icon">📊</span>Dashboard</div>
+  <div class="sb-section">Work</div>
+  <div class="sb-item" onclick="ownerNavTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="mob-badge-enq" style="display:none">0</span></div>
+  <div class="sb-item" onclick="ownerNavTo('pipeline',this)"><span class="sb-icon">🎯</span>Pipeline</div>
+  <div class="sb-section">Listings</div>
   <div class="sb-item" onclick="ownerNavTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="mob-badge-props" style="display:none">0</span></div>
   <div class="sb-item" onclick="ownerNavTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
-  <div class="sb-section">Leads</div>
-  <div class="sb-item" onclick="ownerNavTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="mob-badge-enq" style="display:none">0</span></div>
   <div class="sb-section">Account</div>
   <div class="sb-item" onclick="ownerNavTo('profile',this)"><span class="sb-icon">👤</span>My Profile</div>
   <div class="sb-item" style="color:#ef4444;margin-top:8px" onclick="ownerLogout()"><span class="sb-icon">🚪</span>Sign Out</div>
