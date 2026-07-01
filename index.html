@@ -4500,7 +4500,7 @@ async function geoUploadToSupabase(fileInput, folder) {
   return params.public_url;
 }
 // Legacy alias
-const geoUploadToCloudinary = geoUploadToSupabase;
+const geoUploadToSupabase_alias = geoUploadToSupabase; // legacy alias removed
 
 // ── REGISTER ─────────────────────────────────────────────────────────────────
 // Step 1: Validate form → store pendingRegData → fire OTP
@@ -4843,7 +4843,7 @@ async function loadFromDB() {
         idRef: r.nin, status: 'active', role: r.role || 'renter',
         initials: r.initials || (r.fname[0] + r.lname[0]),
         verifiedDate: r.registeredAt, activeListing: 0, transactions: 0,
-        // FIX 6: include real Cloudinary URLs from backend
+        // include real Supabase URLs from backend
         photo_url:     r.photoUrl     || r.photo_url     || '',
         id_doc_url:    r.idDocUrl     || r.id_doc_url     || '',
         other_doc_url: r.otherDocUrl  || r.other_doc_url  || '',
@@ -5123,7 +5123,7 @@ function openIdModal(idx){
   const s=submissions[idx];
   document.getElementById('modal-id-title').textContent=s.name+' — '+s.id;
   document.getElementById('modal-id-sub').textContent='Submitted '+s.submitted+' · '+s.doc+' · '+(s.type==='owner'?'Property Owner':'Renter/Buyer');
-  // FIX 1 & 2: Use real Cloudinary URLs from registration data
+  // Use real Supabase Storage URLs from registration data
   const idDocUrl   = s.id_doc_url   || s.idDocUrl   || '';
   const photoUrl   = s.photo_url    || s.photoUrl   || '';
   const otherDocUrl= s.other_doc_url|| s.otherDocUrl|| '';
@@ -7411,7 +7411,7 @@ document.addEventListener('click', function(e) {
 </script>
 
 <script>
-// ── Supabase upload helpers (replaces legacy Cloudinary functions) ────────────
+// ── Supabase Storage upload helpers ────────────────────────────────────────────
 // All uploads go via /upload-sign (server creates a Supabase signed PUT URL).
 // The browser then PUTs the file directly to Supabase Storage — file bytes
 // never touch the Railway server.
@@ -7473,8 +7473,8 @@ async function handlePropPhotosUpload(input) {
   if (statusEl) statusEl.textContent = `✅ ${uploaded} photo(s) uploaded`;
 }
 
-// ── Single image upload for admin fields (was adminCloudinaryUpload) ──────────
-async function adminCloudinaryUpload(inputId) {
+// ── Single image upload for admin fields ──────────────────────────────────────
+async function adminUpload(inputId) {
   const fileInput = document.createElement('input');
   fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
@@ -7507,8 +7507,8 @@ async function adminCloudinaryUpload(inputId) {
   fileInput.click();
 }
 
-// ── Single image upload for property/profile forms (was cloudinaryUpload) ─────
-async function cloudinaryUpload(inputId, previewId) {
+// ── Single image upload for property/profile forms ────────────────────────────
+async function propertyImageUpload(inputId, previewId) {
   try {
     const signRes = await fetch(API_BASE + '/upload-sign', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
