@@ -616,6 +616,16 @@ body {
 .geo-input:focus, .geo-select:focus, .geo-textarea:focus {
   box-shadow: 0 0 0 2px var(--geo-green-400), var(--shadow-lifted-card);
 }
+/* The closed select box uses the theme's surface/text colors, but the
+   native dropdown option list doesn't inherit those everywhere — force a
+   dark background behind the (white) option text so it stays readable. */
+select.geo-input, select.geo-select {
+  color-scheme: dark;
+}
+select.geo-input option, select.geo-select option {
+  background-color: #111827;
+  color: #ffffff;
+}
 .geo-textarea { min-height: 100px; resize: vertical; }
 
 /* ---- STEP PROGRESS ---- */
