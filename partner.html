@@ -1663,37 +1663,6 @@ async function checkVerificationForAdd() {
   if (form) { form.style.opacity = '1'; form.style.pointerEvents = 'auto'; }
 }
 
-async function submitAddProperty() {
-  const lt = document.getElementById('fp-listing-type').value;
-  const title = document.getElementById('fp-title').value.trim();
-  if (!title) { toast('Please enter a property title before submitting', 'error'); return; }
-  const payload = {
-    title, listing_type: lt,
-    monthly_rent: lt === 'rent' ? (parseFloat(document.getElementById('fp-monthly-rent').value)||null) : null,
-    sale_price: lt === 'buy' ? (parseFloat(document.getElementById('fp-sale-price').value)||null) : null,
-    lease_price: lt === 'lease' ? (parseFloat(document.getElementById('fp-lease-price').value)||null) : null,
-    price: lt === 'rent' ? '₦'+(document.getElementById('fp-monthly-rent').value||'0')+'/mo' : lt === 'buy' ? '₦'+(document.getElementById('fp-sale-price').value||'0') : '₦'+(document.getElementById('fp-lease-price').value||'0'),
-    state: document.getElementById('fp-state').value,
-    lga: document.getElementById('fp-lga').value,
-    address: document.getElementById('fp-address').value,
-    bedrooms: parseInt(document.getElementById('fp-beds').value)||null,
-    bathrooms: parseInt(document.getElementById('fp-baths').value)||null,
-    size_sqm: parseFloat(document.getElementById('fp-sqm').value)||null,
-    description: document.getElementById('fp-desc').value,
-    img: document.getElementById('fp-img').value,
-    amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
-    notes: document.getElementById('fp-notes').value
-  };
-  const d = await GeoAPI.ownerFetch('/owner/add-property', { method: 'POST', body: payload });
-  if (d.error) { toast(d.error, 'error'); return; }
-  toast('✅ Property submitted! It will go live once admin approves.', 'success');
-  // Clear form
-  ['fp-title','fp-lga','fp-address','fp-desc','fp-img','fp-amenities','fp-notes'].forEach(id => document.getElementById(id).value = '');
-  ['fp-beds','fp-baths','fp-sqm','fp-monthly-rent','fp-sale-price','fp-lease-price'].forEach(id => document.getElementById(id).value = '');
-  await loadAll();
-  navTo('my-properties', null);
-}
-
 // ── Unit Management ───────────────────────────────────────────
 async function openUnitsModal(propId, propTitle) {
   currentUnitsPropId = propId;
@@ -2620,7 +2589,7 @@ async function submitAddProperty() {
       toast('Your identity verification is still under review — listing submitted but will only go live once approved.', 'info');
     } else {
       toast('Please complete identity verification before listing a property.', 'error');
-      setTimeout(() => navTo('verification', null), 1500);
+      setTimeout(() => { window.location.href = '/?page=verify'; }, 1500);
       return;
     }
   }

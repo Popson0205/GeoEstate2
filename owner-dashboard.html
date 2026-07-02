@@ -370,6 +370,16 @@
           <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Add New Property</h2>
           <div id="add-verify-warning" style="display:none;border-radius:10px;padding:16px;margin-bottom:20px"></div>
 
+          <!-- Shown instead of the form when identity verification hasn't
+               been completed yet — listing is blocked entirely until then. -->
+          <div id="add-verify-gate" style="display:none;text-align:center;padding:48px 24px;background:var(--card);border-radius:12px;box-shadow:var(--shadow)">
+            <div style="font-size:2.5rem;margin-bottom:12px">🪪</div>
+            <div style="font-weight:800;font-size:1.05rem;margin-bottom:8px">Verify Your Identity to List a Property</div>
+            <div style="font-size:.85rem;color:var(--muted);max-width:400px;margin:0 auto 20px;line-height:1.6">This only needs to be done once. It usually takes a few minutes and unlocks listing, publishing, and full account access.</div>
+            <button class="btn btn-primary" onclick="navTo('verification',null)">Go to Verification →</button>
+          </div>
+
+          <div id="add-prop-form-body">
           <!-- STEP 1: Transaction Type Selector -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-body">
@@ -1155,6 +1165,7 @@
             </div>
           </div>
 
+          </div><!-- /#add-prop-form-body -->
         </div>
       </div>
 
@@ -1441,11 +1452,13 @@ function filterOwnerProps(type) { renderProperties(type || null); }
 async function checkVerificationForAdd() {
   const profile = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
   const warning = document.getElementById('add-verify-warning');
-  const form = document.getElementById('add-prop-form-wrap');
-  // Show the warning banner but never block the form — the submit handler
-  // catches unverified owners and shows a clear error instead.
+  const gate = document.getElementById('add-verify-gate');
+  const formBody = document.getElementById('add-prop-form-body');
   const p = profile.profile || {};
+
   if (!p.is_verified && p.status === 'review') {
+    // Already submitted, awaiting manual review — let them keep drafting the
+    // form (it just won't go live until approved), but be explicit about it.
     warning.style.background = 'var(--blue-bg)';
     warning.style.border = '1px solid #93c5fd';
     warning.innerHTML = `
@@ -1453,19 +1466,20 @@ async function checkVerificationForAdd() {
       <span style="font-size:.85rem;color:var(--blue)">You've already submitted your identity documents — they're being reviewed (usually 24–48 hours). You can keep filling this form; you'll be able to publish once approved.</span><br>
       <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="navTo('verification',null)">View Verification Status →</button>`;
     warning.style.display = 'block';
+    if (gate) gate.style.display = 'none';
+    if (formBody) formBody.style.display = 'block';
   } else if (!p.is_verified) {
-    warning.style.background = 'var(--amber-bg)';
-    warning.style.border = '1px solid #fde68a';
-    warning.innerHTML = `
-      <strong>⚠️ Identity Verification Required</strong><br>
-      <span style="font-size:.85rem;color:#92400e">You need to complete identity verification before listing properties. This only needs to be done once.</span><br>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="navTo('verification',null)">Go to Verification →</button>`;
-    warning.style.display = 'block';
+    // Not verified at all — block the form entirely and send them straight
+    // to the one real Verify Identity page instead of letting them fill in
+    // property details first.
+    warning.style.display = 'none';
+    if (gate) gate.style.display = 'block';
+    if (formBody) formBody.style.display = 'none';
   } else {
     warning.style.display = 'none';
+    if (gate) gate.style.display = 'none';
+    if (formBody) formBody.style.display = 'block';
   }
-  // Always keep form interactive
-  if (form) { form.style.opacity = '1'; form.style.pointerEvents = 'auto'; }
 }
 
 
@@ -1724,182 +1738,18 @@ async function renderVerification() {
     return;
   }
 
+  // Not started yet — GeoEstate has a single Verify Identity form for the
+  // whole platform (created once, per account). It lives on the main site
+  // so it's asked exactly once, whether someone got here as a renter, an
+  // owner, or straight from Add Property. Send them there instead of
+  // duplicating the form here.
   el.innerHTML = `
-    <div style="background:var(--amber-bg);border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid #fde68a">
-      <strong style="color:#92400e">⚠️ Verification required</strong>
-      <p style="font-size:.82rem;color:#92400e;margin-top:4px">Fill in all fields below. This is a one-time process — after verification you can list unlimited properties.</p>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Personal Information</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Date of Birth</label>
-            <input class="form-input" type="date" id="vf-dob">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Gender</label>
-            <select class="form-select" id="vf-gender">
-              <option value="">Select...</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Occupation</label>
-            <input class="form-input" id="vf-occupation" placeholder="e.g. Property Developer, Engineer">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Employer / Business Name</label>
-            <input class="form-input" id="vf-employer" placeholder="e.g. Self-employed, Company name">
-          </div>
-        </div>
-
-        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Residential Address</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">State</label>
-            <select class="form-input" id="vf-state" style="cursor:pointer">
-              <option value="">— Select State —</option>
-              <option value="abia">Abia</option>
-              <option value="adamawa">Adamawa</option>
-              <option value="akwa_ibom">Akwa Ibom</option>
-              <option value="anambra">Anambra</option>
-              <option value="bauchi">Bauchi</option>
-              <option value="bayelsa">Bayelsa</option>
-              <option value="benue">Benue</option>
-              <option value="borno">Borno</option>
-              <option value="cross_river">Cross River</option>
-              <option value="delta">Delta</option>
-              <option value="ebonyi">Ebonyi</option>
-              <option value="edo">Edo</option>
-              <option value="ekiti">Ekiti</option>
-              <option value="enugu">Enugu</option>
-              <option value="fct">FCT - Abuja</option>
-              <option value="gombe">Gombe</option>
-              <option value="imo">Imo</option>
-              <option value="jigawa">Jigawa</option>
-              <option value="kaduna">Kaduna</option>
-              <option value="kano">Kano</option>
-              <option value="katsina">Katsina</option>
-              <option value="kebbi">Kebbi</option>
-              <option value="kogi">Kogi</option>
-              <option value="kwara">Kwara</option>
-              <option value="lagos">Lagos</option>
-              <option value="nasarawa">Nasarawa</option>
-              <option value="niger">Niger</option>
-              <option value="ogun">Ogun</option>
-              <option value="ondo">Ondo</option>
-              <option value="osun">Osun</option>
-              <option value="oyo">Oyo</option>
-              <option value="plateau">Plateau</option>
-              <option value="rivers">Rivers</option>
-              <option value="sokoto">Sokoto</option>
-              <option value="taraba">Taraba</option>
-              <option value="yobe">Yobe</option>
-              <option value="zamfara">Zamfara</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">LGA</label>
-            <select class="form-input" id="vf-lga" style="cursor:pointer" disabled>
-              <option value="">— Select State first —</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Full Address</label>
-          <input class="form-input" id="vf-address" placeholder="House number, street, area">
-        </div>
-
-        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Next of Kin</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Full Name</label>
-            <input class="form-input" id="vf-nok-name" placeholder="Next of kin full name">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Relationship</label>
-            <select class="form-select" id="vf-nok-rel">
-              <option value="">Select...</option>
-              <option value="Spouse">Spouse</option>
-              <option value="Parent">Parent</option>
-              <option value="Sibling">Sibling</option>
-              <option value="Child">Child</option>
-              <option value="Friend">Friend</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Phone Number</label>
-            <input class="form-input" id="vf-nok-phone" placeholder="+234...">
-          </div>
-        </div>
-
-        <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Identity Documents</div>
-        <div class="form-group">
-          <label class="form-label">NIN (National Identification Number) <span style="color:#dc2626">*</span></label>
-          <input class="form-input" id="vf-nin" placeholder="11-digit NIN e.g. 12345678901" maxlength="11" inputmode="numeric">
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Document Type <span style="color:#dc2626">*</span></label>
-            <select class="form-select" id="vf-doc-type">
-              <option value="NIN">NIN Slip</option>
-              <option value="IntlPassport">International Passport</option>
-              <option value="DriversLicence">Driver's Licence</option>
-              <option value="VotersCard">Voter's Card</option>
-              <option value="CAC">CAC Certificate (for companies)</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Document URL / Link <span style="color:#dc2626">*</span></label>
-          <input class="form-input" id="vf-doc-url" placeholder="Paste a Google Drive / Dropbox share link to your scanned document">
-          <div style="font-size:.75rem;color:var(--subtle);margin-top:4px">Upload to Google Drive → Share → "Anyone with link can view" → Paste link here</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Selfie with Document (URL)</label>
-          <input class="form-input" id="vf-selfie-url" placeholder="Paste link to a selfie holding your ID document (optional but recommended)">
-        </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="submitVerification()">Submit Identity for Verification →</button>
-      </div>
+    <div style="text-align:center;padding:32px 20px;background:var(--card);border-radius:12px;box-shadow:var(--shadow)">
+      <div style="font-size:2.5rem;margin-bottom:12px">🪪</div>
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:8px">Verify Your Identity</div>
+      <div style="font-size:.85rem;color:var(--muted);max-width:380px;margin:0 auto 20px;line-height:1.6">Verification is a one-time step on the main GeoEstate site — a short form covering your bio data, NIN, a selfie, and your ID document. Once approved, you can list unlimited properties from this dashboard.</div>
+      <a class="btn btn-primary" href="/?page=verify">Go to Verification →</a>
     </div>`;
-}
-
-async function submitVerification() {
-  const nin      = document.getElementById('vf-nin').value.trim();
-  const docType  = document.getElementById('vf-doc-type').value;
-  const docUrl   = document.getElementById('vf-doc-url').value.trim();
-  const selfieUrl= document.getElementById('vf-selfie-url')?.value.trim() || '';
-  const dob      = document.getElementById('vf-dob')?.value || '';
-  const gender   = document.getElementById('vf-gender')?.value || '';
-  const occupation  = document.getElementById('vf-occupation')?.value.trim() || '';
-  const employer    = document.getElementById('vf-employer')?.value.trim() || '';
-  const state    = document.getElementById('vf-state')?.value.trim() || '';
-  const lga      = document.getElementById('vf-lga')?.value.trim() || '';
-  const address  = document.getElementById('vf-address')?.value.trim() || '';
-  const nextOfKin      = document.getElementById('vf-nok-name')?.value.trim() || '';
-  const nextOfKinRel   = document.getElementById('vf-nok-rel')?.value || '';
-  const nextOfKinPhone = document.getElementById('vf-nok-phone')?.value.trim() || '';
-
-  if (!nin || nin.length !== 11) { toast('Please enter your 11-digit NIN', 'error'); return; }
-  if (!docUrl) { toast('Document URL is required', 'error'); return; }
-  if (!state || !address) { toast('Please fill in your state and address', 'error'); return; }
-
-  const d = await GeoAPI.ownerFetch('/owner/verify-identity', {
-    method: 'POST',
-    body: {
-      nin, doc_type: docType, doc_url: docUrl, selfie_url: selfieUrl,
-      dob, gender, occupation, employer,
-      state, lga, address,
-      next_of_kin: nextOfKin, next_of_kin_rel: nextOfKinRel, next_of_kin_phone: nextOfKinPhone
-    }
-  });
-  if (d.error) { toast(d.error, 'error'); return; }
-  if (d.alreadyVerified) { toast('Already verified ✅', 'success'); renderVerification(); return; }
-  toast('✅ Documents submitted. You will be notified once verified (usually within 24 hours).', 'success');
-  renderVerification();
 }
 
 const NIGERIA_LGA = {
