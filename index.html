@@ -1295,7 +1295,7 @@ document.addEventListener('click', function(e){
         ✅ Our team manually verifies your documents within 24–72 hours. No automated API needed — a real reviewer checks every submission.
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:var(--space-4)">
-        <button class="btn btn-primary btn-lg" onclick="listStep(2)">Continue to Property Details →</button>
+        <button class="btn btn-primary btn-lg" onclick="goToPropertyDetails()">Continue to Property Details →</button>
       </div>
     </div>
 
@@ -4113,21 +4113,41 @@ function setRentCategory(cat) {
   }
 }
 
-// ── submitAddProperty — now transaction-type aware ────────────────────────
-async function goToConsent() {
-  const lt = document.getElementById('fp-listing-type').value;
-
-  // ── Verification guard ────────────────────────────────────────────────
+// ── Shared verification guard ──────────────────────────────────────────────
+// Used both when leaving Step 1 (Identity) and again as a final safety net
+// before Consent, in case status changed mid-flow. Returns true if the user
+// may proceed, false if they were blocked/redirected.
+async function checkOwnerVerifiedOrRedirect() {
   const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
   if (_vp.profile && !_vp.profile.is_verified) {
     if (_vp.profile.status === 'review') {
       toast('Your identity verification is still under review — your listing will only go live once approved.', 'info');
+      return true;
     } else {
       toast('Please complete identity verification before listing a property.', 'error');
       setTimeout(() => navTo('verification', null), 1500);
-      return;
+      return false;
     }
   }
+  return true;
+}
+
+// Step 1 (Identity) → Step 2 (Property Details). Checks verification here,
+// immediately, instead of letting the user fill out the whole property
+// form first and only discovering they're unverified at the Consent step.
+async function goToPropertyDetails() {
+  const ok = await checkOwnerVerifiedOrRedirect();
+  if (!ok) return;
+  listStep(2);
+}
+
+// ── submitAddProperty — now transaction-type aware ────────────────────────
+async function goToConsent() {
+  const lt = document.getElementById('fp-listing-type').value;
+
+  // ── Verification guard (safety net; primary check is on Step 1 exit) ───
+  const ok = await checkOwnerVerifiedOrRedirect();
+  if (!ok) return;
 
   let payload = {};
 
