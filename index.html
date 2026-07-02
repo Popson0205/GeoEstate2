@@ -394,37 +394,40 @@ YPE html>
   .geo-listing-form-scope,
   .geo-listing-form-scope * { box-sizing: border-box; }
 
-  /* ── CSS Variable bridge: owner-dashboard vars → available in form ── */
+  /* ── CSS Variable bridge: retargeted onto the real GeoEstate brand tokens
+     (the same --geo-green-*, --border-default, --text-*, --radius-*, --space-*
+     variables used by the Verify Identity / Consent steps) so this step looks
+     and feels like the rest of the branded flow instead of a generic gray form. ── */
   :root {
-    --green:    var(--geo-green-600, #1a6b3c);
-    --green-d:  var(--geo-green-800, #0d3d22);
-    --green-l:  var(--geo-green-100, #d9f2e3);
-    --green-bg: var(--geo-green-50,  #f0faf4);
-    --card:     #ffffff;
-    --card2:    #f3f4f6;
-    --text:     #111827;
-    --muted:    #6b7280;
-    --subtle:   #9ca3af;
-    --border:   #e5e7eb;
+    --green:    var(--geo-green-600);
+    --green-d:  var(--geo-green-800);
+    --green-l:  var(--geo-green-100);
+    --green-bg: var(--geo-green-50);
+    --card:     var(--surface-primary, #ffffff);
+    --card2:    var(--surface-secondary);
+    --text:     var(--text-primary);
+    --muted:    var(--text-tertiary);
+    --subtle:   var(--text-muted);
+    --border:   var(--border-default);
     --amber:    #d97706;
     --amber-bg: #fffbeb;
     --red:      #b91c1c;
     --red-bg:   #fef2f2;
     --blue:     #1e40af;
     --blue-bg:  #eff6ff;
-    --shadow:   0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05);
+    --shadow:   var(--shadow-lifted-card, 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05));
     --font:     Inter, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   /* ── Cards ── */
-  .card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+  .card { background: var(--card); border-radius: var(--radius-lg, 12px); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
   .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .card-title { font-size: .92rem; font-weight: 700; }
+  .card-title { font-size: .92rem; font-weight: 700; color: var(--text); }
   .card-sub { font-size: .78rem; color: var(--subtle); margin-top: 2px; }
   .card-body { padding: 20px; }
 
   /* ── Buttons ── */
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-lg, 8px); font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font); }
   .btn-primary { background: var(--green); color: #fff; }
   .btn-primary:hover { background: var(--green-d); }
   .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
@@ -433,11 +436,13 @@ YPE html>
   .btn-sm { padding: 5px 11px; font-size: .78rem; }
   .btn-xs { padding: 3px 8px; font-size: .72rem; }
 
-  /* ── Forms ── */
+  /* ── Forms (now shares the same look as .geo-input / .geo-label / .geo-select
+     used in the Identity and Consent steps: brand green focus ring, same
+     border/radius/text tokens) ── */
   .form-group { margin-bottom: 16px; }
   .form-label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
   .form-input, .form-select, .form-textarea {
-    width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-lg, 8px);
     background: var(--card); color: var(--text); font-family: var(--font); font-size: .88rem;
     outline: none; transition: border-color .15s;
   }
@@ -1131,19 +1136,21 @@ document.addEventListener('click', function(e){
       <p style="color:var(--text-tertiary);font-size:0.95rem;line-height:1.6">Your listing will only go live after we verify your identity and property documents. This protects you and every buyer on the platform.</p>
     </div>
 
-    <!-- Step Progress -->
+    <!-- Step Progress (3 steps: Identity → Property Details → Consent) -->
     <div class="step-progress" id="list-steps">
       <div class="step-dot active" id="sdot-1">1</div>
       <div class="step-line" id="sline-1"></div>
       <div class="step-dot todo" id="sdot-2">2</div>
       <div class="step-line" id="sline-2"></div>
       <div class="step-dot todo" id="sdot-3">3</div>
-      <div class="step-line" id="sline-3"></div>
-      <div class="step-dot todo" id="sdot-4">4</div>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:var(--space-8);margin-top:var(--space-2)">
-      <span>Your Identity</span><span>Property Details</span><span>Documents</span><span>Consent</span>
+      <span>Verify Identity</span><span>Property Details</span><span>Consent</span>
     </div>
+
+    <!-- One unified stepped form: all three steps share the same body/card
+         treatment (.geo-card) so they read as a single cohesive flow ── -->
+    <div class="geo-listing-form-scope">
 
     <!-- STEP 1: Identity -->
     <div id="list-step-1" class="geo-card" style="padding:var(--space-6);">
@@ -1290,7 +1297,8 @@ document.addEventListener('click', function(e){
     </div>
 
     <!-- STEP 2: List Property Form (Rent / Sell / Lease) -->
-    <div id="list-step-2" style="display:none">
+    <div id="list-step-2" class="geo-card" style="display:none;padding:var(--space-6);">
+      <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-6)">🏗️ Step 2 — Property Details</h2>
       <div style="max-width:720px;margin:0 auto">
 
 
@@ -1628,7 +1636,7 @@ document.addEventListener('click', function(e){
                 <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know about this listing..." rows="2"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:4px">
-                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Rental Listing →</button>
+                <button class="btn btn-primary" onclick="goToConsent()">Continue to Consent →</button>
                 <button class="btn btn-outline" onclick="window.location.reload()">Cancel</button>
               </div>
             </div>
@@ -1848,7 +1856,7 @@ document.addEventListener('click', function(e){
                 <textarea class="form-textarea" id="buy-notes" placeholder="Any notes, special conditions, or instructions for the admin..." rows="2"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:4px">
-                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Sale Listing →</button>
+                <button class="btn btn-primary" onclick="goToConsent()">Continue to Consent →</button>
                 <button class="btn btn-outline" onclick="window.location.reload()">Cancel</button>
               </div>
             </div>
@@ -2073,7 +2081,7 @@ document.addEventListener('click', function(e){
                 <textarea class="form-textarea" id="lease-notes" placeholder="Special lease conditions, restrictions, or anything else the admin should know..." rows="2"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:4px">
-                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Lease Listing →</button>
+                <button class="btn btn-primary" onclick="goToConsent()">Continue to Consent →</button>
                 <button class="btn btn-outline" onclick="window.location.reload()">Cancel</button>
               </div>
             </div>
@@ -2087,6 +2095,27 @@ document.addEventListener('click', function(e){
       </div>
     </div>
 
+    <!-- STEP 3: Consent -->
+    <div id="list-step-3" class="geo-card" style="display:none;padding:var(--space-6);">
+      <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-6)">✅ Step 3 — Consent</h2>
+      <p style="font-size:0.88rem;color:var(--text-tertiary);line-height:1.7;margin-bottom:var(--space-5)">Before we submit your listing for review, please confirm the following.</p>
+
+      <div style="background:var(--geo-green-50);border-radius:8px;padding:14px 16px;margin-bottom:var(--space-5);box-shadow:inset 0 0 0 1px var(--geo-green-200)">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--geo-green-700);line-height:1.6">
+          <input type="checkbox" id="list-consent-checkbox" style="margin-top:3px;accent-color:var(--geo-green-600)">
+          <span>I confirm that the property details and documents I have submitted are accurate and that I have the legal right to list this property. I consent to GeoEstate's team manually reviewing my listing and supporting documents before it goes live. I have read the <a href="#" onclick="showPage('privacy')" style="color:var(--geo-green-600)">Privacy Policy</a> and <a href="#" onclick="showPage('terms')" style="color:var(--geo-green-600)">Terms of Service</a>, and understand that payments must go through GeoEstate's designated channels only.</span>
+        </label>
+      </div>
+
+      <div id="list-consent-error" style="display:none;font-size:.82rem;color:var(--red,#b91c1c);margin-bottom:12px;padding:10px 12px;background:var(--red-bg,#fef2f2);border-radius:8px"></div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:var(--space-4)">
+        <button class="btn btn-ghost" onclick="listStep(2)">← Back</button>
+        <button class="btn btn-primary btn-lg" id="list-final-submit-btn" onclick="finalizeListingSubmit()">Submit Listing →</button>
+      </div>
+    </div>
+
+    </div><!-- /.geo-listing-form-scope -->
 
     <!-- SUCCESS STATE -->
     <div id="list-success" style="display:none;text-align:center;padding:var(--space-12) var(--space-6)">
@@ -4082,14 +4111,14 @@ function setRentCategory(cat) {
 }
 
 // ── submitAddProperty — now transaction-type aware ────────────────────────
-async function submitAddProperty() {
+async function goToConsent() {
   const lt = document.getElementById('fp-listing-type').value;
 
   // ── Verification guard ────────────────────────────────────────────────
   const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
   if (_vp.profile && !_vp.profile.is_verified) {
     if (_vp.profile.status === 'review') {
-      toast('Your identity verification is still under review — listing submitted but will only go live once approved.', 'info');
+      toast('Your identity verification is still under review — your listing will only go live once approved.', 'info');
     } else {
       toast('Please complete identity verification before listing a property.', 'error');
       setTimeout(() => navTo('verification', null), 1500);
@@ -4275,18 +4304,68 @@ async function submitAddProperty() {
     _ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
   }
   if (!_ownerToken) { openAuthModal('login'); return; }
+
+  // Validation passed — hold the payload and move to the real Consent step
+  // instead of submitting immediately. Nothing is sent to the server until
+  // finalizeListingSubmit() confirms the consent checkbox is checked.
+  window._pendingListingPayload = payload;
+  window._pendingListingType = lt;
+  window._pendingOwnerToken = _ownerToken;
+  const consentErr = document.getElementById('list-consent-error');
+  if (consentErr) consentErr.style.display = 'none';
+  const consentBox = document.getElementById('list-consent-checkbox');
+  if (consentBox) consentBox.checked = false;
+  listStep(3);
+}
+
+async function finalizeListingSubmit() {
+  const consentBox = document.getElementById('list-consent-checkbox');
+  const consentErr = document.getElementById('list-consent-error');
+  if (!consentBox || !consentBox.checked) {
+    if (consentErr) {
+      consentErr.textContent = '❌ Please check the consent box before submitting.';
+      consentErr.style.display = 'block';
+      consentErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+  if (consentErr) consentErr.style.display = 'none';
+
+  const payload = window._pendingListingPayload;
+  const lt = window._pendingListingType;
+  const _ownerToken = window._pendingOwnerToken;
+  if (!payload || !lt || !_ownerToken) { toast('Something went wrong — please go back and try again.', 'error'); return; }
+
+  const submitBtn = document.getElementById('list-final-submit-btn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
+
   const _apiBase = typeof GEO_API_BASE !== 'undefined' ? GEO_API_BASE : 'https://api.geoestate.com.ng';
-  const _resp = await fetch(_apiBase + '/owner/add-property', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _ownerToken },
-    body: JSON.stringify(payload)
-  });
-  const d = await _resp.json();
-  if (d.error) { toast(d.error, 'error'); return; }
+  let _resp, d;
+  try {
+    _resp = await fetch(_apiBase + '/owner/add-property', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _ownerToken },
+      body: JSON.stringify(payload)
+    });
+    d = await _resp.json();
+  } catch (e) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Listing →'; }
+    toast('Network error — please try again.', 'error');
+    return;
+  }
+  if (d.error) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Listing →'; }
+    toast(d.error, 'error');
+    return;
+  }
 
   const typeLabel = { rent: 'Rental', buy: 'Sale', lease: 'Lease' }[lt] || lt;
   toast('✅ ' + typeLabel + ' listing submitted! It will go live once admin approves.', 'success');
-  // Reset form
+  // Reset form + pending state
+  window._pendingListingPayload = null;
+  window._pendingListingType = null;
+  window._pendingOwnerToken = null;
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Listing →'; }
   setTransactionType('rent'); setRentCategory('standard');
   await loadAll();
   if (typeof showPage === 'function') showPage('home');
@@ -4294,7 +4373,7 @@ async function submitAddProperty() {
 
 
 function listStep(n) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 3; i++) {
     const el = document.getElementById('list-step-' + i);
     if (el) el.style.display = i === n ? 'block' : 'none';
     const dot = document.getElementById('sdot-' + i);
@@ -4500,7 +4579,7 @@ async function submitListing() {
     return;
   }
 
-  for (let i = 1; i <= 4; i++) { const el = document.getElementById('list-step-' + i); if (el) el.style.display = 'none'; }
+  for (let i = 1; i <= 3; i++) { const el = document.getElementById('list-step-' + i); if (el) el.style.display = 'none'; }
 
   if (isPartner) {
     // Send partners straight back to their dashboard with the fresh listing visible.
@@ -9147,11 +9226,13 @@ function updateUnitSummary() {
     </div>`;
 }
 
-/* Called by the existing listStep(3) button — validate before proceeding */
+/* Multi-unit validation gate — only relevant on pages that actually have a
+   #lp-unit-structure field. Guarded so it doesn't block the List Property
+   flow's Consent step (also step 3), which has no such field. */
 (function patchListStep() {
   const _origListStep = window.listStep;
   window.listStep = function(step) {
-    if (step === 3) {
+    if (step === 3 && document.getElementById('lp-unit-structure')) {
       const structure = document.getElementById('lp-unit-structure')?.value;
       if (!structure) {
         alert('Please select Single Unit or Multi-Unit for this property.');
