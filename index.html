@@ -499,20 +499,26 @@ YPE html>
 
   // Hoisted — these functions are called by nav buttons before the main
   // script block parses. Keep them minimal; full versions defined later.
-  function openAuthModal(tab) {
+  // NOTE: these must attach to `window` explicitly. A plain `function`
+  // declaration here would be scoped to this IIFE only and never actually
+  // become callable from onclick="" handlers — which is exactly why
+  // "openAuthModal is not defined" could fire if a user clicked Sign In/
+  // Register before the later, fuller definition further down the page
+  // had executed.
+  window.openAuthModal = function(tab) {
     var modal = document.getElementById('auth-modal');
     if (!modal) return;
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     if (typeof switchAuthTab === 'function') switchAuthTab(tab || 'login');
-  }
-  function closeMobileNav() {
+  };
+  window.closeMobileNav = function() {
     var nav = document.getElementById('geo-mobile-nav');
     var btn = document.getElementById('geo-hamburger');
     if (nav) { nav.classList.remove('open'); }
     if (btn) { btn.classList.remove('open'); }
     document.body.style.overflow = '';
-  }
+  };
 
   // API health check
   fetch(API + '/', { method: 'GET' }).then(function (r) {
