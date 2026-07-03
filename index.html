@@ -352,46 +352,6 @@ YPE html>
   #admin-root .theme-btn{background:var(--a-card2);border:1px solid var(--a-border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1rem;color:var(--a-text);transition:all .15s}
   #admin-root .theme-btn:hover{background:var(--a-card)}
 
-  /* ══ ADMIN MOBILE RESPONSIVENESS ══
-     Previously #admin-root had zero responsive rules: a fixed 240px sidebar,
-     a main panel hard-pinned with margin-left:240px, and several 2/4-column
-     grids with no fallback — guaranteed horizontal overflow on any phone. */
-  #admin-root .admin-hamburger{display:none;background:none;border:none;color:var(--a-text);font-size:1.3rem;cursor:pointer;padding:4px 8px;line-height:1}
-  #admin-root .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
-  #admin-root .sidebar-backdrop.open{display:block}
-  @media (max-width:900px){
-    #admin-root .admin-hamburger{display:inline-flex;align-items:center}
-    #admin-root .sidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 24px rgba(0,0,0,.3);z-index:100}
-    #admin-root .sidebar.open{transform:translateX(0)}
-    #admin-root .admin-main{margin-left:0 !important}
-    #admin-root .topbar{padding:0 12px !important}
-    #admin-root .topbar-title{font-size:.9rem !important}
-    #admin-root .topbar-right{gap:6px !important}
-    #admin-root .topbar-right button{padding:6px 8px !important;font-size:.72rem !important}
-    #admin-root #clock{display:none}
-    #admin-root .admin-page-body{padding:14px !important}
-    #admin-root .kpi-grid{grid-template-columns:1fr 1fr !important;gap:10px !important}
-    #admin-root .field-grid,
-    #admin-root .doc-grid,
-    #admin-root .case-parties,
-    #admin-root .two-col{grid-template-columns:1fr !important}
-    #admin-root .modal-overlay{padding:0 !important;align-items:flex-end !important}
-    #admin-root .modal-box{max-width:100% !important;border-radius:16px 16px 0 0 !important;max-height:94vh !important}
-    #admin-root .modal-body,
-    #admin-root .modal-header,
-    #admin-root .modal-footer{padding:14px !important}
-    #admin-root table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
-  }
-  @media (max-width:420px){
-    #admin-root .kpi-grid{grid-template-columns:1fr !important}
-  }
-  /* Any raw two-column inline grid across the app (verify form, dashboards,
-     property forms, etc.) that never got a responsive class — collapse it. */
-  @media (max-width:640px){
-    [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
-    [style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr !important}
-  }
-
   
 /* ── Multi-unit builder ── */
 .geo-unit-btn {
@@ -3546,14 +3506,11 @@ function goToAdmin(e) {
     </div>
   </div>
 
-  <div class="sidebar-backdrop" id="admin-sidebar-backdrop" onclick="toggleAdminSidebar(false)"></div>
-
   <!-- Main -->
-  <div class="admin-main" style="margin-left:240px;flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden">
+  <div style="margin-left:240px;flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden">
     <!-- Topbar -->
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
-        <button class="admin-hamburger" onclick="toggleAdminSidebar()" aria-label="Menu">☰</button>
         <div id="topbar-title" style="font-weight:800;font-size:1rem">Overview</div>
       </div>
       <div class="topbar-right">
@@ -3564,7 +3521,7 @@ function goToAdmin(e) {
     </div>
 
     <!-- Pages -->
-    <div class="admin-page-body" style="flex:1;overflow-y:auto;padding:24px 28px">
+    <div style="flex:1;overflow-y:auto;padding:24px 28px">
 
       <!-- Overview -->
       <div id="adm-page-overview" class="page active">
@@ -4821,17 +4778,6 @@ function nav(page,el){
     const needsAll   = submissions.length === 0 && adminProperties.length === 0;
     if (needsAll || needsProps) { adminToast('Loading data...', 'info'); loadFromDB(); }
   }
-  // Auto-close the mobile off-canvas drawer after picking a page
-  toggleAdminSidebar(false);
-}
-
-function toggleAdminSidebar(force){
-  const sidebar  = document.querySelector('#admin-root .sidebar');
-  const backdrop = document.getElementById('admin-sidebar-backdrop');
-  if (!sidebar) return;
-  const open = typeof force === 'boolean' ? force : !sidebar.classList.contains('open');
-  sidebar.classList.toggle('open', open);
-  if (backdrop) backdrop.classList.toggle('open', open);
 }
 
 // ══ CLOCK ══
