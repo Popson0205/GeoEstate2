@@ -3182,7 +3182,11 @@ async function submitVerification() {
   const gender   = (document.getElementById('vi-gender')     || {}).value        || '';
   const occ      = ((document.getElementById('vi-occupation') || {}).value || '').trim();
   const employer = ((document.getElementById('vi-employer')   || {}).value || '').trim();
-  const state    = (document.getElementById('vi-state')      || {}).value        || '';
+  // vi-state's option values are lowercase machine codes (e.g. "fct") used only
+  // to drive the LGA cascade — save the human-readable label ("FCT - Abuja")
+  // instead, so reviewers in the admin panel see the same thing the user picked.
+  const stateEl  = document.getElementById('vi-state');
+  const state    = (stateEl && stateEl.value) ? stateEl.options[stateEl.selectedIndex].text : '';
   const lga      = ((document.getElementById('vi-lga')        || {}).value || '').trim();
   const address  = ((document.getElementById('vi-address')    || {}).value || '').trim();
   const nin      = ((document.getElementById('vi-nin')        || {}).value || '').trim();
@@ -4878,9 +4882,21 @@ function openIdModal(idx){
   // FIX 1 & 2: Use real Supabase URLs from registration data
   const idDocUrl   = s.id_doc_url   || s.idDocUrl   || '';
   const photoUrl   = s.photo_url    || s.photoUrl   || '';
+  // Tell reviewers WHY documents are missing, since "never submitted" and
+  // "submitted but files failed to save" look identical otherwise — both show
+  // empty doc-thumb placeholders.
+  const neverStarted = (s.doc === 'Pending upload' || !s.doc) && s.status !== 'review';
+  const missingFilesAfterSubmit = !neverStarted && (!idDocUrl || !photoUrl);
+  let stateBanner = '';
+  if (neverStarted) {
+    stateBanner = `<div class="panel-section" style="background:var(--a-card2);border-radius:8px;padding:10px 14px;font-size:.8rem;color:var(--text-secondary)">ℹ️ This user has not submitted their identity verification form yet — these fields were never filled in. Nothing to review until they do.</div>`;
+  } else if (missingFilesAfterSubmit) {
+    stateBanner = `<div class="panel-section" style="background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#b91c1c">⚠️ Verification was submitted, but ${!idDocUrl && !photoUrl ? 'the ID document and selfie' : !idDocUrl ? 'the ID document' : 'the selfie'} failed to save. Ask the user to resubmit, or flag for engineering.</div>`;
+  }
   const otherDocUrl= s.other_doc_url|| s.otherDocUrl|| '';
   const docLabel   = s.doc && s.doc !== 'Pending upload' ? s.doc : 'ID Document';
   document.getElementById('modal-id-body').innerHTML=`
+    ${stateBanner}
     <div class="panel-section">
       <div class="panel-section-title">Status & SLA</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${statusPill(s.status)}<span class="tag">${s.type==='owner'?'🏠 Property Owner':'🔑 Renter/Buyer'}</span>${slaLabel(s.slaH)}<span class="tag">Reviewer: ${s.reviewer}</span></div>
