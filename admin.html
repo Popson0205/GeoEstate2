@@ -1256,6 +1256,7 @@ async function adminDoLogin(){
       sessionStorage.setItem('geo_admin_token', data.token);
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
+      startAdminRefreshTimer();
       initApp();
     } else {
       errEl.style.display = 'block';
@@ -1271,6 +1272,7 @@ async function adminDoLogin(){
 }
 function adminDoLogout(){
   sessionStorage.removeItem('geo_admin_token');
+  stopAdminRefreshTimer();
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-pass').value='';
@@ -1293,6 +1295,7 @@ async function tryRestoreAdminSession(){
     // Token still valid — skip login screen and boot the app
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
+    startAdminRefreshTimer();
     initApp();
   } catch(e) {
     // Network error — don't force logout, but also can't confirm validity.
@@ -3021,11 +3024,47 @@ function geoHeaders(extra={}) {
 }
 const GEO_API = 'https://api.geoestate.com.ng';
 
+// ── Silent token refresh ─────────────────────────────────────────────────
+// Renews the admin token well before its 8h expiry so an active session
+// never gets kicked to the login screen mid-use. Runs on a timer once
+// logged in; also used as a one-shot retry if a request comes back 401.
+let _refreshIntervalId = null;
+async function refreshAdminToken() {
+  const tok = sessionStorage.getItem('geo_admin_token');
+  if (!tok) return false;
+  try {
+    const res = await fetch(GEO_API + '/admin/refresh', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok }
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data.success && data.token) {
+      sessionStorage.setItem('geo_admin_token', data.token);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    // Network hiccup — don't treat as a failed refresh, just skip this cycle
+    console.warn('Token refresh skipped (network):', e.message);
+    return false;
+  }
+}
+function startAdminRefreshTimer() {
+  if (_refreshIntervalId) return;
+  // Refresh every 30 min — comfortably inside the 8h window even if a
+  // couple of cycles get skipped due to network hiccups.
+  _refreshIntervalId = setInterval(refreshAdminToken, 30 * 60 * 1000);
+}
+function stopAdminRefreshTimer() {
+  if (_refreshIntervalId) { clearInterval(_refreshIntervalId); _refreshIntervalId = null; }
+}
+
 // Track last full-sync time so we only re-fetch changed records on polls
 let _lastSyncTime = 0;
 let _syncIsInitial = true;
 
-async function syncFromAPI() {
+async function syncFromAPI(isRetry) {
   const btn = document.querySelector('[onclick="syncFromAPI()"]');
   if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
   try {
@@ -3151,8 +3190,19 @@ async function syncFromAPI() {
   } catch(e) {
     if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
     if (e.status === 401 || e.status === 403) {
+      // Might just be a token that expired mid-session (or a redeploy that
+      // rotated JWT_SECRET) — try one silent refresh before giving up.
+      // isRetry guards against looping if the refreshed token also fails.
+      if (!isRetry) {
+        const refreshed = await refreshAdminToken();
+        if (refreshed) {
+          console.warn('Admin token refreshed after a 401 — retrying sync.');
+          return syncFromAPI(true);
+        }
+      }
       console.warn('Admin session expired — stopping sync and returning to login.');
       if (_syncIntervalId) { clearInterval(_syncIntervalId); _syncIntervalId = null; }
+      stopAdminRefreshTimer();
       adminToast('Your session expired. Please log in again.', 'error');
       adminDoLogout();
       return;
