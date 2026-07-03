@@ -8,6 +8,12 @@
   const GEO_API = 'https://api.geoestate.com.ng';
   const ADMIN_TOKEN_KEY = 'geo_admin_token';
   const OWNER_SESSION_KEY = 'geo_owner_session';
+  // Partners get their own storage slot — separate from the owner session —
+  // so logging in as a property owner (index.html / owner-dashboard.html)
+  // never bleeds into the Partner Portal (and vice versa). Before this,
+  // both used OWNER_SESSION_KEY and whichever logged in last "won", which is
+  // why a partner's dashboard could show a regular owner's properties.
+  const PARTNER_SESSION_KEY = 'geo_partner_session';
 
   // ── Helper ──────────────────────────────────────────────────────
   function getAdminToken() {
@@ -42,6 +48,30 @@
 
   function clearOwnerSession() {
     localStorage.removeItem(OWNER_SESSION_KEY);
+  }
+
+  // ── Partner session (isolated from owner session — see note above) ──
+  function getPartnerSession() {
+    try {
+      const s = localStorage.getItem(PARTNER_SESSION_KEY);
+      return s ? JSON.parse(s) : null;
+    } catch(e) { return null; }
+  }
+
+  function setPartnerSession(data) {
+    localStorage.setItem(PARTNER_SESSION_KEY, JSON.stringify(data));
+  }
+
+  function clearPartnerSession() {
+    localStorage.removeItem(PARTNER_SESSION_KEY);
+  }
+
+  function partnerHeaders() {
+    const s = getPartnerSession();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + (s ? s.token : '')
+    };
   }
 
   // ── Map DB property to frontend format ─────────────────────────
@@ -189,6 +219,25 @@
     } catch(e) { return { error: e.message }; }
   }
 
+  async function partnerFetch(path, opts) {
+    opts = opts || {};
+    const hasBody = !!(opts.body);
+    const headers = partnerHeaders();
+    if (!hasBody) delete headers['Content-Type'];
+    try {
+      const r = await fetch(GEO_API + path, {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: hasBody ? JSON.stringify(opts.body) : undefined
+      });
+      if (!r.ok) {
+        try { const d = await r.json(); return { error: d.error || 'HTTP ' + r.status }; } catch(e2) {}
+        return { error: 'HTTP ' + r.status };
+      }
+      return await r.json();
+    } catch(e) { return { error: e.message }; }
+  }
+
   // ── SSE Real-time sync ─────────────────────────────────────────
   let sseSource = null;
   const sseHandlers = {};
@@ -253,6 +302,13 @@
     setOwnerSession,
     clearOwnerSession,
     isOwnerLoggedIn: function() { return !!getOwnerSession(); },
+
+    // Partner (isolated session — see PARTNER_SESSION_KEY note above)
+    partnerFetch,
+    getPartnerSession,
+    setPartnerSession,
+    clearPartnerSession,
+    isPartnerLoggedIn: function() { return !!getPartnerSession(); },
 
     // SSE
     startSSE,

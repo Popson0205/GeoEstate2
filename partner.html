@@ -1511,9 +1511,9 @@ async function partnerLogin() {
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Sign in failed. Please try again.');
-    GeoAPI.setOwnerSession({ token: data.token, owner: data.owner, loginTime: Date.now() });
+    GeoAPI.setPartnerSession({ token: data.token, owner: data.owner, loginTime: Date.now() });
     document.getElementById('partner-token').value = '';
-    ownerSession = GeoAPI.getOwnerSession();
+    ownerSession = GeoAPI.getPartnerSession();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     initDashboard();
@@ -1526,7 +1526,7 @@ async function partnerLogin() {
 }
 
 function ownerLogout() {
-  GeoAPI.clearOwnerSession();
+  GeoAPI.clearPartnerSession();
   ownerSession = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -1535,7 +1535,7 @@ function ownerLogout() {
 
 // ── Init ──────────────────────────────────────────────────────
 async function initDashboard() {
-  ownerSession = GeoAPI.getOwnerSession();
+  ownerSession = GeoAPI.getPartnerSession();
   const o = ownerSession.owner;
   document.getElementById('owner-name').textContent = o.fname + ' ' + o.lname;
   document.getElementById('owner-avatar').textContent = (o.fname[0] + o.lname[0]).toUpperCase();
@@ -1545,8 +1545,8 @@ async function initDashboard() {
 
 async function loadAll() {
   const [propsD, enqD] = await Promise.all([
-    GeoAPI.ownerFetch('/owner/properties').catch(() => ({})),
-    GeoAPI.ownerFetch('/owner/enquiries').catch(() => ({}))
+    GeoAPI.partnerFetch('/owner/properties').catch(() => ({})),
+    GeoAPI.partnerFetch('/owner/enquiries').catch(() => ({}))
   ]);
   if (propsD.properties) ownerProperties = propsD.properties;
   if (enqD.enquiries) ownerEnquiries = enqD.enquiries;
@@ -1678,7 +1678,7 @@ function closeUnitsModal() {
 }
 
 async function loadAndRenderUnits(propId) {
-  const d = await GeoAPI.ownerFetch('/owner/property/' + propId + '/units').catch(() => ({}));
+  const d = await GeoAPI.partnerFetch('/owner/property/' + propId + '/units').catch(() => ({}));
   const units = d.units || [];
   const stats = d.stats || {};
 
@@ -1749,7 +1749,7 @@ async function saveUnitEdit() {
     occupied_since: document.getElementById('ue-since').value || null,
     lease_end: document.getElementById('ue-end').value || null
   };
-  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units/' + editingUnitId, { method: 'PATCH', body: payload });
+  const d = await GeoAPI.partnerFetch('/owner/property/' + currentUnitsPropId + '/units/' + editingUnitId, { method: 'PATCH', body: payload });
   if (d.error) { toast(d.error, 'error'); return; }
   toast('Unit updated', 'success');
   closeUnitEditModal();
@@ -1772,7 +1772,7 @@ async function submitAddUnit() {
     notes: document.getElementById('au-notes').value
   };
   if (!payload.unit_label) { toast('Unit label is required', 'error'); return; }
-  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units', { method: 'POST', body: payload });
+  const d = await GeoAPI.partnerFetch('/owner/property/' + currentUnitsPropId + '/units', { method: 'POST', body: payload });
   if (d.error) { toast(d.error, 'error'); return; }
   toast('Unit added', 'success');
   document.getElementById('add-unit-modal').style.display = 'none';
@@ -1795,7 +1795,7 @@ async function viewPropertyDetail(propId) {
   modal.style.display = 'flex';
 
   try {
-    const d = await GeoAPI.ownerFetch('/owner/property/' + encodeURIComponent(propId) + '/detail').catch(() => null);
+    const d = await GeoAPI.partnerFetch('/owner/property/' + encodeURIComponent(propId) + '/detail').catch(() => null);
     const prop = (d && d.property) ? d.property : p;
     if (!prop) { body.innerHTML = '<div style="text-align:center;color:var(--danger);padding:32px">Property not found</div>'; return; }
 
@@ -1917,7 +1917,7 @@ async function saveEnquiryStatus() {
   const notes  = document.getElementById('em-notes').value;
   document.getElementById('enq-modal').style.display = 'none';
   try {
-    const d = await GeoAPI.ownerFetch('/owner/enquiry/' + encodeURIComponent(id), { method: 'PATCH', body: { status, notes } });
+    const d = await GeoAPI.partnerFetch('/owner/enquiry/' + encodeURIComponent(id), { method: 'PATCH', body: { status, notes } });
     if (d && d.error) { toast(d.error, 'error'); return; }
     const e = ownerEnquiries.find(x => x.id === id);
     if (e) { e.status = status; e.notes = notes; }
@@ -1979,7 +1979,7 @@ function renderPipeline() {
 
 // ── Profile ───────────────────────────────────────────────────
 async function renderProfile() {
-  const d = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  const d = await GeoAPI.partnerFetch('/owner/profile').catch(() => ({}));
   const p = d.profile || (ownerSession ? ownerSession.owner : {});
   document.getElementById('profile-content').innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
@@ -2001,7 +2001,7 @@ async function renderProfile() {
 
 // ── Auto-login if session exists ──────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
-  const session = GeoAPI.getOwnerSession();
+  const session = GeoAPI.getPartnerSession();
   if (session && session.token) {
     ownerSession = session;
     document.getElementById('login-screen').style.display = 'none';
@@ -2583,7 +2583,7 @@ async function submitAddProperty() {
   const lt = document.getElementById('fp-listing-type').value;
 
   // ── Verification guard ────────────────────────────────────────────────
-  const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
+  const _vp = await GeoAPI.partnerFetch('/owner/profile').catch(() => ({}));
   if (_vp.profile && !_vp.profile.is_verified) {
     if (_vp.profile.status === 'review') {
       toast('Your identity verification is still under review — listing submitted but will only go live once approved.', 'info');
@@ -2765,7 +2765,7 @@ async function submitAddProperty() {
     };
   }
 
-  const _ownerSession = GeoAPI.getOwnerSession();
+  const _ownerSession = GeoAPI.getPartnerSession();
   if (!_ownerSession || !_ownerSession.token) { toast('Session expired. Please sign in again.', 'error'); return; }
   const _resp = await fetch((typeof PARTNER_API !== 'undefined' ? PARTNER_API : 'https://api.geoestate.com.ng') + '/owner/add-property', {
     method: 'POST',
@@ -2814,7 +2814,7 @@ async function partnerSubmitListing() {
     return;
   }
 
-  const ownerSession = GeoAPI.getOwnerSession();
+  const ownerSession = GeoAPI.getPartnerSession();
   if (!ownerSession || !ownerSession.token) {
     toast('Session expired. Please sign in again.', 'error');
     ownerLogout();
