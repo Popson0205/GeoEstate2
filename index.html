@@ -1245,7 +1245,19 @@ document.addEventListener('click', function(e){
         <h2 style="font-size:.95rem;font-weight:800;margin-bottom:6px">📸 Selfie &amp; ID Document</h2>
         <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-4);line-height:1.5">Our team manually compares your selfie to your ID photo. Accepted: National ID, Driver's Licence, Voter's Card, International Passport.</p>
         <div style="margin-bottom:14px">
-          <label class="geo-label">Live Selfie * <span style="font-weight:400;color:var(--text-muted)">(JPEG / PNG)</span></label>
+          <label class="geo-label">Live Selfie <span id="vi-selfie-required-mark" style="font-weight:400;color:var(--text-muted)">* (JPEG / PNG)</span></label>
+
+          <!-- Shown when the account already has a profile photo from registration —
+               reuse it instead of asking for another selfie. -->
+          <div id="vi-selfie-reuse" style="display:none;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default)">
+            <img id="vi-selfie-reuse-img" src="" alt="Your profile photo" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0">
+            <div style="flex:1">
+              <div style="font-size:.82rem;font-weight:700">Using your profile photo ✅</div>
+              <div style="font-size:.76rem;color:var(--text-muted)">We'll use the photo from your account instead of asking for a new selfie.</div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="viUseNewSelfie()">Replace</button>
+          </div>
+
           <label id="vi-selfie-label" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default);cursor:pointer">
             <input type="file" id="vi-selfie" accept="image/*" capture="user" style="display:none" onchange="geoHandleFileSelect(this,'vi-selfie-label','vi-selfie-status')">
             <span style="font-size:1.2rem">🤳</span>
@@ -2527,6 +2539,7 @@ function showPage(name) {
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
+  if (name === 'verify')  initVerifySelfieReuse();
 }
 
 // ── Deep-link support ────────────────────────────────────────────────────
@@ -3072,6 +3085,39 @@ function previewUpload(input, previewId) {
   }
 }
 // ── IDENTITY VERIFICATION ────────────────────────────────────────────────────
+// If the account already has a profile photo (uploaded at registration), reuse
+// it as the verification selfie instead of asking the user to take another one.
+function initVerifySelfieReuse() {
+  const reuseBox   = document.getElementById('vi-selfie-reuse');
+  const reuseImg   = document.getElementById('vi-selfie-reuse-img');
+  const uploadLabel = document.getElementById('vi-selfie-label');
+  const requiredMark = document.getElementById('vi-selfie-required-mark');
+  if (!reuseBox || !uploadLabel) return;
+
+  if (currentUser && currentUser.avatar) {
+    window._viReuseExistingPhoto = true;
+    reuseImg.src = currentUser.avatar;
+    reuseBox.style.display = 'flex';
+    uploadLabel.style.display = 'none';
+    if (requiredMark) requiredMark.textContent = '(using your profile photo)';
+  } else {
+    window._viReuseExistingPhoto = false;
+    reuseBox.style.display = 'none';
+    uploadLabel.style.display = 'flex';
+    if (requiredMark) requiredMark.textContent = '* (JPEG / PNG)';
+  }
+}
+
+function viUseNewSelfie() {
+  window._viReuseExistingPhoto = false;
+  const reuseBox    = document.getElementById('vi-selfie-reuse');
+  const uploadLabel = document.getElementById('vi-selfie-label');
+  const requiredMark = document.getElementById('vi-selfie-required-mark');
+  if (reuseBox)    reuseBox.style.display = 'none';
+  if (uploadLabel) uploadLabel.style.display = 'flex';
+  if (requiredMark) requiredMark.textContent = '* (JPEG / PNG)';
+}
+
 async function submitVerification() {
   // Must be logged in
   if (!currentUser || !currentUser.id) {
@@ -3120,7 +3166,8 @@ async function submitVerification() {
   if (!kinName)                          return showErr('Please enter your next of kin name.');
   if (!kinRel)                           return showErr('Please select your next of kin relationship.');
   if (!kinPhone || kinPhone.length < 10) return showErr('Please enter a valid next of kin phone number.');
-  if (!selfieInput || !selfieInput.files || !selfieInput.files[0])
+  const reusingExistingPhoto = !!window._viReuseExistingPhoto;
+  if (!reusingExistingPhoto && (!selfieInput || !selfieInput.files || !selfieInput.files[0]))
     return showErr('Please upload your selfie photo.');
   if (!idocInput || !idocInput.files || !idocInput.files[0])
     return showErr('Please upload your government ID document.');
@@ -3130,13 +3177,16 @@ async function submitVerification() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading documents…'; }
 
   try {
-    // 1. Upload selfie (fatal — we warn but continue)
-    showProg('Uploading selfie…');
+    // 1. Upload selfie (skip entirely if we're reusing the profile photo
+    //    already on the account — nothing new to upload)
     let selfie_url = null;
-    try {
-      selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
-    } catch (e) {
-      console.warn('Selfie upload failed:', e.message);
+    if (!reusingExistingPhoto) {
+      showProg('Uploading selfie…');
+      try {
+        selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
+      } catch (e) {
+        console.warn('Selfie upload failed:', e.message);
+      }
     }
 
     // 2. Upload ID document
@@ -3191,6 +3241,7 @@ async function submitVerification() {
     if (progEl) progEl.style.display = 'none';
     if (currentUser) {
       currentUser.verificationPending = true;
+      if (selfie_url) currentUser.avatar = selfie_url; // show it right away, no re-login needed
       localStorage.setItem('geo_session', JSON.stringify(currentUser));
     }
     const formWrap = document.getElementById('verify-form-wrap');
@@ -3815,6 +3866,7 @@ function initAuth() {
 }
 
 function loginSuccess(user) {
+  if (user && !user.avatar && user.photo_url) user.avatar = user.photo_url;
   currentUser = user;
   localStorage.setItem('geo_session', JSON.stringify(user));
   renderNavAuth();
@@ -4318,6 +4370,7 @@ async function verifyOTP() {
       phone:        pendingRegData.phone,
       role:         pendingRegData.role,
       verified:     false,
+      avatar:       regPayload.photo_url || '',
       registeredAt: regPayload.registeredAt
     };
 
