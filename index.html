@@ -2617,18 +2617,50 @@ function renderProfileNotifTab() {
     </div>`).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">You're all caught up 🎉</div>`;
 }
 
-function handleProfileAvatarChange(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file || !currentUser) return;
-  const reader = new FileReader();
-  reader.onload = function (ev) {
-    currentUser.avatar = ev.target.result;
+async function handleProfileAvatarChange(e) {
+  const input = e.target;
+  const file = input.files && input.files[0];
+  if (!file || !currentUser || !currentUser.id) return;
+
+  // Show an immediate local preview (base64) while the real upload runs —
+  // but this preview is never treated as the saved photo. It's overwritten
+  // below with the real Supabase URL once the upload finishes, and we only
+  // persist to currentUser.avatar / the backend after that succeeds.
+  const previewReader = new FileReader();
+  previewReader.onload = function (ev) {
+    const previewHTML = '<img src="' + ev.target.result + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+    const heroAvatar = document.getElementById('profile-hero-avatar');
+    const editAvatar = document.getElementById('profile-edit-avatar');
+    if (heroAvatar) heroAvatar.innerHTML = previewHTML;
+    if (editAvatar) editAvatar.innerHTML = previewHTML;
+  };
+  previewReader.readAsDataURL(file);
+
+  try {
+    showAuthToast('Uploading photo…');
+    const photo_url = await geoUploadToSupabase(input, 'geoestate-docs/profile-photos');
+    if (!photo_url) throw new Error('Upload failed.');
+
+    const ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
+    const res = await fetch(GEO_API_BASE + '/owner/update-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ownerToken },
+      body: JSON.stringify({ photo_url })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not save photo.');
+
+    // Only now — after a real file is uploaded and the backend confirms
+    // it saved — do we update the session's avatar.
+    currentUser.avatar = photo_url;
     localStorage.setItem('geo_session', JSON.stringify(currentUser));
     populateProfilePage();
     renderNavAuth();
     showAuthToast('Profile photo updated.');
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    populateProfilePage(); // revert the local preview since nothing was saved
+    showAuthToast('Could not update photo: ' + err.message);
+  }
 }
 
 function saveProfileDetails() {
@@ -3094,7 +3126,13 @@ function initVerifySelfieReuse() {
   const requiredMark = document.getElementById('vi-selfie-required-mark');
   if (!reuseBox || !uploadLabel) return;
 
-  if (currentUser && currentUser.avatar) {
+  // Only offer to reuse the profile photo if it's a real uploaded file URL.
+  // A base64/data: URI only ever exists in this one browser's localStorage —
+  // there's nothing on the server to reuse, so treating it as a selfie would
+  // silently submit verification with no selfie saved.
+  const hasRealUploadedPhoto = !!(currentUser && currentUser.avatar && /^https?:\/\//i.test(currentUser.avatar));
+
+  if (hasRealUploadedPhoto) {
     window._viReuseExistingPhoto = true;
     reuseImg.src = currentUser.avatar;
     reuseBox.style.display = 'flex';
