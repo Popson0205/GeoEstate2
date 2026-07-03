@@ -550,14 +550,10 @@ YPE html>
     <ul class="geo-nav-links">
       <li><a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
       <li><a href="#" onclick="showPage('map')" id="nav-map">Browse Map</a></li>
-      <li><a href="#" onclick="showPage('rent')" id="nav-rent">Rent</a></li>
-      <li><a href="#" onclick="showPage('buy')" id="nav-buy">Buy</a></li>
-      <li><a href="#" onclick="showPage('lease')" id="nav-lease">Lease</a></li>
       <li><a href="#" onclick="goListProperty()" id="nav-list">List Property</a></li>
       <li><a href="#" onclick="showPage('verify')" id="nav-verify">Verify Identity</a></li>
       <li><a href="#" onclick="showPage('team')" id="nav-team">Our Team</a></li>
       <li><a href="#" onclick="showPage('contact')" id="nav-contact">Contact</a></li>
-      <li><a href="#" onclick="showPage('dispute')" id="nav-dispute" style="color:#dc2626;font-weight:700">⚠ Report Dispute</a></li>
     </ul>
     <div class="geo-nav-cta">
       <button class="btn btn-ghost btn-sm theme-toggle" id="theme-toggle-btn" onclick="toggleThemeManual()" title="Toggle dark mode" style="font-size:1.1rem;line-height:1">🌙</button>
@@ -618,7 +614,6 @@ document.addEventListener('click', function(e){
   <a href="/partner">🤝 Partner Portal</a>
   <a href="#" onclick="navTo('team')">👥 Our Team</a>
   <a href="#" onclick="navTo('contact')">📞 Contact</a>
-  <a href="#" onclick="navTo('dispute')" class="danger">⚠️ Report Dispute</a>
   <div class="geo-mobile-nav-cta">
     <button class="btn btn-primary" onclick="closeMobileNav();openAuthModal('register')">Create Account</button>
     <button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>
