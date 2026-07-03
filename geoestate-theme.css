@@ -83,7 +83,7 @@ body {
   padding: 0 var(--space-8);
 }
 .geo-nav-inner {
-  max-width: 1280px;
+  max-width: 1440px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -294,6 +294,15 @@ body {
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); }
+
+/* ── Breakpoint: very wide but still constrained (≤1440px) — the nav-inner
+   cap (1280px) plus 10 full-text links + logo + CTA genuinely doesn't fit
+   even on a full desktop monitor once any OS/browser scaling is applied.
+   Shed the two lowest-priority links first (still reachable via footer /
+   mobile drawer) before anything gets pushed off-screen. ── */
+@media (max-width: 1440px) {
+  #nav-team, #nav-contact { display: none; }
+}
 
 /* ── Breakpoint: wide tablet (≤1200px) — tighten nav links ── */
 @media (max-width: 1200px) {
