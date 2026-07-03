@@ -356,11 +356,11 @@ YPE html>
      Previously #admin-root had zero responsive rules: a fixed 240px sidebar,
      a main panel hard-pinned with margin-left:240px, and several 2/4-column
      grids with no fallback — guaranteed horizontal overflow on any phone. */
-  #admin-root .admin-hamburger{display:none;background:none;border:none;color:var(--a-text);font-size:1.3rem;cursor:pointer;padding:4px 8px;line-height:1}
+  #admin-root .admin-hamburger{display:none}
   #admin-root .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
   #admin-root .sidebar-backdrop.open{display:block}
-  @media (max-width:900px){
-    #admin-root .admin-hamburger{display:inline-flex;align-items:center}
+  @media (max-width:768px){
+    #admin-root .admin-hamburger{display:flex}
     #admin-root .sidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 24px rgba(0,0,0,.3);z-index:100}
     #admin-root .sidebar.open{transform:translateX(0)}
     #admin-root .admin-main{margin-left:0 !important}
@@ -3553,7 +3553,9 @@ function goToAdmin(e) {
     <!-- Topbar -->
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
-        <button class="admin-hamburger" onclick="toggleAdminSidebar()" aria-label="Menu">☰</button>
+        <button class="geo-hamburger admin-hamburger" id="admin-hamburger-btn" onclick="toggleAdminSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
         <div id="topbar-title" style="font-weight:800;font-size:1rem">Overview</div>
       </div>
       <div class="topbar-right">
@@ -4826,12 +4828,14 @@ function nav(page,el){
 }
 
 function toggleAdminSidebar(force){
-  const sidebar  = document.querySelector('#admin-root .sidebar');
-  const backdrop = document.getElementById('admin-sidebar-backdrop');
+  const sidebar   = document.querySelector('#admin-root .sidebar');
+  const backdrop  = document.getElementById('admin-sidebar-backdrop');
+  const hamburger = document.getElementById('admin-hamburger-btn');
   if (!sidebar) return;
   const open = typeof force === 'boolean' ? force : !sidebar.classList.contains('open');
   sidebar.classList.toggle('open', open);
-  if (backdrop) backdrop.classList.toggle('open', open);
+  if (backdrop)  backdrop.classList.toggle('open', open);
+  if (hamburger) hamburger.classList.toggle('open', open);
 }
 
 // ══ CLOCK ══
