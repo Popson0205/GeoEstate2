@@ -1107,14 +1107,171 @@ select.geo-input option, select.geo-select option {
   /* Page padding */
   .page-padded { padding-top: var(--nav-height); }
   [style*="max-width:1100px"], [style*="max-width:1280px"] { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* ═══ FORM ELEMENTS & INPUT FIXES ═══ */
+  /* All text inputs, selects, textareas */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="phone"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Buttons */
+  .btn, button {
+    width: 100% !important;
+    padding: 14px 16px !important;
+    font-size: 1rem !important;
+    min-height: 48px !important; /* Touch target minimum */
+    box-sizing: border-box !important;
+  }
+
+  /* Chips & badges */
+  .chip {
+    font-size: 0.85rem !important;
+    padding: 6px 10px !important;
+  }
+
+  /* Cards with flex/grid that overflow */
+  [style*="display:flex"], [style*="display: flex"],
+  [style*="display:grid"], [style*="display: grid"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Search bar container */
+  .search-bar, [class*="search"] {
+    width: 100% !important;
+    flex-direction: column !important;
+  }
+
+  /* Property gallery image grid */
+  .property-gallery {
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .gallery-side {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  /* Modal/Dialog sizing */
+  [class*="modal"], [class*="dialog"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 16px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Tables → horizontal scroll on mobile */
+  table {
+    font-size: 0.85rem !important;
+    min-width: 100% !important;
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  table th, table td {
+    padding: 8px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Responsive text sizing */
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.4rem !important; }
+  h3 { font-size: 1.15rem !important; }
+  h4, h5, h6 { font-size: 1rem !important; }
+
+  /* Spacing adjustments */
+  [style*="margin:"] { margin: 8px !important; }
+  [style*="padding:"] { padding: 12px !important; }
+
+  /* Container max-widths */
+  main, section, [role="main"] {
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent horizontal scroll on any element */
+  * {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body {
+    overflow-x: hidden !important;
+  }
 }
 
-/* ── Breakpoint: small phones (≤400px) ── */
-@media (max-width: 400px) {
-  .geo-hero h1 { font-size: 1.65rem; }
+/* ── Breakpoint: small phones (≤480px) ── */
+@media (max-width: 480px) {
+  .geo-hero h1 { font-size: 1.5rem !important; }
   .geo-hero-stats { grid-template-columns: 1fr 1fr; }
   .otp-box { width: 36px !important; height: 44px !important; font-size: 1.1rem !important; }
   .geo-team-grid { grid-template-columns: 1fr !important; }
+
+  /* Tighten padding on very small screens */
+  .geo-hero { padding: calc(var(--nav-height) + 16px) 16px 32px !important; }
+  .geo-section { padding: 32px 16px !important; }
+  .geo-footer-inner { padding: 32px 16px 24px !important; }
+
+  /* Smaller font on compact screens */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 14px !important;
+    padding: 10px !important;
+  }
+
+  .btn, button {
+    padding: 12px 14px !important;
+    font-size: 0.95rem !important;
+  }
+
+  h1 { font-size: 1.4rem !important; }
+  h2 { font-size: 1.2rem !important; }
+  h3 { font-size: 1rem !important; }
+
+  /* Hide less critical elements on tiny screens */
+  .geo-nav-cta { display: flex !important; gap: 8px !important; }
+}
+
+/* ── Breakpoint: extra small (≤360px, older phones) ── */
+@media (max-width: 360px) {
+  .geo-hero h1 { font-size: 1.3rem !important; }
+  .geo-hero-sub { font-size: 0.9rem !important; }
+
+  input, select, textarea, button {
+    font-size: 14px !important;
+    padding: 10px 8px !important;
+  }
+
+  .btn { min-height: 44px !important; }
+
+  h1 { font-size: 1.25rem !important; }
+  h2 { font-size: 1.05rem !important; }
+  h3 { font-size: 0.95rem !important; }
+
+  body { font-size: 0.9rem !important; }
+
+  /* Stack any remaining side-by-side items */
+  [style*="flex"] {
+    flex-direction: column !important;
+  }
 }
 
 /* ── Safe area for notched phones ── */
