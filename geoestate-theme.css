@@ -1038,6 +1038,12 @@ select.geo-input option, select.geo-select option {
 
 /* ── Breakpoint: tablets (≤768px) ── */
 @media (max-width: 768px) {
+  /* Property detail page: the fixed 340px owner/transaction column has no
+     room on a phone screen and gets pushed off the right edge entirely.
+     Drop to a single stacked column instead. */
+  .property-detail-layout {
+    grid-template-columns: 1fr !important;
+  }
   .geo-hamburger { display: flex; }
   .geo-nav-links { display: none !important; }
   .geo-nav-cta .btn-secondary,
