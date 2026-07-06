@@ -213,6 +213,77 @@ main, section, .page, .container {
   box-sizing: border-box;
 }
 
+/* =============================================================================
+   HERO FLOATING PROPERTY CARDS (decorative)
+
+   These are absolutely-positioned decorative badges meant to float over the
+   hero photo next to a wide, left-aligned headline. On narrow phones the
+   headline/search/stats are centered and use the full width, so there is no
+   safe space left for the cards — they end up sitting on top of the text
+   (the mobile overlap issue). Mobile-first: hide them by default and only
+   bring them back once the viewport is wide enough (tablet+) to give them
+   room without covering the hero content.
+   ============================================================================= */
+
+.hero-float-card {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .hero-float-card {
+    display: block;
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 14px;
+    padding: 12px 18px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 8px 32px rgba(0, 0, 0, 0.25);
+    color: white;
+    font-family: var(--font-sans, inherit);
+    pointer-events: none;
+    z-index: 3;
+    max-width: 220px;
+  }
+
+  .hero-float-card-1 {
+    top: 14%;
+    right: 6%;
+    animation: floatCard1 6s ease-in-out infinite;
+  }
+
+  .hero-float-card-2 {
+    top: 74%;
+    right: 6%;
+    animation: floatCard2 7s ease-in-out infinite 1s;
+  }
+
+  .hero-float-card-3 {
+    top: 44%;
+    left: 6%;
+    animation: floatCard3 5s ease-in-out infinite 0.5s;
+  }
+
+  @keyframes floatCard1 {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50%      { transform: translateY(-12px) rotate(0deg); }
+  }
+  @keyframes floatCard2 {
+    0%, 100% { transform: translateY(0) rotate(1deg); }
+    50%      { transform: translateY(-16px) rotate(0deg); }
+  }
+  @keyframes floatCard3 {
+    0%, 100% { transform: translateY(0) rotate(-0.5deg); }
+    50%      { transform: translateY(-8px) rotate(0.5deg); }
+  }
+}
+
+@media (min-width: 1025px) {
+  .hero-float-card-1 { top: 12%; right: 8%; }
+  .hero-float-card-2 { top: 70%; right: 10%; }
+  .hero-float-card-3 { top: 40%; left: 8%; }
+}
+
 .btn-primary {
   background: var(--geo-green-600);
   color: white;
