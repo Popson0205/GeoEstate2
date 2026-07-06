@@ -752,6 +752,56 @@ document.addEventListener('click', function(e){
         to   { transform: scale(1.0) translate(-1.5%, 1%); }
       }
 
+      /* ------------------------------------------------------------
+         RESPONSIVE FIX — mobile phones
+         background-size:cover already crops a lot of a wide landscape
+         photo just to fill a narrow portrait screen. Stacking the full
+         desktop Ken Burns zoom (up to 1.1x) on top of that crop pushed
+         the photo in too far, so on phones the whole shot was no
+         longer visible. These overrides use a much gentler zoom/pan
+         on small screens so the background still fills the screen but
+         doesn't crop in any further than necessary.
+         ------------------------------------------------------------ */
+      @media (max-width: 768px) {
+        .hero-slide { background-position: center top; }
+
+        @keyframes kenBurns1 {
+          from { transform: scale(1.0) translate(0, 0); }
+          to   { transform: scale(1.03) translate(-0.5%, -0.5%); }
+        }
+        @keyframes kenBurns2 {
+          from { transform: scale(1.03) translate(-0.5%, 0); }
+          to   { transform: scale(1.0) translate(0, -0.5%); }
+        }
+        @keyframes kenBurns3 {
+          from { transform: scale(1.0) translate(0.5%, 0.5%); }
+          to   { transform: scale(1.04) translate(-0.5%, 0); }
+        }
+        @keyframes kenBurns4 {
+          from { transform: scale(1.04) translate(0, -0.5%); }
+          to   { transform: scale(1.0) translate(0.5%, 0.5%); }
+        }
+        @keyframes kenBurns5 {
+          from { transform: scale(1.0) translate(-0.5%, 0.5%); }
+          to   { transform: scale(1.03) translate(0.5%, -0.5%); }
+        }
+        @keyframes kenBurns6 {
+          from { transform: scale(1.03) translate(0.5%, 0); }
+          to   { transform: scale(1.0) translate(-0.5%, 0.5%); }
+        }
+      }
+
+      /* Very short / landscape phones — flatten the zoom further so
+         the reduced height doesn't feel even more cropped */
+      @media (max-width: 900px) and (max-height: 500px) {
+        @keyframes kenBurns1 { from { transform: scale(1.0); } to { transform: scale(1.015); } }
+        @keyframes kenBurns2 { from { transform: scale(1.015); } to { transform: scale(1.0); } }
+        @keyframes kenBurns3 { from { transform: scale(1.0); } to { transform: scale(1.02); } }
+        @keyframes kenBurns4 { from { transform: scale(1.02); } to { transform: scale(1.0); } }
+        @keyframes kenBurns5 { from { transform: scale(1.0); } to { transform: scale(1.015); } }
+        @keyframes kenBurns6 { from { transform: scale(1.015); } to { transform: scale(1.0); } }
+      }
+
       /* Slideshow dots */
       .hero-dot {
         width: 8px; height: 8px;

@@ -529,6 +529,49 @@ YPE html>
         to   { transform: scale(1.0) translate(-1.5%, 1%); }
       }
 
+      /* ------------------------------------------------------------
+         RESPONSIVE FIX — mobile phones (see index.html for full note)
+         Gentler zoom/pan on small screens so the photo isn't cropped
+         in further than the unavoidable cover-fit crop.
+         ------------------------------------------------------------ */
+      @media (max-width: 768px) {
+        .hero-slide { background-position: center top; }
+
+        @keyframes kenBurns1 {
+          from { transform: scale(1.0) translate(0, 0); }
+          to   { transform: scale(1.03) translate(-0.5%, -0.5%); }
+        }
+        @keyframes kenBurns2 {
+          from { transform: scale(1.03) translate(-0.5%, 0); }
+          to   { transform: scale(1.0) translate(0, -0.5%); }
+        }
+        @keyframes kenBurns3 {
+          from { transform: scale(1.0) translate(0.5%, 0.5%); }
+          to   { transform: scale(1.04) translate(-0.5%, 0); }
+        }
+        @keyframes kenBurns4 {
+          from { transform: scale(1.04) translate(0, -0.5%); }
+          to   { transform: scale(1.0) translate(0.5%, 0.5%); }
+        }
+        @keyframes kenBurns5 {
+          from { transform: scale(1.0) translate(-0.5%, 0.5%); }
+          to   { transform: scale(1.03) translate(0.5%, -0.5%); }
+        }
+        @keyframes kenBurns6 {
+          from { transform: scale(1.03) translate(0.5%, 0); }
+          to   { transform: scale(1.0) translate(-0.5%, 0.5%); }
+        }
+      }
+
+      @media (max-width: 900px) and (max-height: 500px) {
+        @keyframes kenBurns1 { from { transform: scale(1.0); } to { transform: scale(1.015); } }
+        @keyframes kenBurns2 { from { transform: scale(1.015); } to { transform: scale(1.0); } }
+        @keyframes kenBurns3 { from { transform: scale(1.0); } to { transform: scale(1.02); } }
+        @keyframes kenBurns4 { from { transform: scale(1.02); } to { transform: scale(1.0); } }
+        @keyframes kenBurns5 { from { transform: scale(1.0); } to { transform: scale(1.015); } }
+        @keyframes kenBurns6 { from { transform: scale(1.015); } to { transform: scale(1.0); } }
+      }
+
       /* Slideshow dots */
       .hero-dot {
         width: 8px; height: 8px;
