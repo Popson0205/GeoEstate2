@@ -1,18 +1,36 @@
 /* =============================================================================
-   GEOESTATE THEME - MOBILE-FIRST RESPONSIVE DESIGN
-   
-   Design Philosophy:
-   - Start with mobile (320px) as the baseline
-   - Scale UP for tablets (768px+) and desktop (1024px+)
-   - NO horizontal overflow on any screen
-   - Touch-friendly targets (48px minimum)
-   - Flexible, percentage-based sizing
-   - Proper viewport units (vh, vw, svh)
-   
+   GEOESTATE — MOBILE-FIRST RESPONSIVE THEME
+   Full rewrite (replaces the previous version entirely)
+
+   RULES THIS FILE FOLLOWS:
+   1. Mobile-first: every rule below is written for a phone screen first,
+      then progressively enhanced with min-width media queries. Nothing is
+      "undone" with max-width overrides layered on top of each other.
+   2. No blanket `!important` + wildcard attribute selectors
+      (e.g. `[style*="grid-template-columns"]`, `[class*="map"]`). The old
+      file had these, and they silently rewrote elements all over the site
+      that were never meant to be touched (admin panel, sales/owner
+      portals, etc). Every selector here targets a real, specific class
+      used in index.html.
+   3. Every grid uses `minmax(0, 1fr)` instead of bare `1fr`, so tracks can
+      actually shrink on narrow screens instead of forcing horizontal
+      overflow (this was the cause of the stats-strip numbers getting
+      clipped at the screen edge).
+   4. Three breakpoints, consistently applied: 600px (large phone),
+      768px (tablet), 1024px (desktop).
+
+   NOTE ON SCOPE: this file covers the *responsive/mobile behavior* of
+   components. It intentionally does not invent visual styling (colors,
+   shadows, card design) for classes like .geo-card, .grid-3, .grid-4,
+   .chip, .verified-badge, .geo-section, .section-title — those have no
+   CSS anywhere in the uploaded project (checked styles.css, this file,
+   admin-styles.css, and all inline <style> blocks in index.html). That's
+   a separate, larger gap — most likely a stylesheet that exists on the
+   live site but wasn't included in this export — worth tracking down
+   separately so nothing gets accidentally overwritten here.
    ============================================================================= */
 
 :root {
-  /* Color Tokens */
   --geo-green-600: #16a34a;
   --geo-green-700: #15803d;
   --geo-green-light: #d9f2e3;
@@ -22,33 +40,24 @@
   --bg-light: #f7fafc;
   --bg-white: #ffffff;
   --border-color: #e2e8f0;
-  
-  /* Spacing */
+
   --spacing-xs: 8px;
   --spacing-sm: 12px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
-  
-  /* Typography */
-  --font-base: 14px;
+
   --font-sm: 13px;
-  --font-lg: 16px;
-  --font-xl: 18px;
-  --font-2xl: 20px;
-  --font-3xl: 24px;
-  
-  /* Navigation */
+  --font-base: 14px;
+
   --nav-height: 60px;
 }
 
 /* =============================================================================
-   GLOBAL MOBILE-FIRST BASE
+   RESET & GLOBAL BASE
    ============================================================================= */
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
@@ -58,8 +67,6 @@ html, body {
   max-width: 100%;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
-  -webkit-user-select: none;
-  -webkit-user-zoom: 1;
 }
 
 body {
@@ -68,20 +75,87 @@ body {
   line-height: 1.5;
   color: var(--text-primary);
   background: var(--bg-light);
-  padding: 0;
-  margin: 0;
 }
 
-main, section, .page, .container {
+img, video, svg, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+main, section {
   width: 100%;
   max-width: 100%;
-  padding: 0 var(--spacing-md);
-  box-sizing: border-box;
   overflow-x: hidden;
 }
 
+/* CRITICAL: showPage() in the main script toggles an "active" class on
+   .page elements and expects CSS to hide/show them accordingly. This rule
+   was missing everywhere for the main site (only #admin-root had its own,
+   more specific copy for the admin panel, which still applies there) —
+   without it every page section (Home, Map, Verify, Property Detail,
+   Team, Contact, Dispute, Profile, Privacy, Terms...) renders stacked
+   and visible at the same time. */
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+/* .page-padded is used on every non-hero content page (Verify, Team,
+   Contact, Dispute, Privacy, Terms, Profile, Property Detail, About...)
+   to clear the fixed nav bar. It had no CSS anywhere before this, so
+   those pages' content was rendering underneath/behind the fixed header. */
+.page-padded {
+  padding: calc(var(--nav-height) + var(--spacing-lg)) var(--spacing-md) var(--spacing-xl);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .page-padded {
+    padding: calc(var(--nav-height) + var(--spacing-xl)) var(--spacing-lg) var(--spacing-xl);
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-padded {
+    padding-left: var(--spacing-xl);
+    padding-right: var(--spacing-xl);
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+}
+
 /* =============================================================================
-   NAVIGATION (MOBILE FIRST)
+   RESPONSIVE GRID UTILITIES
+   Used for the transaction-type cards, how-it-works steps, and featured
+   property grid (.grid-3 / .grid-4 containers, .geo-prop-grid, .grid-2).
+   1 column on phones, 2 on tablets, full count on desktop.
+   ============================================================================= */
+
+.grid-2, .grid-3, .grid-4, .geo-prop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 600px) {
+  .grid-2, .grid-3, .grid-4, .geo-prop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-3, .geo-prop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* =============================================================================
+   NAVIGATION
    ============================================================================= */
 
 .geo-nav {
@@ -97,7 +171,6 @@ main, section, .page, .container {
   left: 0;
   right: 0;
   z-index: 999;
-  overflow: hidden;
 }
 
 .geo-nav-inner {
@@ -118,6 +191,7 @@ main, section, .page, .container {
   color: var(--geo-green-600);
   flex-shrink: 0;
   text-decoration: none;
+  min-width: 0;
 }
 
 .geo-nav-links {
@@ -125,9 +199,32 @@ main, section, .page, .container {
   list-style: none;
 }
 
+.geo-nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Sign In / Register are duplicated inside .geo-mobile-nav-cta for phones,
+   so hide the nav-bar copies on narrow screens to stop the header row
+   from overflowing (logo + toggle + 2 buttons + 2 hamburgers is too much
+   for ~375px). They come back once there's room, alongside the desktop
+   nav links. */
+#nav-auth-area {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  #nav-auth-area {
+    display: flex;
+  }
+}
+
 .geo-hamburger {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
   background: none;
   border: none;
@@ -136,28 +233,141 @@ main, section, .page, .container {
   color: white;
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
 }
 
 .geo-hamburger span {
-  width: 24px;
+  width: 22px;
   height: 2px;
   background: white;
   border-radius: 2px;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
+}
+
+.portal-dropdown {
+  position: relative;
+}
+
+.portal-dropdown-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  max-width: calc(100vw - 32px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  z-index: 1001;
+}
+
+.portal-dropdown-panel.open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.portal-dropdown-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px 2px;
+}
+
+.portal-dropdown-panel a {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.portal-dropdown-panel a:hover {
+  background: var(--bg-light);
 }
 
 /* =============================================================================
-   HERO SECTION (MOBILE FIRST)
+   MOBILE NAVIGATION DRAWER (.geo-mobile-nav)
+   This slide-out panel had no CSS anywhere before this — it relied purely
+   on JS toggling an "open" class with nothing defined for either state.
+   ============================================================================= */
+
+.geo-mobile-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(300px, 85vw);
+  max-width: 100%;
+  background: #1a1a1a;
+  padding: calc(var(--nav-height) + var(--spacing-lg)) var(--spacing-lg) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  z-index: 1000;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+}
+
+.geo-mobile-nav.open {
+  transform: translateX(0);
+}
+
+.geo-mobile-nav a {
+  display: block;
+  padding: 14px 8px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.geo-mobile-nav-cta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.geo-mobile-nav-cta .btn {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  :root { --nav-height: 72px; }
+
+  .geo-nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+    margin-left: var(--spacing-lg);
+  }
+
+  .geo-hamburger { display: none; }
+  .geo-mobile-nav { display: none; }
+}
+
+@media (min-width: 1024px) {
+  .geo-nav-inner { max-width: 1440px; margin: 0 auto; }
+}
+
+/* =============================================================================
+   HERO SECTION
    ============================================================================= */
 
 .geo-hero {
   width: 100%;
   max-width: 100%;
   min-height: 100svh;
-  padding-top: calc(var(--nav-height) + var(--spacing-md));
-  padding-bottom: var(--spacing-lg);
-  padding-left: var(--spacing-md);
-  padding-right: var(--spacing-md);
+  padding: calc(var(--nav-height) + var(--spacing-md)) var(--spacing-md) var(--spacing-lg);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -165,31 +375,95 @@ main, section, .page, .container {
   align-items: center;
   justify-content: center;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 .geo-hero-content {
   width: 100%;
   max-width: 100%;
   text-align: center;
-  z-index: 2;
   position: relative;
+  z-index: 2;
+}
+
+.geo-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: var(--spacing-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .geo-hero h1 {
-  font-size: clamp(24px, 5.5vw, 48px);
-  line-height: 1.2;
-  font-weight: 700;
+  font-size: clamp(26px, 7vw, 48px);
+  line-height: 1.15;
+  font-weight: 800;
   color: white;
   margin-bottom: var(--spacing-sm);
   word-break: break-word;
   overflow-wrap: break-word;
 }
 
+.geo-hero h1 span {
+  color: var(--geo-green-light, #d9f2e3);
+}
+
 .geo-hero-sub {
   font-size: clamp(14px, 4vw, 18px);
   color: rgba(255, 255, 255, 0.9);
-  margin-bottom: var(--spacing-md);
+  margin: 0 auto var(--spacing-lg);
+  max-width: 560px;
   word-break: break-word;
+}
+
+.geo-search-bar {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  background: white;
+  border-radius: 14px;
+  padding: var(--spacing-sm);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  margin-bottom: var(--spacing-lg);
+  box-sizing: border-box;
+}
+
+.geo-search-bar select,
+.geo-search-bar input {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: white;
+  color: var(--text-primary);
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.geo-search-bar button {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  min-height: 48px;
+  border: none;
+  border-radius: 8px;
+  background: var(--geo-green-600);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .geo-hero-cta {
@@ -209,27 +483,63 @@ main, section, .page, .container {
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
   box-sizing: border-box;
+}
+
+.geo-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md) var(--spacing-sm);
+  width: 100%;
+  max-width: 100%;
+}
+
+.hero-stat-value {
+  font-size: clamp(1.1rem, 4vw, 1.6rem);
+  font-weight: 800;
+  color: white;
+  word-break: break-word;
+}
+
+.hero-stat-label {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  .geo-search-bar {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 8px;
+  }
+  .geo-search-bar select { width: auto; flex: 0 0 130px; }
+  .geo-search-bar input { flex: 1; }
+  .geo-search-bar button { width: auto; flex: 0 0 auto; white-space: nowrap; }
+
+  .geo-hero-cta {
+    flex-direction: row;
+    justify-content: center;
+  }
+  .geo-hero-cta .btn { width: auto; }
+
+  .geo-hero-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 /* =============================================================================
    HERO FLOATING PROPERTY CARDS (decorative)
-
-   These are absolutely-positioned decorative badges meant to float over the
-   hero photo next to a wide, left-aligned headline. On narrow phones the
-   headline/search/stats are centered and use the full width, so there is no
-   safe space left for the cards — they end up sitting on top of the text
-   (the mobile overlap issue). Mobile-first: hide them by default and only
-   bring them back once the viewport is wide enough (tablet+) to give them
-   room without covering the hero content.
+   Hidden by default (no safe space on narrow phones without covering the
+   headline/search/stats), shown once the viewport is wide enough.
    ============================================================================= */
 
 .hero-float-card {
   display: none;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .hero-float-card {
     display: block;
     position: absolute;
@@ -240,29 +550,14 @@ main, section, .page, .container {
     padding: 12px 18px;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 8px 32px rgba(0, 0, 0, 0.25);
     color: white;
-    font-family: var(--font-sans, inherit);
     pointer-events: none;
     z-index: 3;
     max-width: 220px;
   }
 
-  .hero-float-card-1 {
-    top: 14%;
-    right: 6%;
-    animation: floatCard1 6s ease-in-out infinite;
-  }
-
-  .hero-float-card-2 {
-    top: 74%;
-    right: 6%;
-    animation: floatCard2 7s ease-in-out infinite 1s;
-  }
-
-  .hero-float-card-3 {
-    top: 44%;
-    left: 6%;
-    animation: floatCard3 5s ease-in-out infinite 0.5s;
-  }
+  .hero-float-card-1 { top: 14%; right: 6%; animation: floatCard1 6s ease-in-out infinite; }
+  .hero-float-card-2 { top: 74%; right: 6%; animation: floatCard2 7s ease-in-out infinite 1s; }
+  .hero-float-card-3 { top: 44%; left: 6%; animation: floatCard3 5s ease-in-out infinite 0.5s; }
 
   @keyframes floatCard1 {
     0%, 100% { transform: translateY(0) rotate(-1deg); }
@@ -278,22 +573,16 @@ main, section, .page, .container {
   }
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 1024px) {
   .hero-float-card-1 { top: 12%; right: 8%; }
   .hero-float-card-2 { top: 70%; right: 10%; }
   .hero-float-card-3 { top: 40%; left: 8%; }
 }
 
 /* =============================================================================
-   STATS STRIP (mobile-first — prevents horizontal cutoff)
-
-   The previous version used inline `grid-template-columns: repeat(4, 1fr)`.
-   Plain `1fr` tracks have an implicit min-width of `auto`, so a track can't
-   shrink below its content's natural width. On narrow phones the 4th column
-   (and part of the 3rd) got pushed past the viewport edge and, since the
-   page has overflow-x:hidden, it was simply clipped — that's the "cut off"
-   numbers you were seeing. Using minmax(0, 1fr) lets tracks actually shrink,
-   and 2 columns on phones / 4 on tablet+ keeps every number fully visible.
+   STATS STRIP (₦480B+ / 60% / ₦0 / 72h green band)
+   minmax(0, 1fr) lets tracks shrink — plain 1fr can't shrink below its
+   content's natural width, which is what pushed the 4th column off-screen.
    ============================================================================= */
 
 .geo-stats-strip {
@@ -302,7 +591,6 @@ main, section, .page, .container {
   background: var(--geo-green-600);
   padding: var(--spacing-xl) var(--spacing-md);
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .geo-stats-strip-inner {
@@ -314,9 +602,7 @@ main, section, .page, .container {
   text-align: center;
 }
 
-.geo-stats-item {
-  min-width: 0;
-}
+.geo-stats-item { min-width: 0; }
 
 .geo-stats-value {
   font-size: clamp(1.5rem, 6vw, 2.5rem);
@@ -333,477 +619,16 @@ main, section, .page, .container {
   word-break: break-word;
 }
 
-@media (min-width: 769px) {
-  .geo-stats-strip {
-    padding: 64px var(--spacing-xl);
-  }
+@media (min-width: 768px) {
+  .geo-stats-strip { padding: 64px var(--spacing-xl); }
   .geo-stats-strip-inner {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--spacing-xl);
   }
 }
 
-.btn-primary {
-  background: var(--geo-green-600);
-  color: white;
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid white;
-}
-
 /* =============================================================================
-   PROPERTY CARDS & GRIDS (MOBILE FIRST)
-   ============================================================================= */
-
-.geo-prop-grid, .property-grid, [style*="grid-template-columns"] {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: var(--spacing-md) !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-}
-
-.property-card, .prop-card, [class*="property-card"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  border-radius: 8px;
-  overflow: hidden;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.property-card img, .prop-card img {
-  width: 100% !important;
-  height: auto !important;
-  max-width: 100% !important;
-  display: block;
-}
-
-.property-info {
-  padding: var(--spacing-md);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.property-title {
-  font-size: clamp(16px, 4vw, 20px);
-  font-weight: 600;
-  margin-bottom: var(--spacing-sm);
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-.property-price {
-  font-size: clamp(18px, 5vw, 24px);
-  font-weight: 700;
-  color: var(--geo-green-600);
-  margin-bottom: var(--spacing-xs);
-}
-
-/* =============================================================================
-   SEARCH & FILTER (MOBILE FIRST)
-   ============================================================================= */
-
-.search-bar, .search-container, [class*="search"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: var(--spacing-sm) !important;
-  padding: var(--spacing-md) 0 !important;
-  box-sizing: border-box !important;
-}
-
-select, input[type="text"], input[type="email"], input[type="date"], 
-input[type="number"], input[type="search"], textarea {
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 12px var(--spacing-sm) !important;
-  font-size: 16px !important; /* Prevents iOS zoom */
-  border: 1px solid var(--border-color) !important;
-  border-radius: 6px !important;
-  background: white !important;
-  color: var(--text-primary) !important;
-  box-sizing: border-box !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
-}
-
-input[type="text"]::placeholder, 
-input[type="email"]::placeholder,
-input[type="search"]::placeholder {
-  color: var(--text-muted);
-}
-
-button, .btn {
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 12px var(--spacing-sm) !important;
-  font-size: 16px !important;
-  min-height: 48px !important;
-  border: none !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  font-weight: 600 !important;
-  box-sizing: border-box !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
-}
-
-/* =============================================================================
-   PROPERTY DETAIL PAGE (MOBILE FIRST)
-   ============================================================================= */
-
-.property-detail-layout, [style*="grid-template-columns"] {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: var(--spacing-lg) !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.property-gallery {
-  width: 100% !important;
-  max-width: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: var(--spacing-md) !important;
-}
-
-.gallery-main {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-}
-
-.gallery-main img {
-  width: 100% !important;
-  height: auto !important;
-  max-width: 100% !important;
-  border-radius: 8px;
-}
-
-.gallery-side {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: var(--spacing-sm) !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.gallery-side img {
-  width: 100% !important;
-  height: auto !important;
-  max-width: 100% !important;
-  border-radius: 6px;
-}
-
-.property-details-section {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.property-details-section h2 {
-  font-size: clamp(18px, 5vw, 24px);
-  margin-bottom: var(--spacing-md);
-  word-break: break-word;
-}
-
-.property-details-section p {
-  font-size: clamp(14px, 3.5vw, 16px);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-sm);
-  word-break: break-word;
-}
-
-/* =============================================================================
-   FORMS & MODALS (MOBILE FIRST)
-   ============================================================================= */
-
-.geo-modal-overlay {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: 100svh !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  display: flex !important;
-  align-items: flex-end !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  z-index: 1000 !important;
-}
-
-.geo-modal-overlay > div, [class*="modal"], [class*="dialog"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  max-height: 90svh !important;
-  border-radius: 20px 20px 0 0 !important;
-  padding: var(--spacing-md) !important;
-  box-sizing: border-box !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-}
-
-.form-group {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin-bottom: var(--spacing-md) !important;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: var(--spacing-xs);
-  font-weight: 600;
-  font-size: var(--font-sm);
-}
-
-/* =============================================================================
-   MAP PAGE (MOBILE FIRST)
-   ============================================================================= */
-
-#map, [id*="map"], [class*="map"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: 50svh !important;
-}
-
-.map-sidebar, [class*="sidebar"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: 45svh !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-}
-
-.map-sidebar-item, [class*="list-item"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: var(--spacing-md) !important;
-  box-sizing: border-box !important;
-  border-bottom: 1px solid var(--border-color);
-  word-break: break-word !important;
-}
-
-/* =============================================================================
-   TYPOGRAPHY (MOBILE FIRST)
-   ============================================================================= */
-
-h1 {
-  font-size: clamp(24px, 6vw, 40px);
-  line-height: 1.2;
-  font-weight: 700;
-  margin-bottom: var(--spacing-md);
-}
-
-h2 {
-  font-size: clamp(20px, 5vw, 32px);
-  line-height: 1.2;
-  font-weight: 700;
-  margin-bottom: var(--spacing-md);
-}
-
-h3 {
-  font-size: clamp(18px, 4.5vw, 24px);
-  line-height: 1.3;
-  font-weight: 600;
-  margin-bottom: var(--spacing-sm);
-}
-
-h4, h5, h6 {
-  font-size: clamp(16px, 4vw, 20px);
-  font-weight: 600;
-  margin-bottom: var(--spacing-sm);
-}
-
-p {
-  font-size: clamp(14px, 3.5vw, 16px);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-md);
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-/* =============================================================================
-   UTILITIES
-   ============================================================================= */
-
-.hidden-mobile {
-  display: none !important;
-}
-
-.flex, [style*="display: flex"], [style*="display:flex"] {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.grid, [style*="display: grid"], [style*="display:grid"] {
-  display: grid !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-/* Prevent text overflow */
-div, span, p, a, label {
-  word-break: break-word;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-}
-
-/* =============================================================================
-   TABLET BREAKPOINT (≤768px to ≤480px - override for medium phones)
-   ============================================================================= */
-
-@media (max-width: 768px) {
-  :root {
-    --nav-height: 64px;
-  }
-
-  body {
-    padding-top: var(--nav-height);
-  }
-
-  .geo-nav-links {
-    display: none !important;
-  }
-
-  .geo-hamburger {
-    display: flex !important;
-  }
-
-  .geo-hero {
-    min-height: 100svh;
-    padding-top: calc(var(--nav-height) + var(--spacing-lg));
-  }
-
-  .geo-prop-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .property-card {
-    max-width: 100% !important;
-  }
-
-  select, input, textarea, button {
-    font-size: 16px !important;
-    min-height: 48px !important;
-  }
-}
-
-/* =============================================================================
-   MEDIUM PHONE (480px to 600px)
-   ============================================================================= */
-
-@media (min-width: 481px) and (max-width: 600px) {
-  .geo-prop-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .gallery-side {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-
-/* =============================================================================
-   SMALL TABLET / LARGE PHONE (601px to 768px)
-   ============================================================================= */
-
-@media (min-width: 601px) and (max-width: 768px) {
-  .geo-prop-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: var(--spacing-lg) !important;
-  }
-
-  .geo-nav-links {
-    display: flex !important;
-    gap: var(--spacing-md) !important;
-  }
-
-  .geo-hamburger {
-    display: none !important;
-  }
-
-  main, section {
-    padding: 0 var(--spacing-lg) !important;
-  }
-}
-
-/* =============================================================================
-   TABLET (769px to 1024px)
-   ============================================================================= */
-
-@media (min-width: 769px) {
-  :root {
-    --nav-height: 72px;
-  }
-
-  .geo-nav-links {
-    display: flex !important;
-    gap: var(--spacing-md) !important;
-    flex: 1;
-  }
-
-  .geo-hamburger {
-    display: none !important;
-  }
-
-  .geo-prop-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
-  .property-detail-layout {
-    grid-template-columns: 1fr 340px !important;
-  }
-
-  main, section {
-    padding: 0 var(--spacing-lg) !important;
-  }
-}
-
-/* =============================================================================
-   DESKTOP (1025px+)
-   ============================================================================= */
-
-@media (min-width: 1025px) {
-  :root {
-    --nav-height: 72px;
-  }
-
-  .geo-nav-inner {
-    max-width: 1440px;
-  }
-
-  .geo-prop-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
-
-  .property-detail-layout {
-    grid-template-columns: 1fr 340px !important;
-  }
-
-  main, section, .container {
-    padding: 0 var(--spacing-xl) !important;
-  }
-}
-
-/* =============================================================================
-   EXTRA SMALL PHONES (< 320px - very old devices)
-   ============================================================================= */
-
-/* =============================================================================
-   TRUST BANNER (mobile-first)
-   NOTE: .geo-trust-banner, .trust-item, .trust-icon had no CSS anywhere in
-   the codebase before this — they were relying entirely on unstyled div
-   defaults, which is why spacing/alignment looked broken on phones.
+   TRUST BANNER
    ============================================================================= */
 
 .geo-trust-banner {
@@ -812,14 +637,13 @@ div, span, p, a, label {
   background: var(--surface-primary, #fff);
   padding: var(--spacing-lg) var(--spacing-md);
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .geo-trust-banner-inner {
   max-width: 1280px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-md);
 }
 
@@ -846,21 +670,16 @@ div, span, p, a, label {
 .trust-icon.amber  { background: #fef3c7; }
 .trust-icon.purple { background: #ede9fe; }
 
-@media (min-width: 601px) {
-  .geo-trust-banner-inner {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+@media (min-width: 600px) {
+  .geo-trust-banner-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (min-width: 1025px) {
-  .geo-trust-banner-inner {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
+@media (min-width: 1024px) {
+  .geo-trust-banner-inner { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
 /* =============================================================================
-   FOOTER (mobile-first)
-   NOTE: .geo-footer and children also had no CSS anywhere before this.
+   FOOTER
    ============================================================================= */
 
 .geo-footer {
@@ -869,7 +688,6 @@ div, span, p, a, label {
   background: #0d1f15;
   padding: var(--spacing-xl) var(--spacing-md) var(--spacing-lg);
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .geo-footer-inner {
@@ -879,7 +697,7 @@ div, span, p, a, label {
 
 .geo-footer-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-xl);
 }
 
@@ -920,13 +738,8 @@ div, span, p, a, label {
   margin-bottom: var(--spacing-sm);
 }
 
-.geo-footer-col ul {
-  list-style: none;
-}
-
-.geo-footer-col li {
-  margin-bottom: 10px;
-}
+.geo-footer-col ul { list-style: none; }
+.geo-footer-col li { margin-bottom: 10px; }
 
 .geo-footer-col a {
   font-size: 0.85rem;
@@ -934,9 +747,7 @@ div, span, p, a, label {
   text-decoration: none;
 }
 
-.geo-footer-col a:hover {
-  color: white;
-}
+.geo-footer-col a:hover { color: white; }
 
 .geo-footer-bottom {
   margin-top: var(--spacing-xl);
@@ -949,47 +760,154 @@ div, span, p, a, label {
   color: rgba(255, 255, 255, 0.6);
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .geo-footer-grid {
     grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: var(--spacing-lg);
   }
-
   .geo-footer-bottom {
     flex-direction: row;
     justify-content: space-between;
   }
 }
 
-@media (max-width: 320px) {
-  body {
-    font-size: 13px !important;
-  }
+/* =============================================================================
+   PROPERTY DETAIL PAGE
+   ============================================================================= */
 
-  h1 {
-    font-size: 20px !important;
-  }
+.property-gallery {
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-sm);
+}
 
-  h2 {
-    font-size: 18px !important;
-  }
+.gallery-side {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  width: 100%;
+  max-width: 100%;
+}
 
-  h3 {
-    font-size: 16px !important;
-  }
+.property-detail-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
 
-  button, .btn, input, select, textarea {
-    font-size: 14px !important;
-    padding: 10px 8px !important;
-    min-height: 44px !important;
+@media (min-width: 768px) {
+  .property-gallery {
+    grid-template-columns: 2fr 1fr;
+    height: 380px;
   }
+  .gallery-side {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+}
 
-  .hero-float-card {
-    font-size: 12px !important;
-    padding: 8px !important;
+@media (min-width: 1024px) {
+  .property-detail-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
   }
+}
 
-  main, section {
-    padding: 0 8px !important;
-  }
+/* =============================================================================
+   MAP PAGE
+   ============================================================================= */
+
+#page-map > div {
+  flex-direction: column;
+}
+
+.map-sidebar {
+  width: 100%;
+  max-width: 100%;
+  order: 2;
+}
+
+#map {
+  width: 100%;
+  max-width: 100%;
+  height: 50svh;
+  order: 1;
+}
+
+@media (min-width: 1024px) {
+  #page-map > div { flex-direction: row; }
+  .map-sidebar { order: 1; width: 360px; flex-shrink: 0; }
+  #map { order: 2; flex: 1; height: 100%; }
+}
+
+/* =============================================================================
+   FORM FIELDS (verify / list-property / dispute / contact forms)
+   Scoped to actual form contexts only — not a blanket `button, .btn` rule,
+   which previously forced every button on the entire site (including the
+   admin panel and portal buttons) to 100% width.
+   ============================================================================= */
+
+.geo-listing-form-scope select,
+.geo-listing-form-scope input,
+.geo-listing-form-scope textarea,
+#page-verify select,
+#page-verify input,
+#page-verify textarea,
+#page-contact select,
+#page-contact input,
+#page-contact textarea,
+#page-dispute select,
+#page-dispute input,
+#page-dispute textarea {
+  font-size: 16px;
+}
+
+/* =============================================================================
+   TYPOGRAPHY
+   ============================================================================= */
+
+h1 {
+  font-size: clamp(24px, 6vw, 40px);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: clamp(20px, 5vw, 32px);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: clamp(18px, 4.5vw, 24px);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+p {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* =============================================================================
+   UTILITIES
+   ============================================================================= */
+
+.hidden-mobile { display: none; }
+
+@media (min-width: 768px) {
+  .hidden-mobile { display: revert; }
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  main, section { padding-left: var(--spacing-lg); padding-right: var(--spacing-lg); }
+}
+
+@media (min-width: 1024px) {
+  main, section { padding-left: var(--spacing-xl); padding-right: var(--spacing-xl); }
+}
+
+/* Very small phones (< 360px) */
+@media (max-width: 360px) {
+  .geo-hero-stats { grid-template-columns: minmax(0, 1fr); }
+  .geo-stats-strip-inner { grid-template-columns: minmax(0, 1fr); }
 }
