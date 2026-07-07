@@ -1,4 +1,7 @@
-<!DOCT
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <style>
   /* ── ADMIN CSS VARS (self-contained, theme-aware) ── */
   #admin-root {
     --adm-bg:           #f0f2f5;
@@ -42,9 +45,7 @@
     --adm-sidebar:      #0d1f15;
     --adm-shadow:       0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
   }
-YPE html>
-<html lang="en" class="light">
-<head>
+  </style>
   <meta charset="UTF-8">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -657,6 +658,10 @@ document.addEventListener('click', function(e){
       <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600&q=85&auto=format&fit=crop')"></div>
     </div>
 
+    <!-- Darkening overlay so white text/cards stay legible over bright photos.
+         (Previously referenced in a comment below but never actually added.) -->
+    <div class="hero-overlay" aria-hidden="true"></div>
+
     <!-- Slideshow dot indicators -->
     <div id="hero-dots" style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:3">
       <button class="hero-dot active" onclick="goToSlide(0)" aria-label="Slide 1"></button>
@@ -818,6 +823,24 @@ document.addEventListener('click', function(e){
         border-radius: 4px;
       }
       .hero-dot:hover { background: rgba(255,255,255,0.7); }
+
+      /* Darkening gradient over the slideshow photos so white headline text,
+         the search bar, and the floating cards stay readable regardless of
+         which photo is showing. Sits above the slideshow (z-index 0) and
+         below the content/cards. */
+      .hero-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.55) 0%,
+          rgba(0, 0, 0, 0.35) 30%,
+          rgba(0, 0, 0, 0.45) 70%,
+          rgba(0, 0, 0, 0.65) 100%
+        );
+      }
 
       /* Ensure hero content sits above overlay (z-index 1) */
       .geo-hero-content { position: relative; z-index: 2; }
@@ -1014,23 +1037,23 @@ document.addEventListener('click', function(e){
   </div>
 
   <!-- STATS STRIP -->
-  <div style="background:var(--geo-green-600);padding:64px var(--space-8);">
-    <div style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-8);text-align:center">
-      <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">₦480B+</div>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Lost to property fraud annually in Nigeria</div>
+  <div class="geo-stats-strip">
+    <div class="geo-stats-strip-inner">
+      <div class="geo-stats-item">
+        <div class="geo-stats-value">₦480B+</div>
+        <div class="geo-stats-label">Lost to property fraud annually in Nigeria</div>
       </div>
-      <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">60%</div>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Of Nigerian property deals happen informally</div>
+      <div class="geo-stats-item">
+        <div class="geo-stats-value">60%</div>
+        <div class="geo-stats-label">Of Nigerian property deals happen informally</div>
       </div>
-      <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">₦0</div>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Illegal agent fees on GeoEstate — ever</div>
+      <div class="geo-stats-item">
+        <div class="geo-stats-value">₦0</div>
+        <div class="geo-stats-label">Illegal agent fees on GeoEstate — ever</div>
       </div>
-      <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">72h</div>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Average verification turnaround</div>
+      <div class="geo-stats-item">
+        <div class="geo-stats-value">72h</div>
+        <div class="geo-stats-label">Average verification turnaround</div>
       </div>
     </div>
   </div>

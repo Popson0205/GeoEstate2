@@ -284,6 +284,65 @@ main, section, .page, .container {
   .hero-float-card-3 { top: 40%; left: 8%; }
 }
 
+/* =============================================================================
+   STATS STRIP (mobile-first — prevents horizontal cutoff)
+
+   The previous version used inline `grid-template-columns: repeat(4, 1fr)`.
+   Plain `1fr` tracks have an implicit min-width of `auto`, so a track can't
+   shrink below its content's natural width. On narrow phones the 4th column
+   (and part of the 3rd) got pushed past the viewport edge and, since the
+   page has overflow-x:hidden, it was simply clipped — that's the "cut off"
+   numbers you were seeing. Using minmax(0, 1fr) lets tracks actually shrink,
+   and 2 columns on phones / 4 on tablet+ keeps every number fully visible.
+   ============================================================================= */
+
+.geo-stats-strip {
+  width: 100%;
+  max-width: 100%;
+  background: var(--geo-green-600);
+  padding: var(--spacing-xl) var(--spacing-md);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.geo-stats-strip-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-lg) var(--spacing-md);
+  text-align: center;
+}
+
+.geo-stats-item {
+  min-width: 0;
+}
+
+.geo-stats-value {
+  font-size: clamp(1.5rem, 6vw, 2.5rem);
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.03em;
+  word-break: break-word;
+}
+
+.geo-stats-label {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+@media (min-width: 769px) {
+  .geo-stats-strip {
+    padding: 64px var(--spacing-xl);
+  }
+  .geo-stats-strip-inner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--spacing-xl);
+  }
+}
+
 .btn-primary {
   background: var(--geo-green-600);
   color: white;
@@ -739,6 +798,168 @@ div, span, p, a, label {
 /* =============================================================================
    EXTRA SMALL PHONES (< 320px - very old devices)
    ============================================================================= */
+
+/* =============================================================================
+   TRUST BANNER (mobile-first)
+   NOTE: .geo-trust-banner, .trust-item, .trust-icon had no CSS anywhere in
+   the codebase before this — they were relying entirely on unstyled div
+   defaults, which is why spacing/alignment looked broken on phones.
+   ============================================================================= */
+
+.geo-trust-banner {
+  width: 100%;
+  max-width: 100%;
+  background: var(--surface-primary, #fff);
+  padding: var(--spacing-lg) var(--spacing-md);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.geo-trust-banner-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.trust-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.trust-icon.green  { background: var(--geo-green-light); }
+.trust-icon.blue   { background: #dbeafe; }
+.trust-icon.amber  { background: #fef3c7; }
+.trust-icon.purple { background: #ede9fe; }
+
+@media (min-width: 601px) {
+  .geo-trust-banner-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1025px) {
+  .geo-trust-banner-inner {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* =============================================================================
+   FOOTER (mobile-first)
+   NOTE: .geo-footer and children also had no CSS anywhere before this.
+   ============================================================================= */
+
+.geo-footer {
+  width: 100%;
+  max-width: 100%;
+  background: #0d1f15;
+  padding: var(--spacing-xl) var(--spacing-md) var(--spacing-lg);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.geo-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.geo-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl);
+}
+
+.geo-footer-brand {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: white;
+  margin-bottom: var(--spacing-sm);
+}
+
+.geo-footer-desc {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: var(--spacing-md);
+}
+
+.geo-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.geo-badge-item {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+
+.geo-footer-col h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: var(--spacing-sm);
+}
+
+.geo-footer-col ul {
+  list-style: none;
+}
+
+.geo-footer-col li {
+  margin-bottom: 10px;
+}
+
+.geo-footer-col a {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+}
+
+.geo-footer-col a:hover {
+  color: white;
+}
+
+.geo-footer-bottom {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (min-width: 769px) {
+  .geo-footer-grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .geo-footer-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
 
 @media (max-width: 320px) {
   body {
