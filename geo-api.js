@@ -160,17 +160,14 @@
   async function adminFetch(path, opts) {
     opts = opts || {};
     try {
-      const r = await fetchWithTimeout(GEO_API + path, {
+      const r = await fetch(GEO_API + path, {
         method: opts.method || 'GET',
         headers: adminHeaders(),
         body: opts.body ? JSON.stringify(opts.body) : undefined
       });
       if (!r.ok) return { error: 'HTTP ' + r.status };
       return await r.json();
-    } catch(e) {
-      if (e.name === 'AbortError') return { error: 'Request timed out — the server took too long to respond. Please try again.' };
-      return { error: e.message };
-    }
+    } catch(e) { return { error: e.message }; }
   }
 
   // ── Owner Auth ──────────────────────────────────────────────────
@@ -201,19 +198,6 @@
     } catch(e) { return { error: e.message }; }
   }
 
-  // Client-side request timeout. Without this, a stuck backend just hangs
-  // silently until the platform's own gateway timeout (~100-125s) kills the
-  // connection — which shows up in the browser as a confusing CORS error
-  // instead of a clear, fast "request timed out" message.
-  const FETCH_TIMEOUT_MS = 20000;
-
-  function fetchWithTimeout(url, options) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
-      .finally(() => clearTimeout(timer));
-  }
-
   async function ownerFetch(path, opts) {
     opts = opts || {};
     const hasBody = !!(opts.body);
@@ -221,7 +205,7 @@
     // Only set Content-Type on requests that carry a body (GET never should)
     if (!hasBody) delete headers['Content-Type'];
     try {
-      const r = await fetchWithTimeout(GEO_API + path, {
+      const r = await fetch(GEO_API + path, {
         method: opts.method || 'GET',
         headers: headers,
         body: hasBody ? JSON.stringify(opts.body) : undefined
@@ -232,10 +216,7 @@
         return { error: 'HTTP ' + r.status };
       }
       return await r.json();
-    } catch(e) {
-      if (e.name === 'AbortError') return { error: 'Request timed out — the server took too long to respond. Please try again.' };
-      return { error: e.message };
-    }
+    } catch(e) { return { error: e.message }; }
   }
 
   async function partnerFetch(path, opts) {
@@ -244,7 +225,7 @@
     const headers = partnerHeaders();
     if (!hasBody) delete headers['Content-Type'];
     try {
-      const r = await fetchWithTimeout(GEO_API + path, {
+      const r = await fetch(GEO_API + path, {
         method: opts.method || 'GET',
         headers: headers,
         body: hasBody ? JSON.stringify(opts.body) : undefined
@@ -254,10 +235,7 @@
         return { error: 'HTTP ' + r.status };
       }
       return await r.json();
-    } catch(e) {
-      if (e.name === 'AbortError') return { error: 'Request timed out — the server took too long to respond. Please try again.' };
-      return { error: e.message };
-    }
+    } catch(e) { return { error: e.message }; }
   }
 
   // ── SSE Real-time sync ─────────────────────────────────────────

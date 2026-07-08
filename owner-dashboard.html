@@ -729,7 +729,7 @@
                 <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know about this listing..." rows="2"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:4px">
-                <button class="btn btn-primary" id="fp-submit-btn" onclick="submitAddProperty()">Submit Rental Listing →</button>
+                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Rental Listing →</button>
                 <button class="btn btn-outline" onclick="navTo('my-properties',null)">Cancel</button>
               </div>
             </div>
@@ -1315,7 +1315,7 @@
 <!-- Toast container -->
 <div id="toast"></div>
 
-<script src="geo-api.js?v=3"></script>
+<script src="geo-api.js?v=2"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // OWNER DASHBOARD — Main Script
@@ -2214,22 +2214,6 @@ function setRentCategory(cat) {
 
 // ── submitAddProperty — now transaction-type aware ────────────────────────
 async function submitAddProperty() {
-  // Guard against duplicate submissions (double-click / slow network) and
-  // give visible feedback instead of leaving the button looking inert while
-  // the request is in flight.
-  const _btn = document.getElementById('fp-submit-btn');
-  if (_btn && _btn.disabled) return;
-  const _btnOriginalText = _btn ? _btn.textContent : '';
-  if (_btn) { _btn.disabled = true; _btn.textContent = 'Submitting…'; }
-
-  try {
-    await _submitAddPropertyInner();
-  } finally {
-    if (_btn) { _btn.disabled = false; _btn.textContent = _btnOriginalText; }
-  }
-}
-
-async function _submitAddPropertyInner() {
   const lt = document.getElementById('fp-listing-type').value;
   const galleryPrefix = lt === 'buy' ? 'buy' : (lt === 'lease' ? 'lease' : 'fp');
   const gallery = galleryState[galleryPrefix];
