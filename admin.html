@@ -1502,6 +1502,27 @@ function openPropModal(idx){
   // Safe docs array
   const docs = Array.isArray(p.docs) ? p.docs : [];
 
+  // metadata may arrive as a JSON string or already-parsed object
+  let meta = {};
+  try { meta = (p.metadata && typeof p.metadata === 'string') ? JSON.parse(p.metadata) : (p.metadata || {}); } catch(e) { meta = {}; }
+
+  // Named, type-specific legal/agreement documents (each a single real URL).
+  // lease_agreement is only ever saved inside metadata, not as its own column.
+  const namedDocDefs = [
+    ['doc_coo', p.doc_coo, '📜 Certificate of Occupancy'],
+    ['doc_deed', p.doc_deed, '📝 Deed of Assignment'],
+    ['doc_survey', p.doc_survey, '🗺️ Survey Plan'],
+    ['doc_approval', p.doc_approval, '🏛️ Building Approval / Permit'],
+    ['sale_agreement', p.sale_agreement, '📑 Sale Agreement'],
+    ['agreement_doc', p.agreement_doc, '📄 Tenancy Agreement'],
+    ['lease_agreement', meta.lease_agreement, '📋 Lease Agreement']
+  ].filter(([,url]) => url);
+  const namedDocsHtml = namedDocDefs.length ? `
+    <div class="doc-grid">
+      ${namedDocDefs.map(([key,url,label]) => `<div class="doc-thumb" onclick="window.open('${url}','_blank')">📄<div class="doc-thumb-label">${label}</div></div>`).join('')}
+    </div>` : '';
+
+
   // Map placeholder — will be initialised after innerHTML is set
   const mapId = 'prop-map-'+idx;
 
@@ -1542,14 +1563,24 @@ function openPropModal(idx){
       </div>
     </div>
     <div class="panel-section">
-      <div class="panel-section-title">Title Documents</div>
+      <div class="panel-section-title">Property Video</div>
+      ${p.video_url ? `<video src="${p.video_url}" controls style="width:100%;max-height:220px;border-radius:8px;background:#000"></video>` : `<div style="color:var(--adm-text-subtle);font-size:.85rem">No video attached to this listing.</div>`}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Title / Legal Documents</div>
+      ${namedDocsHtml || `<div style="color:var(--adm-text-subtle);font-size:.85rem">No named legal documents attached.</div>`}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Additional Documents</div>
       ${docs.length ? `
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${docs.map(d=>`<span class="tag">📄 ${d}</span>`).join('')}</div>
         <div class="doc-grid">
-          <div class="doc-thumb" onclick="adminToast('Opening title document...','info')">📄<div class="doc-thumb-label">${docs[0]||'Document'}</div></div>
-          ${docs[1]?`<div class="doc-thumb" onclick="adminToast('Opening document...','info')">📋<div class="doc-thumb-label">${docs[1]}</div></div>`:''}
+          ${docs.map(d => {
+            const dName = (d && typeof d === 'object') ? (d.name || 'Document') : String(d || 'Document');
+            const dUrl = (d && typeof d === 'object') ? (d.url || '') : '';
+            return `<div class="doc-thumb" onclick="${dUrl ? `window.open('${dUrl}','_blank')` : `adminToast('No file URL for this document','info')`}">📄<div class="doc-thumb-label">${dName}</div></div>`;
+          }).join('')}
         </div>` :
-        `<div style="color:var(--adm-text-subtle);font-size:.85rem">No documents attached to this listing.</div>`}
+        `<div style="color:var(--adm-text-subtle);font-size:.85rem">No additional documents attached to this listing.</div>`}
     </div>
     <div class="panel-section">
       <div class="panel-section-title">Reviewer Notes</div>

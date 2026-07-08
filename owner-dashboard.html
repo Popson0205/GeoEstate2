@@ -684,12 +684,24 @@
               </div>
 
               <!-- Media -->
-              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📸 Media</div>
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">
+                📸 Photos &amp; Video <span style="color:var(--red);font-size:.72rem;font-weight:700;background:var(--red-bg);padding:2px 8px;border-radius:999px;margin-left:6px">At least 3 photos required</span>
+              </div>
               <div class="form-group">
-                <label class="form-label">Property Photos <span style="color:var(--red);font-weight:600">(minimum 3 required)</span></label>
-                <div id="fp-photo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:10px"></div>
-                <button type="button" onclick="ownerUploadPhotos('fp')" class="btn btn-outline btn-sm">📸 Add Photo(s)</button>
-                <div id="fp-photo-count" style="margin-top:6px;font-size:.78rem;color:var(--muted)">0 of 3 minimum photos added</div>
+                <label class="form-label">Property Photos <span style="color:var(--muted);font-weight:400">(min 3, max 8)</span></label>
+                <div id="fp-images-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:8px"></div>
+                <button type="button" onclick="addGalleryImages('fp')" class="btn btn-outline btn-sm">📸 Add Photo(s)</button>
+                <input type="hidden" id="fp-images">
+                <div id="fp-images-count" style="margin-top:6px;font-size:.78rem;color:var(--red);font-weight:600">0 photos uploaded — at least 3 required</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Property Video <span style="color:var(--muted);font-weight:400">(optional — short walkthrough clip)</span></label>
+                <div id="fp-video-wrap" style="display:none;margin-bottom:8px">
+                  <video id="fp-video-tag" controls style="width:100%;max-height:200px;border-radius:8px;background:#000"></video>
+                  <button type="button" onclick="removeGalleryVideo('fp')" class="btn btn-outline btn-sm" style="margin-top:6px">🗑️ Remove Video</button>
+                </div>
+                <button type="button" onclick="addGalleryVideo('fp')" class="btn btn-outline btn-sm">🎥 Upload Video</button>
+                <input type="hidden" id="fp-video">
               </div>
 
               <!-- Rental Agreement -->
@@ -705,12 +717,19 @@
                 </div>
               </div>
 
+              <!-- Additional Documents -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🗂️ Additional Documents <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — any extra supporting documents)</span></div>
+              <div class="form-group">
+                <div id="fp-docs-list" style="margin-bottom:8px"><div style="font-size:.8rem;color:var(--muted)">No additional documents yet.</div></div>
+                <button type="button" onclick="addGalleryDoc('fp')" class="btn btn-outline btn-sm">📎 Add Document(s)</button>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Notes for Admin (optional)</label>
                 <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know about this listing..." rows="2"></textarea>
               </div>
               <div style="display:flex;gap:10px;margin-top:4px">
-                <button class="btn btn-primary" onclick="submitAddProperty()">Submit Rental Listing →</button>
+                <button class="btn btn-primary" id="fp-submit-btn" onclick="submitAddProperty()">Submit Rental Listing →</button>
                 <button class="btn btn-outline" onclick="navTo('my-properties',null)">Cancel</button>
               </div>
             </div>
@@ -913,12 +932,31 @@
               </div>
 
               <!-- Media -->
-              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📸 Media</div>
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">
+                📸 Photos &amp; Video <span style="color:var(--red);font-size:.72rem;font-weight:700;background:var(--red-bg);padding:2px 8px;border-radius:999px;margin-left:6px">At least 3 photos required</span>
+              </div>
               <div class="form-group">
-                <label class="form-label">Property Photos <span style="color:var(--red);font-weight:600">(minimum 3 required)</span></label>
-                <div id="buy-photo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:10px"></div>
-                <button type="button" onclick="ownerUploadPhotos('buy')" class="btn btn-outline btn-sm">📸 Add Photo(s)</button>
-                <div id="buy-photo-count" style="margin-top:6px;font-size:.78rem;color:var(--muted)">0 of 3 minimum photos added</div>
+                <label class="form-label">Property Photos <span style="color:var(--muted);font-weight:400">(min 3, max 8)</span></label>
+                <div id="buy-images-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:8px"></div>
+                <button type="button" onclick="addGalleryImages('buy')" class="btn btn-outline btn-sm">📸 Add Photo(s)</button>
+                <input type="hidden" id="buy-images">
+                <div id="buy-images-count" style="margin-top:6px;font-size:.78rem;color:var(--red);font-weight:600">0 photos uploaded — at least 3 required</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Property Video <span style="color:var(--muted);font-weight:400">(optional — short walkthrough clip)</span></label>
+                <div id="buy-video-wrap" style="display:none;margin-bottom:8px">
+                  <video id="buy-video-tag" controls style="width:100%;max-height:200px;border-radius:8px;background:#000"></video>
+                  <button type="button" onclick="removeGalleryVideo('buy')" class="btn btn-outline btn-sm" style="margin-top:6px">🗑️ Remove Video</button>
+                </div>
+                <button type="button" onclick="addGalleryVideo('buy')" class="btn btn-outline btn-sm">🎥 Upload Video</button>
+                <input type="hidden" id="buy-video">
+              </div>
+
+              <!-- Additional Documents -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🗂️ Additional Documents <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — any extra supporting documents beyond those above)</span></div>
+              <div class="form-group">
+                <div id="buy-docs-list" style="margin-bottom:8px"><div style="font-size:.8rem;color:var(--muted)">No additional documents yet.</div></div>
+                <button type="button" onclick="addGalleryDoc('buy')" class="btn btn-outline btn-sm">📎 Add Document(s)</button>
               </div>
 
               <div class="form-group">
@@ -1134,12 +1172,31 @@
               </div>
 
               <!-- Media -->
-              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">📸 Media</div>
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">
+                📸 Photos &amp; Video <span style="color:var(--red);font-size:.72rem;font-weight:700;background:var(--red-bg);padding:2px 8px;border-radius:999px;margin-left:6px">At least 3 photos required</span>
+              </div>
               <div class="form-group">
-                <label class="form-label">Property Photos <span style="color:var(--red);font-weight:600">(minimum 3 required)</span></label>
-                <div id="lease-photo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:10px"></div>
-                <button type="button" onclick="ownerUploadPhotos('lease')" class="btn btn-outline btn-sm">📸 Add Photo(s)</button>
-                <div id="lease-photo-count" style="margin-top:6px;font-size:.78rem;color:var(--muted)">0 of 3 minimum photos added</div>
+                <label class="form-label">Property Photos <span style="color:var(--muted);font-weight:400">(min 3, max 8)</span></label>
+                <div id="lease-images-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:8px"></div>
+                <button type="button" onclick="addGalleryImages('lease')" class="btn btn-outline btn-sm">📸 Add Photo(s)</button>
+                <input type="hidden" id="lease-images">
+                <div id="lease-images-count" style="margin-top:6px;font-size:.78rem;color:var(--red);font-weight:600">0 photos uploaded — at least 3 required</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Property Video <span style="color:var(--muted);font-weight:400">(optional — short walkthrough clip)</span></label>
+                <div id="lease-video-wrap" style="display:none;margin-bottom:8px">
+                  <video id="lease-video-tag" controls style="width:100%;max-height:200px;border-radius:8px;background:#000"></video>
+                  <button type="button" onclick="removeGalleryVideo('lease')" class="btn btn-outline btn-sm" style="margin-top:6px">🗑️ Remove Video</button>
+                </div>
+                <button type="button" onclick="addGalleryVideo('lease')" class="btn btn-outline btn-sm">🎥 Upload Video</button>
+                <input type="hidden" id="lease-video">
+              </div>
+
+              <!-- Additional Documents -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🗂️ Additional Documents <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — any extra supporting documents beyond those above)</span></div>
+              <div class="form-group">
+                <div id="lease-docs-list" style="margin-bottom:8px"><div style="font-size:.8rem;color:var(--muted)">No additional documents yet.</div></div>
+                <button type="button" onclick="addGalleryDoc('lease')" class="btn btn-outline btn-sm">📎 Add Document(s)</button>
               </div>
 
               <div class="form-group">
@@ -1258,7 +1315,7 @@
 <!-- Toast container -->
 <div id="toast"></div>
 
-<script src="geo-api.js?v=2"></script>
+<script src="geo-api.js?v=3"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // OWNER DASHBOARD — Main Script
@@ -1806,6 +1863,7 @@ window.addEventListener('DOMContentLoaded', function() {
   populateLGA('fp-state', 'fp-lga');
   populateLGA('buy-state', 'buy-lga');
   populateLGA('lease-state', 'lease-lga');
+  renderGallery('fp'); renderGallery('buy'); renderGallery('lease');
 
   const session = GeoAPI.getOwnerSession();
   if (session && session.token) {
@@ -1887,39 +1945,102 @@ window.addEventListener('DOMContentLoaded', function() {
   }
   function ownerDocUpload(inputId, statusId) { ownerUpload(inputId, statusId, { isDoc: true }); }
 
-  // ── Multi-photo picker (rent/buy/lease each keep their own array) ──────────
-  const ownerPhotos = { fp: [], buy: [], lease: [] };
+  // ── Multi-photo / video / multi-document gallery uploader ─────────────────
+  // Used by the rent ('fp'), buy ('buy'), and lease ('lease') sections.
+  // Each section keeps its own in-memory list of uploaded photo URLs, an
+  // optional video URL, and a list of freeform supporting documents.
+  const galleryState = {
+    fp:    { images: [], video: null, docs: [] },
+    buy:   { images: [], video: null, docs: [] },
+    lease: { images: [], video: null, docs: [] }
+  };
+  const GALLERY_MAX_IMAGES = 8;
+  const GALLERY_MIN_IMAGES = 3;
+  const GALLERY_MAX_VIDEO_MB = 100;
 
-  function renderOwnerPhotoGrid(prefix) {
-    const grid = document.getElementById(prefix + '-photo-grid');
-    const countEl = document.getElementById(prefix + '-photo-count');
-    if (!grid) return;
-    const list = ownerPhotos[prefix] || [];
-    grid.innerHTML = list.map((url, i) => `
-      <div style="position:relative;border-radius:8px;overflow:hidden;height:90px;background:var(--card2)">
-        <img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block">
-        <button type="button" onclick="removeOwnerPhoto('${prefix}',${i})" title="Remove"
-          style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;line-height:1;cursor:pointer">×</button>
-      </div>
-    `).join('');
-    if (countEl) {
-      const n = list.length;
-      countEl.textContent = n >= 3 ? `✅ ${n} photo${n === 1 ? '' : 's'} added` : `${n} of 3 minimum photos added`;
-      countEl.style.color = n >= 3 ? 'var(--green)' : 'var(--muted)';
+  // Shared upload helper — signs + PUTs a file to Supabase Storage, falling
+  // back to a local base64 data URL (non-persistent) if storage isn't reachable.
+  async function uploadFileToStorage(file, folder) {
+    const API_URL = 'https://api.geoestate.com.ng';
+    try {
+      const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+      const s = await fetch(API_URL + '/upload-sign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder, ext })
+      });
+      if (!s.ok) throw new Error('Upload not configured on server');
+      const sign = await s.json();
+      if (sign.error) throw new Error(sign.error);
+      const upRes = await fetch(sign.signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file
+      });
+      if (!upRes.ok) throw new Error('Storage upload failed: HTTP ' + upRes.status);
+      return sign.public_url;
+    } catch (e) {
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => resolve(ev.target.result);
+        reader.onerror = () => reject(e);
+        reader.readAsDataURL(file);
+      });
     }
   }
 
-  function removeOwnerPhoto(prefix, idx) {
-    ownerPhotos[prefix].splice(idx, 1);
-    renderOwnerPhotoGrid(prefix);
+  function renderGallery(prefix) {
+    const st = galleryState[prefix];
+
+    // Photos grid
+    const grid = document.getElementById(prefix + '-images-grid');
+    if (grid) {
+      grid.innerHTML = st.images.map((url, i) => `
+        <div style="position:relative">
+          <img src="${url}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+          <button type="button" onclick="removeGalleryImage('${prefix}',${i})"
+            style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.65);color:#fff;font-size:.8rem;line-height:1;cursor:pointer">×</button>
+        </div>
+      `).join('');
+    }
+    const countEl = document.getElementById(prefix + '-images-count');
+    if (countEl) {
+      const n = st.images.length;
+      const ok = n >= GALLERY_MIN_IMAGES;
+      countEl.textContent = n + ' photo' + (n === 1 ? '' : 's') + ' uploaded' +
+        (ok ? ' ✅' : ' — at least ' + GALLERY_MIN_IMAGES + ' required');
+      countEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    }
+    const imgsInput = document.getElementById(prefix + '-images');
+    if (imgsInput) imgsInput.value = JSON.stringify(st.images);
+
+    // Video
+    const videoWrap = document.getElementById(prefix + '-video-wrap');
+    const videoTag = document.getElementById(prefix + '-video-tag');
+    const videoInput = document.getElementById(prefix + '-video');
+    if (videoWrap) videoWrap.style.display = st.video ? 'block' : 'none';
+    if (videoTag && st.video) videoTag.src = st.video;
+    if (videoInput) videoInput.value = st.video || '';
+
+    // Documents list
+    const docsList = document.getElementById(prefix + '-docs-list');
+    if (docsList) {
+      docsList.innerHTML = st.docs.length
+        ? st.docs.map((d, i) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--card2);border-radius:8px;margin-bottom:6px">
+            <span style="font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${d.name}</span>
+            <button type="button" onclick="removeGalleryDoc('${prefix}',${i})" class="btn btn-outline btn-sm" style="white-space:nowrap">Remove</button>
+          </div>
+        `).join('')
+        : '<div style="font-size:.8rem;color:var(--muted)">No additional documents yet.</div>';
+    }
   }
 
-  function ownerUploadPhotos(prefix) {
-    const API_URL = 'https://api.geoestate.com.ng';
+  function addGalleryImages(prefix) {
+    const st = galleryState[prefix];
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.multiple = true; // allow selecting several photos at once
+    fileInput.multiple = true;
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
     fileInput.click();
@@ -1927,38 +2048,103 @@ window.addEventListener('DOMContentLoaded', function() {
       const files = Array.from(fileInput.files || []);
       document.body.removeChild(fileInput);
       if (!files.length) return;
-      toast(`⏳ Uploading ${files.length} photo${files.length === 1 ? '' : 's'}…`);
+      let uploadedAny = false;
       for (const file of files) {
+        if (st.images.length >= GALLERY_MAX_IMAGES) {
+          toast('Maximum ' + GALLERY_MAX_IMAGES + ' photos allowed', 'info');
+          break;
+        }
+        toast('⏳ Uploading photo…');
         try {
-          const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-          const s = await fetch(API_URL + '/upload-sign', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ folder: 'geoestate/property-images', ext })
-          });
-          if (!s.ok) throw new Error('Upload not configured on server');
-          const sign = await s.json();
-          if (sign.error) throw new Error(sign.error);
-          const upRes = await fetch(sign.signed_url, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type || 'application/octet-stream' },
-            body: file
-          });
-          if (!upRes.ok) throw new Error('Storage upload failed: HTTP ' + upRes.status);
-          ownerPhotos[prefix].push(sign.public_url);
+          const url = await uploadFileToStorage(file, 'geoestate/property-images');
+          st.images.push(url);
+          renderGallery(prefix);
+          uploadedAny = true;
         } catch (e) {
-          // Fall back to embedding the photo locally so the owner isn't blocked
-          await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = ev => { ownerPhotos[prefix].push(ev.target.result); resolve(); };
-            reader.onerror = resolve;
-            reader.readAsDataURL(file);
-          });
+          toast('Photo upload failed: ' + e.message, 'error');
         }
       }
-      renderOwnerPhotoGrid(prefix);
-      toast('✅ Photos added!', 'success');
+      if (uploadedAny) toast('✅ Photo(s) uploaded', 'success');
     });
   }
+
+  function removeGalleryImage(prefix, i) {
+    galleryState[prefix].images.splice(i, 1);
+    renderGallery(prefix);
+  }
+
+  function addGalleryVideo(prefix) {
+    const st = galleryState[prefix];
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'video/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      document.body.removeChild(fileInput);
+      if (!file) return;
+      if (file.size > GALLERY_MAX_VIDEO_MB * 1024 * 1024) {
+        toast('Video must be under ' + GALLERY_MAX_VIDEO_MB + 'MB', 'error');
+        return;
+      }
+      toast('⏳ Uploading video…');
+      try {
+        const url = await uploadFileToStorage(file, 'geoestate/property-videos');
+        st.video = url;
+        renderGallery(prefix);
+        toast('✅ Video uploaded', 'success');
+      } catch (e) {
+        toast('Video upload failed: ' + e.message, 'error');
+      }
+    });
+  }
+
+  function removeGalleryVideo(prefix) {
+    galleryState[prefix].video = null;
+    renderGallery(prefix);
+  }
+
+  function addGalleryDoc(prefix) {
+    const st = galleryState[prefix];
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.pdf,.jpg,.jpeg,.png,.webp';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files || []);
+      document.body.removeChild(fileInput);
+      if (!files.length) return;
+      let uploadedAny = false;
+      for (const file of files) {
+        toast('⏳ Uploading document…');
+        try {
+          const url = await uploadFileToStorage(file, 'geoestate/documents');
+          st.docs.push({ name: file.name, url });
+          renderGallery(prefix);
+          uploadedAny = true;
+        } catch (e) {
+          toast('Document upload failed: ' + e.message, 'error');
+        }
+      }
+      if (uploadedAny) toast('✅ Document(s) uploaded', 'success');
+    });
+  }
+
+  function removeGalleryDoc(prefix, i) {
+    galleryState[prefix].docs.splice(i, 1);
+    renderGallery(prefix);
+  }
+
+  function resetGallery(prefix) {
+    galleryState[prefix] = { images: [], video: null, docs: [] };
+    renderGallery(prefix);
+  }
+
 
 
 // ── Transaction Type Switcher ─────────────────────────────────
@@ -2028,7 +2214,32 @@ function setRentCategory(cat) {
 
 // ── submitAddProperty — now transaction-type aware ────────────────────────
 async function submitAddProperty() {
+  // Guard against duplicate submissions (double-click / slow network) and
+  // give visible feedback instead of leaving the button looking inert while
+  // the request is in flight.
+  const _btn = document.getElementById('fp-submit-btn');
+  if (_btn && _btn.disabled) return;
+  const _btnOriginalText = _btn ? _btn.textContent : '';
+  if (_btn) { _btn.disabled = true; _btn.textContent = 'Submitting…'; }
+
+  try {
+    await _submitAddPropertyInner();
+  } finally {
+    if (_btn) { _btn.disabled = false; _btn.textContent = _btnOriginalText; }
+  }
+}
+
+async function _submitAddPropertyInner() {
   const lt = document.getElementById('fp-listing-type').value;
+  const galleryPrefix = lt === 'buy' ? 'buy' : (lt === 'lease' ? 'lease' : 'fp');
+  const gallery = galleryState[galleryPrefix];
+
+  // ── Media guard — at least 3 photos required ──────────────────────────
+  if (gallery.images.length < GALLERY_MIN_IMAGES) {
+    toast('Please upload at least ' + GALLERY_MIN_IMAGES + ' photos of the property', 'error');
+    document.getElementById(galleryPrefix + '-images-count')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
 
   // ── Verification guard ────────────────────────────────────────────────
   const _vp = await GeoAPI.ownerFetch('/owner/profile').catch(() => ({}));
@@ -2048,11 +2259,6 @@ async function submitAddProperty() {
     // ── RENT ──
     const title = document.getElementById('fp-title').value.trim();
     if (!title) { toast('Please enter a property title', 'error'); return; }
-    if (ownerPhotos.fp.length < 3) {
-      toast('Please upload at least 3 photos of the property', 'error');
-      document.getElementById('fp-photo-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
     const rentCategory = document.getElementById('fp-rent-category').value; // 'standard' or 'shortlet'
     const includes = ['ri-water','ri-electricity','ri-security','ri-internet','ri-waste','ri-parking']
       .filter(id => document.getElementById(id)?.checked)
@@ -2092,8 +2298,10 @@ async function submitAddProperty() {
         year_built: parseInt(document.getElementById('fp-year-built').value) || null,
         description: document.getElementById('fp-desc').value,
         amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
-        img: ownerPhotos.fp[0] || '',
-        images: ownerPhotos.fp,
+        img: galleryState.fp.images[0] || '',
+        images: galleryState.fp.images,
+        video_url: galleryState.fp.video || null,
+        docs: galleryState.fp.docs,
         agreement_doc: document.getElementById('fp-rent-agreement').value || null,
         notes: document.getElementById('fp-notes').value
       };
@@ -2128,8 +2336,10 @@ async function submitAddProperty() {
         year_built: parseInt(document.getElementById('fp-year-built').value) || null,
         description: document.getElementById('fp-desc').value,
         amenities: document.getElementById('fp-amenities').value.split(',').map(s=>s.trim()).filter(Boolean),
-        img: ownerPhotos.fp[0] || '',
-        images: ownerPhotos.fp,
+        img: galleryState.fp.images[0] || '',
+        images: galleryState.fp.images,
+        video_url: galleryState.fp.video || null,
+        docs: galleryState.fp.docs,
         agreement_doc: document.getElementById('fp-rent-agreement').value || null,
         notes: document.getElementById('fp-notes').value
       };
@@ -2141,11 +2351,6 @@ async function submitAddProperty() {
     if (!title) { toast('Please enter a property title', 'error'); return; }
     const salePrice = parseFloat(document.getElementById('buy-sale-price').value) || null;
     if (!salePrice) { toast('Please enter the asking price', 'error'); return; }
-    if (ownerPhotos.buy.length < 3) {
-      toast('Please upload at least 3 photos of the property', 'error');
-      document.getElementById('buy-photo-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
     // Validate at least 1 legal document uploaded
     const docUploaded = ['buy-doc-coo','buy-doc-deed','buy-doc-survey','buy-doc-approval']
       .some(id => (document.getElementById(id)?.value || '').trim().length > 0);
@@ -2183,8 +2388,10 @@ async function submitAddProperty() {
       doc_survey: document.getElementById('buy-doc-survey').value || null,
       doc_approval: document.getElementById('buy-doc-approval').value || null,
       sale_agreement: document.getElementById('buy-sale-agreement').value || null,
-      img: ownerPhotos.buy[0] || '',
-      images: ownerPhotos.buy,
+      img: galleryState.buy.images[0] || '',
+      images: galleryState.buy.images,
+      video_url: galleryState.buy.video || null,
+      docs: galleryState.buy.docs,
       notes: document.getElementById('buy-notes').value
     };
 
@@ -2194,11 +2401,6 @@ async function submitAddProperty() {
     if (!title) { toast('Please enter a property title', 'error'); return; }
     const leasePrice = parseFloat(document.getElementById('lease-price').value) || null;
     if (!leasePrice) { toast('Please enter the lease price / annual fee', 'error'); return; }
-    if (ownerPhotos.lease.length < 3) {
-      toast('Please upload at least 3 photos of the property', 'error');
-      document.getElementById('lease-photo-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
     payload = {
       title,
       listing_type: 'lease',
@@ -2226,8 +2428,10 @@ async function submitAddProperty() {
       lease_agreement: document.getElementById('lease-agreement').value || null,
       doc_coo: document.getElementById('lease-doc-coo').value || null,
       doc_survey: document.getElementById('lease-doc-survey').value || null,
-      img: ownerPhotos.lease[0] || '',
-      images: ownerPhotos.lease,
+      img: galleryState.lease.images[0] || '',
+      images: galleryState.lease.images,
+      video_url: galleryState.lease.video || null,
+      docs: galleryState.lease.docs,
       notes: document.getElementById('lease-notes').value
     };
   }
@@ -2238,8 +2442,7 @@ async function submitAddProperty() {
   const typeLabel = { rent: 'Rental', buy: 'Sale', lease: 'Lease' }[lt] || lt;
   toast('✅ ' + typeLabel + ' listing submitted! It will go live once admin approves.', 'success');
   // Reset form
-  ownerPhotos.fp = []; ownerPhotos.buy = []; ownerPhotos.lease = [];
-  renderOwnerPhotoGrid('fp'); renderOwnerPhotoGrid('buy'); renderOwnerPhotoGrid('lease');
+  resetGallery('fp'); resetGallery('buy'); resetGallery('lease');
   setTransactionType('rent');
   await loadAll();
   navTo('my-properties', null);
