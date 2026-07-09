@@ -113,7 +113,10 @@
       verified: true,
       lat: (p.lat !== null && p.lat !== undefined && p.lat !== '') ? parseFloat(p.lat) : null,
       lng: (p.lng !== null && p.lng !== undefined && p.lng !== '') ? parseFloat(p.lng) : null,
-      tags: [], video: false
+      // Was hardcoded to `video: false`, so the "Upload Video" step in Add
+      // Property never surfaced anywhere on the site — the Video Tour button
+      // on the detail page checks `p.video` but it was never populated.
+      tags: [], video: p.video_url || false, video_url: p.video_url || ''
     };
   }
 

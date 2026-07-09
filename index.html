@@ -1140,13 +1140,21 @@ document.addEventListener('click', function(e){
   <div id="video-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center">
     <div style="position:relative;width:90%;max-width:820px">
       <button onclick="toggleVideoTour()" style="position:absolute;top:-44px;right:0;background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;font-family:var(--font-sans)">✕ Close</button>
-      <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:var(--radius-xl);overflow:hidden;background:#000">
-        <iframe id="video-iframe" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <div style="position:relative;border-radius:var(--radius-xl);overflow:hidden;background:#000">
+        <video id="video-player" src="" controls playsinline style="width:100%;max-height:70vh;display:block;background:#000"></video>
       </div>
       <p id="video-modal-label" style="color:rgba(255,255,255,0.55);text-align:center;margin-top:12px;font-size:0.85rem"></p>
     </div>
   </div>
+</div>
+
+<!-- Photo Lightbox — view ALL uploaded photos, not just the 3 in the grid -->
+<div id="photo-lightbox-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center">
+  <button onclick="closePhotoLightbox()" style="position:absolute;top:20px;right:24px;background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;font-family:var(--font-sans)">✕ Close</button>
+  <button onclick="lightboxPrev()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;color:white;font-size:1.6rem;width:44px;height:44px;border-radius:50%;cursor:pointer">‹</button>
+  <img id="lightbox-img" src="" style="max-width:85%;max-height:80vh;border-radius:var(--radius-lg);object-fit:contain">
+  <button onclick="lightboxNext()" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;color:white;font-size:1.6rem;width:44px;height:44px;border-radius:50%;cursor:pointer">›</button>
+  <div id="lightbox-counter" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:white;font-size:0.85rem;background:rgba(255,255,255,0.12);padding:4px 14px;border-radius:999px"></div>
 </div>
 
 <!-- ============================================================
@@ -2933,7 +2941,7 @@ async function renderDetail(id) {
             unit_structure: prop.unit_structure||'single', total_units: prop.total_units||0,
             unitGroups: _unitGroups,
             description: prop.description||'', amenities: (function(){try{return typeof prop.amenities==='string'?JSON.parse(prop.amenities||'[]'):(Array.isArray(prop.amenities)?prop.amenities:[]);}catch(e){return [];}})(), units: prop.units||[],
-            tags: [], video: false, owner: prop.owner||'' };
+            tags: [], video: prop.video_url||false, video_url: prop.video_url||'', owner: prop.owner||'' };
         };
         p = mapper(d.property);
         // Cache into local array for subsequent uses
@@ -2961,24 +2969,26 @@ async function renderDetail(id) {
   const platformFee = Math.round(feeNum * 0.1).toLocaleString('en-NG');
   const total = Math.round(feeNum * 1.1).toLocaleString('en-NG');
   const imgIdx = Math.abs(String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0));
-  const propImages = (p.images && Array.isArray(p.images) && p.images.length > 1) ? p.images : [];
+  const realImages = (p.images && Array.isArray(p.images) && p.images.length) ? p.images : (p.img ? [p.img] : []);
+  const propImages = realImages.length > 1 ? realImages : [];
   const img2 = propImages[1] || sideImages[imgIdx % sideImages.length];
   const img3 = propImages[2] || sideImages[(imgIdx + 1) % sideImages.length];
   const verifyDate = `${Math.floor(Math.random()*28)+1} ${['Jan','Feb','Mar','Apr','May','Jun'][Math.floor(Math.random()*6)]} 2026`;
   window._currentProp = p;
+  window._currentPropRealImages = realImages;
   document.getElementById('detail-content').innerHTML = `
     <button class="btn btn-ghost btn-sm mb-4" onclick="showPage('map')">← Back to Map</button>
     <div class="property-gallery">
-      <div style="padding:0;overflow:hidden;position:relative;border-radius:var(--radius-xl) 0 0 var(--radius-xl)">
+      <div style="padding:0;overflow:hidden;position:relative;border-radius:var(--radius-xl) 0 0 var(--radius-xl);cursor:pointer" onclick="openPhotoLightbox(window._currentPropRealImages, 0)">
         <img src="${p.img}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.background='linear-gradient(135deg,#d9f2e3,#a8dfc0)'">
         <div style="position:absolute;bottom:16px;left:16px;display:flex;gap:8px;z-index:2">
-          <span style="background:rgba(0,0,0,0.6);color:white;border-radius:999px;padding:4px 12px;font-size:0.75rem;font-weight:700">📸 Photos</span>
-          ${p.video ? `<span onclick="toggleVideoTour('${p.video}','${p.title}')" style="background:rgba(26,107,60,0.88);color:white;border-radius:999px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer">▶ Video Tour</span>` : ''}
+          <span style="background:rgba(0,0,0,0.6);color:white;border-radius:999px;padding:4px 12px;font-size:0.75rem;font-weight:700">📸 ${realImages.length > 3 ? 'View all ' + realImages.length + ' photos' : 'Photos'}</span>
+          ${p.video ? `<span onclick="event.stopPropagation();toggleVideoTour('${p.video}','${p.title}')" style="background:rgba(26,107,60,0.88);color:white;border-radius:999px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer">▶ Video Tour</span>` : ''}
         </div>
       </div>
       <div class="gallery-side">
-        <div style="overflow:hidden;border-radius:0 var(--radius-xl) 0 0"><img src="${img2}" alt="Interior" style="width:100%;height:100%;object-fit:cover" onerror="this.style.background='#d9f2e3'"></div>
-        <div style="overflow:hidden;border-radius:0 0 var(--radius-xl) 0"><img src="${img3}" alt="Interior 2" style="width:100%;height:100%;object-fit:cover" onerror="this.style.background='#a8dfc0'"></div>
+        <div style="overflow:hidden;border-radius:0 var(--radius-xl) 0 0;${propImages[1] ? 'cursor:pointer' : ''}" ${propImages[1] ? `onclick="openPhotoLightbox(window._currentPropRealImages, 1)"` : ''}><img src="${img2}" alt="Interior" style="width:100%;height:100%;object-fit:cover" onerror="this.style.background='#d9f2e3'"></div>
+        <div style="overflow:hidden;border-radius:0 0 var(--radius-xl) 0;${propImages[2] ? 'cursor:pointer' : ''}" ${propImages[2] ? `onclick="openPhotoLightbox(window._currentPropRealImages, 2)"` : ''}><img src="${img3}" alt="Interior 2" style="width:100%;height:100%;object-fit:cover" onerror="this.style.background='#a8dfc0'"></div>
       </div>
     </div>
     <div class="property-detail-layout" style="display:grid;grid-template-columns:1fr 340px;gap:var(--space-8);align-items:start;margin-top:var(--space-8)">
@@ -3087,19 +3097,67 @@ function startTransaction() {
 // ── VIDEO TOUR ─────────────────────────────────────────────────────────────
 function toggleVideoTour(videoUrl, title) {
   const modal = document.getElementById('video-modal');
-  const iframe = document.getElementById('video-iframe');
+  const player = document.getElementById('video-player');
   const label  = document.getElementById('video-modal-label');
   if (modal.style.display === 'flex') {
-    modal.style.display = 'none'; iframe.src = '';
+    modal.style.display = 'none'; player.pause(); player.src = '';
   } else {
     modal.style.display = 'flex';
-    iframe.src = (videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ') + '?autoplay=1&rel=0';
+    player.src = videoUrl || '';
+    player.play().catch(()=>{});
     if (label && title) label.textContent = '📍 ' + title + ' — Virtual Property Tour';
   }
 }
 document.addEventListener('click', function(e) {
   const modal = document.getElementById('video-modal');
   if (modal && e.target === modal) toggleVideoTour();
+});
+
+// ── PHOTO LIGHTBOX — view all uploaded photos ────────────────────────────────
+// The gallery grid only ever showed 3 tiles (main + 2 side thumbnails), padded
+// out with decorative stock photos when a listing had fewer than 3 real ones.
+// Anything beyond photo #3 was never viewable at all. This opens every real
+// uploaded photo (window._currentProp.images) in a swipeable full-screen view.
+function openPhotoLightbox(images, startIndex) {
+  if (!images || !images.length) return;
+  window._lightboxImages = images;
+  window._lightboxIndex = startIndex || 0;
+  renderLightbox();
+  document.getElementById('photo-lightbox-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function renderLightbox() {
+  const imgs = window._lightboxImages || [];
+  const idx = window._lightboxIndex || 0;
+  document.getElementById('lightbox-img').src = imgs[idx] || '';
+  document.getElementById('lightbox-counter').textContent = (idx + 1) + ' / ' + imgs.length;
+}
+function lightboxNext() {
+  const imgs = window._lightboxImages || [];
+  if (!imgs.length) return;
+  window._lightboxIndex = (window._lightboxIndex + 1) % imgs.length;
+  renderLightbox();
+}
+function lightboxPrev() {
+  const imgs = window._lightboxImages || [];
+  if (!imgs.length) return;
+  window._lightboxIndex = (window._lightboxIndex - 1 + imgs.length) % imgs.length;
+  renderLightbox();
+}
+function closePhotoLightbox() {
+  document.getElementById('photo-lightbox-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('photo-lightbox-modal');
+  if (modal && e.target === modal) closePhotoLightbox();
+});
+document.addEventListener('keydown', function(e) {
+  const modal = document.getElementById('photo-lightbox-modal');
+  if (!modal || modal.style.display !== 'flex') return;
+  if (e.key === 'Escape') closePhotoLightbox();
+  if (e.key === 'ArrowRight') lightboxNext();
+  if (e.key === 'ArrowLeft') lightboxPrev();
 });
 
 // ── FILE PREVIEW HELPERS ─────────────────────────────────────────────────────
@@ -7918,4 +7976,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </body>
-</html>
+</html>
