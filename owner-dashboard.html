@@ -1463,7 +1463,7 @@ function propCard(p) {
     </div>
     <div class="prop-body">
       <div class="prop-title">${p.title}</div>
-      <div class="prop-price">${p.price || (p.monthly_rent ? '₦'+Number(p.monthly_rent).toLocaleString()+'/mo' : p.sale_price ? '₦'+Number(p.sale_price).toLocaleString() : '—')}</div>
+      <div class="prop-price">${p.price || (p.annual_rent ? '₦'+Number(p.annual_rent).toLocaleString()+'/yr' : p.monthly_rent ? '₦'+Number(p.monthly_rent*12).toLocaleString()+'/yr' : p.sale_price ? '₦'+Number(p.sale_price).toLocaleString() : '—')}</div>
       <div class="prop-loc">📍 ${p.lga || p.state || p.address || '—'}</div>
       ${unitCount > 0 ? `<div style="margin-top:8px"><span class="badge badge-blue">${unitCount} units</span> <span class="badge badge-green">${vacantCount} vacant</span></div>` : ''}
     </div>
@@ -1668,7 +1668,8 @@ async function viewPropertyDetail(propId) {
     const lt = prop.listing_type || prop.type || 'rent';
     let price = prop.price || '';
     if (!price || price === '—') {
-      if (lt === 'rent' && prop.monthly_rent) price = '₦' + Number(prop.monthly_rent).toLocaleString() + '/mo';
+      if (lt === 'rent' && prop.annual_rent) price = '₦' + Number(prop.annual_rent).toLocaleString() + '/yr';
+      else if (lt === 'rent' && prop.monthly_rent) price = '₦' + Number(prop.monthly_rent * 12).toLocaleString() + '/yr';
       else if (lt === 'buy' && prop.sale_price) price = '₦' + Number(prop.sale_price).toLocaleString();
       else if (lt === 'lease' && prop.lease_price) price = '₦' + Number(prop.lease_price).toLocaleString() + ' lease';
     }
