@@ -1850,9 +1850,10 @@ document.addEventListener('click', function(e){
         </div>
       </div>
 
-      <!-- Receipt upload -->
-      <div style="border:2px dashed var(--border-default);border-radius:10px;padding:16px;text-align:center;cursor:pointer;color:var(--text-muted);font-size:.82rem;margin-bottom:16px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--geo-green-400)'" onmouseout="this.style.borderColor='var(--border-default)'">
-        📎 Upload transfer receipt / screenshot (optional but recommended)<br>
+      <!-- Receipt upload (required) -->
+      <input type="file" id="receipt-file-input" accept="image/*,.pdf" style="display:none" onchange="handleReceiptUpload(this)">
+      <div id="receipt-dropzone" onclick="document.getElementById('receipt-file-input').click()" style="border:2px dashed var(--border-default);border-radius:10px;padding:16px;text-align:center;cursor:pointer;color:var(--text-muted);font-size:.82rem;margin-bottom:16px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--geo-green-400)'" onmouseout="this.style.borderColor='var(--border-default)'">
+        📎 Tap to upload transfer receipt / screenshot <strong>(required)</strong><br>
         <span style="font-size:.72rem">JPG, PNG or PDF</span>
       </div>
 
@@ -2926,7 +2927,8 @@ async function renderDetail(id) {
           const lt = prop.listing_type || prop.type || 'rent';
           let price = prop.price || '';
           if (!price) {
-            if (lt==='rent' && prop.monthly_rent) price = '₦'+Number(prop.monthly_rent).toLocaleString()+'/mo';
+            if (lt==='rent' && prop.annual_rent) price = '₦'+Number(prop.annual_rent).toLocaleString()+'/yr';
+            else if (lt==='rent' && prop.monthly_rent) price = '₦'+Number(prop.monthly_rent*12).toLocaleString()+'/yr';
             else if (lt==='buy' && prop.sale_price) price = '₦'+Number(prop.sale_price).toLocaleString();
             else if (lt==='lease' && prop.lease_price) price = '₦'+Number(prop.lease_price).toLocaleString()+' lease';
           }
@@ -3426,6 +3428,13 @@ function openPaymentModal(propTitle, price, propType) {
 
   const ref = generateRef();
   currentPayRef = ref;
+  window._currentPayAmount = rawPrice;
+  // Reset receipt upload state for this fresh payment attempt
+  window._paymentReceiptUrl = null;
+  const dz = document.getElementById('receipt-dropzone');
+  if (dz) dz.innerHTML = '📎 Tap to upload transfer receipt / screenshot <strong>(required)</strong><br><span style="font-size:.72rem">JPG, PNG or PDF</span>';
+  const fi = document.getElementById('receipt-file-input');
+  if (fi) fi.value = '';
   document.getElementById('pay-prop-label').textContent = displayLabel;
   document.getElementById('pay-amount').textContent = rawPrice > 0 ? '₦' + rawPrice.toLocaleString('en-NG') : 'Contact us for amount';
   document.getElementById('pay-acct-num').textContent = GEOESTATE_ACCOUNT.number;
@@ -3444,6 +3453,10 @@ function copyAcctNum() {
   });
 }
 function confirmPayment() {
+  if (!window._paymentReceiptUrl) {
+    toast('Please upload your transfer receipt/screenshot before continuing', 'error');
+    return;
+  }
   closePaymentModal();
   document.getElementById('success-ref').textContent = currentPayRef;
   document.getElementById('payment-success-modal').style.display = 'flex';
@@ -3451,9 +3464,13 @@ function confirmPayment() {
   // Persist payment to DB so admin sees it immediately
   // For multi-unit: send unit_id, unit_label, unit_price so admin sees per-unit breakdown
   const _isUnit = window._selectedUnitId && window._selectedUnitPrice > 0;
+  // Use the amount already computed (and shown to the customer) in
+  // openPaymentModal() — window._currentProp.monthly_rent was being read here
+  // directly, which silently charged off the monthly-equivalent figure
+  // instead of the actual (yearly) rent amount the customer just saw on screen.
   const _payAmount = _isUnit
     ? window._selectedUnitPrice
-    : (window._currentProp ? (window._currentProp.monthly_rent || window._currentProp.sale_price || window._currentProp.lease_price || 0) : 0);
+    : (window._currentPayAmount || 0);
   fetch(GEO_API + '/submit-payment', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
@@ -3465,6 +3482,7 @@ function confirmPayment() {
       buyer_phone:    currentUser ? currentUser.phone : '',
       owner:          window._currentProp ? window._currentProp.owner : '',
       amount:         _payAmount,
+      receipt_url:    window._paymentReceiptUrl || '',
       unit_id:        _isUnit ? window._selectedUnitId    : undefined,
       unit_label:     _isUnit ? window._selectedUnitLabel : undefined,
       unit_price:     _isUnit ? window._selectedUnitPrice : undefined,
@@ -3483,6 +3501,36 @@ function confirmPayment() {
   } catch(e) {}
 }
 function closeSuccessModal() { document.getElementById('payment-success-modal').style.display = 'none'; document.body.style.overflow = ''; }
+
+async function handleReceiptUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const dz = document.getElementById('receipt-dropzone');
+  if (dz) dz.innerHTML = '⏳ Uploading receipt…';
+  try {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const apiBase = (typeof GEO_API !== 'undefined' && GEO_API) || 'https://api.geoestate.com.ng';
+    const signRes = await fetch(apiBase + '/upload-sign', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: 'geoestate/payment-receipts', ext })
+    });
+    if (!signRes.ok) throw new Error('Upload service unavailable');
+    const sign = await signRes.json();
+    const upRes = await fetch(sign.signed_url || sign.upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'false' },
+      body: file
+    });
+    if (!upRes.ok) throw new Error('Upload failed: ' + upRes.status);
+    window._paymentReceiptUrl = sign.public_url;
+    const safeName = file.name.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    if (dz) dz.innerHTML = '✅ ' + safeName + ' uploaded<br><span style="font-size:.72rem;color:var(--geo-green-600)">Tap to replace</span>';
+  } catch (e) {
+    window._paymentReceiptUrl = null;
+    if (dz) dz.innerHTML = '⚠️ Upload failed — tap to try again<br><span style="font-size:.72rem">JPG, PNG or PDF</span>';
+    toast('Could not upload receipt: ' + e.message, 'error');
+  }
+}
 document.addEventListener('click', function(e) {
   if (e.target.id === 'payment-modal') closePaymentModal();
   if (e.target.id === 'payment-success-modal') closeSuccessModal();
@@ -5041,7 +5089,7 @@ function openPropModal(idx){
       <div class="panel-section-title">Property Details</div>
       <div class="field-grid">
         <div><div class="field-label">Type</div><div class="field-value">${(p.listing_type||p.type||'rent').toUpperCase()}</div></div>
-        <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</div></div>
+        <div><div class="field-label">Price</div><div class="field-value" style="color:#1a6b3c;font-weight:700">${p.price||(p.annual_rent?'₦'+Number(p.annual_rent).toLocaleString()+'/yr':p.monthly_rent?'₦'+Number(p.monthly_rent*12).toLocaleString()+'/yr':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</div></div>
         <div><div class="field-label">State</div><div class="field-value">${p.state}</div></div>
         <div><div class="field-label">LGA</div><div class="field-value">${p.lga}</div></div>
       </div>
@@ -5570,7 +5618,7 @@ function renderPropQueue(filterStatus){
       <td style="font-size:.82rem">${p.owner||'—'}</td>
       <td>${(p.owner_id||'').startsWith('partner-') ? '<span style="background:#eff6ff;color:#1e40af;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px;white-space:nowrap">🤝 Partner</span>' : '<span style="background:#f3f4f6;color:#6b7280;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px">Direct</span>'}</td>
       <td><span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span></td>
-      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
+      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.annual_rent?'₦'+Number(p.annual_rent).toLocaleString()+'/yr':p.monthly_rent?'₦'+Number(p.monthly_rent*12).toLocaleString()+'/yr':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
       <td style="font-size:.78rem">${[p.lga,p.state].filter(Boolean).join(', ')||p.address||'—'}</td>
       <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split('T')[0]}</td>
       <td>${statusPill(p.status)}</td>
@@ -5610,7 +5658,7 @@ function renderPropQueueFiltered(source) {
       <td style="font-size:.82rem">${p.owner||'—'}</td>
       <td>${sourceBadge}</td>
       <td><span class="tag">${(p.listing_type||p.type||'rent').toUpperCase()}</span></td>
-      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
+      <td style="font-weight:700;font-size:.85rem;color:#1a6b3c">${p.price||(p.annual_rent?'₦'+Number(p.annual_rent).toLocaleString()+'/yr':p.monthly_rent?'₦'+Number(p.monthly_rent*12).toLocaleString()+'/yr':p.sale_price?'₦'+Number(p.sale_price).toLocaleString():p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—')}</td>
       <td style="font-size:.78rem">${[p.lga,p.state].filter(Boolean).join(', ')||p.address||'—'}</td>
       <td style="font-size:.78rem;color:var(--adm-text-subtle)">${(p.submitted||p.created_at||'—').toString().split('T')[0]}</td>
       <td>${statusPill(p.status)}</td>
@@ -7050,7 +7098,7 @@ async function loadTypePage(type) {
     typePageCache[type] = props;
     const mapper = window.GeoAPI ? window.GeoAPI.mapProperty : function(p) {
       return { id:p.id, type:p.listing_type||p.type||type, listing_type:p.listing_type||type, title:p.title,
-        price: p.price || (type==='rent'&&p.monthly_rent?'₦'+Number(p.monthly_rent).toLocaleString()+'/mo':type==='buy'&&p.sale_price?'₦'+Number(p.sale_price).toLocaleString():type==='lease'&&p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—'),
+        price: p.price || (type==='rent'&&p.annual_rent?'₦'+Number(p.annual_rent).toLocaleString()+'/yr':type==='rent'&&p.monthly_rent?'₦'+Number(p.monthly_rent*12).toLocaleString()+'/yr':type==='buy'&&p.sale_price?'₦'+Number(p.sale_price).toLocaleString():type==='lease'&&p.lease_price?'₦'+Number(p.lease_price).toLocaleString()+' lease':'—'),
         location:p.address||p.lga||p.state||'—', state:p.state||'', img:p.img||'',
         beds:p.bedrooms||0, baths:p.bathrooms||0, sqm:p.size_sqm||0, verified:true, lat:0, lng:0, description:p.description||'', amenities:(()=>{try{return typeof p.amenities==='string'?JSON.parse(p.amenities):(p.amenities||[]);}catch(e){return [];}})(), tags:[], video:false };
     };
@@ -7976,4 +8024,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </body>
-</html>
+</html>

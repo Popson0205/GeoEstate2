@@ -619,10 +619,10 @@
         <div class="section-card" style="margin-bottom:20px">
           <div class="section-header">
             <div><div class="section-title">Pending Confirmations</div><div class="section-sub">Buyers who have notified us of transfer — verify in your bank app then confirm</div></div>
-            <button class="btn btn-ghost btn-sm" onclick="loadPendingFromWebsite()">🔄 Refresh from Website</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadPaymentsFromAPI()">🔄 Refresh</button>
           </div>
           <table>
-            <thead><tr><th>Reference</th><th>Property</th><th>Buyer</th><th>Amount</th><th>Platform Fee (10%)</th><th>Notified</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Reference</th><th>Property</th><th>Buyer</th><th>Amount</th><th>Platform Fee (10%)</th><th>Notified</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="pending-payments-table"></tbody>
           </table>
         </div>
@@ -2264,17 +2264,60 @@ function assignLawyer(lawyerIdx) {
 
 
 // ══ MANUAL PAYMENT SYSTEM ══════════════════════════════════════════════════
+// Previously this whole tab (admin calls it "Transactions") only read/wrote
+// localStorage ('pgs_manual_payments'), merging in another localStorage key
+// ('pgs_pending_payments') that the *customer's own browser* wrote to. That
+// only ever worked if admin happened to load this page in the exact same
+// browser as the customer who paid — on a separate device (the normal case)
+// a customer's payment notification never showed up here at all. It's now
+// backed by the real `payments` table via /admin/payments and /admin/save-payment.
 
 let manualPayments = JSON.parse(localStorage.getItem('pgs_manual_payments')||'[]');
 
-// Seed some demo data if empty
-if (manualPayments.length === 0) {
-  // No demo data — real payments will appear here
-  savePayments();
-}
-
 function savePayments() {
   localStorage.setItem('pgs_manual_payments', JSON.stringify(manualPayments));
+}
+
+function mapPaymentRow(r) {
+  return {
+    ref: r.ref, prop: r.prop, buyer: r.buyer, phone: r.phone,
+    owner: r.owner, ownerAcct: r.owner_acct,
+    amount: Number(r.amount)||0, fee: Number(r.fee)||0, ownerAmt: Number(r.owner_amt)||0,
+    // DB uses 'pending_confirmation' (submit-payment's initial status); this
+    // tab's filters/pills expect 'pending' — normalize on the way in.
+    status: r.status === 'pending_confirmation' ? 'pending' : r.status,
+    notified: r.created_at || '', confirmedAt: r.confirmed_at || '', releasedAt: r.released_at || '',
+    notes: r.release_note || '', receiptUrl: r.receipt_url || '',
+    propertyId: r.property_id || '', tenancyId: r.tenancy_id || ''
+  };
+}
+
+async function loadPaymentsFromAPI() {
+  try {
+    const res = await fetch(GEO_API + '/admin/payments', { headers: geoHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.payments)) {
+      manualPayments = data.payments.map(mapPaymentRow);
+      savePayments(); renderPayments();
+    }
+  } catch(e) { console.warn('Could not load payments from API:', e.message); }
+}
+
+// Push a local change (confirm/release/dispute/manual-add) back to the DB so
+// it's visible from any device/browser, not just this one.
+async function persistPayment(p) {
+  try {
+    await fetch(GEO_API + '/admin/save-payment', {
+      method: 'POST', headers: geoHeaders(),
+      body: JSON.stringify({
+        ref: p.ref, prop: p.prop, buyer: p.buyer, phone: p.phone,
+        owner: p.owner, ownerAcct: p.ownerAcct, amount: p.amount, fee: p.fee, ownerAmt: p.ownerAmt,
+        status: p.status === 'pending' ? 'pending_confirmation' : p.status,
+        notified: p.notified || '', tenancy_id: p.tenancyId || null, release_note: p.notes || ''
+      })
+    });
+  } catch(e) { console.warn('Payment sync failed:', e.message); }
 }
 
 function fmtNaira(n) {
@@ -2317,13 +2360,14 @@ function renderPayments() {
         <td style="font-weight:700">${fmtNaira(p.amount)}</td>
         <td style="font-weight:700;color:#1a6b3c">${fmtNaira(p.fee)}</td>
         <td style="font-size:.78rem;color:var(--adm-text-subtle)">${p.notified}</td>
+        <td>${p.receiptUrl ? `<a href="${p.receiptUrl}" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--adm-green-600,#1a6b3c);font-weight:600">📎 View</a>` : '<span style="font-size:.78rem;color:var(--adm-text-subtle)">—</span>'}</td>
         <td>${payStatusPill(p.status)}</td>
         <td style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-approve btn-sm" onclick="openConfirmModal(${idx})">✓ Confirm</button>
           <button class="btn btn-reject btn-sm" onclick="disputePayment(${idx})">⚠ Dispute</button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="empty-state">No pending payments 🎉</td></tr>';
+    }).join('') : '<tr><td colspan="9" class="empty-state">No pending payments 🎉</td></tr>';
   }
 
   // Confirmed table
@@ -2367,6 +2411,7 @@ function openConfirmModal(idx) {
     <div style="background:var(--adm-amber-bg);border-radius:8px;padding:12px 14px;font-size:.82rem;color:#92400e;box-shadow:inset 0 0 0 1px #fcd34d;margin-bottom:14px">
       ⚠️ <strong>Before confirming:</strong> Check your bank app or statement to verify that <strong>${fmtNaira(p.amount)}</strong> was received from ${p.buyer} with reference <strong>${p.ref}</strong>.
     </div>
+    ${p.receiptUrl ? `<div style="margin-bottom:14px"><a href="${p.receiptUrl}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">📎 View uploaded receipt</a></div>` : `<div style="margin-bottom:14px;font-size:.8rem;color:var(--adm-text-subtle)">⚠️ No receipt was uploaded with this payment.</div>`}
     <label class="form-label">Confirmation Note (optional)</label>
     <input class="form-input" id="confirm-note-${idx}" placeholder="e.g. Verified in GTBank app at 10:45am">
   `;
@@ -2383,6 +2428,7 @@ function confirmPaymentAdmin(idx) {
   manualPayments[idx].confirmedAt = new Date().toLocaleString('en-NG');
   if (note) manualPayments[idx].notes = note.value;
   savePayments(); renderPayments();
+  persistPayment(manualPayments[idx]);
   closeModal('modal-confirm-payment');
   adminToast('Payment confirmed — buyer can now proceed to handover', 'success');
   addSyncLog('Payment confirmed: ' + manualPayments[idx].ref);
@@ -2419,8 +2465,9 @@ function releasePayment(idx) {
   const receipt = document.getElementById('release-receipt-'+idx);
   manualPayments[idx].status = 'released';
   manualPayments[idx].releasedAt = new Date().toLocaleString('en-NG');
-  if (receipt) manualPayments[idx].notes += ' | Release ref: ' + receipt.value;
+  if (receipt) manualPayments[idx].notes = (manualPayments[idx].notes||'') + ' | Release ref: ' + receipt.value;
   savePayments(); renderPayments();
+  persistPayment(manualPayments[idx]);
   closeModal('modal-release');
   adminToast('Funds released to owner ✓', 'success');
   addSyncLog('Funds released: ' + manualPayments[idx].ref + ' → ' + manualPayments[idx].owner);
@@ -2429,6 +2476,7 @@ function releasePayment(idx) {
 function disputePayment(idx) {
   manualPayments[idx].status = 'disputed';
   savePayments(); renderPayments();
+  persistPayment(manualPayments[idx]);
   adminToast('Payment ' + manualPayments[idx].ref + ' flagged as disputed', 'error');
 }
 
@@ -2459,31 +2507,9 @@ function addManualPayment() {
   if (!p.ref || !p.prop || !p.buyer) { adminToast('Fill in required fields','error'); return; }
   manualPayments.unshift(p);
   savePayments(); renderPayments();
+  persistPayment(p);
   closeModal('modal-add-payment');
   adminToast('Payment logged: ' + p.ref, 'success');
-}
-
-function loadPendingFromWebsite() {
-  // Read notifications from website's localStorage
-  try {
-    const webPending = JSON.parse(localStorage.getItem('pgs_pending_payments')||'[]');
-    let added = 0;
-    webPending.forEach(wp => {
-      const exists = manualPayments.find(p => p.ref === wp.ref);
-      if (!exists) {
-        manualPayments.unshift({
-          ref: wp.ref, prop: 'Pending — buyer to confirm property',
-          buyer: 'Website Submission', phone: '—',
-          owner: '—', ownerAcct: '—',
-          amount: 0, fee: 0, ownerAmt: 0,
-          notified: wp.time, status: 'pending', notes: 'From website notification'
-        });
-        added++;
-      }
-    });
-    if (added > 0) { savePayments(); renderPayments(); adminToast(added + ' new payment(s) synced from website', 'success'); }
-    else adminToast('No new payments from website', 'info');
-  } catch(e) { adminToast('Could not read website data', 'error'); }
 }
 
 function updateAccountNumber() {
@@ -3043,7 +3069,8 @@ window.initApp = function(){
   updateBadges(); saveState();
   // Initial load from Neon DB then poll every 30s
   syncFromAPI();
-  _syncIntervalId = setInterval(syncFromAPI, 30000);
+  loadPaymentsFromAPI();
+  _syncIntervalId = setInterval(() => { syncFromAPI(); loadPaymentsFromAPI(); }, 30000);
 };
 
 let _syncIntervalId = null;
@@ -3449,4 +3476,4 @@ function confirmMapPick() {
 </script>
 
 </body>
-</html>
+</html>

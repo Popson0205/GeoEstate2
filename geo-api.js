@@ -77,10 +77,21 @@
   // ── Map DB property to frontend format ─────────────────────────
   function mapProperty(p) {
     const lt = p.listing_type || p.type || 'rent';
+    // p.price is the fully-formatted string set at submission time and is
+    // already rent-category aware (annual "/yr" for standard tenancies,
+    // "/night" for shortlets — rent here is paid yearly, not monthly). This
+    // used to always rebuild rent listings from monthly_rent (which is only
+    // kept around for DB/back-compat) regardless of what price actually said,
+    // so every rental showed a manufactured "/mo" figure — and the payment
+    // modal's amount, which parses this same price string, was charging off
+    // the wrong (monthly, not annual) number.
     let displayPrice = p.price || '';
-    if (lt === 'rent' && p.monthly_rent) displayPrice = '₦' + Number(p.monthly_rent).toLocaleString() + '/mo';
-    else if (lt === 'buy' && p.sale_price) displayPrice = '₦' + Number(p.sale_price).toLocaleString();
-    else if (lt === 'lease' && p.lease_price) displayPrice = '₦' + Number(p.lease_price).toLocaleString() + ' lease';
+    if (!displayPrice) {
+      if (lt === 'buy' && p.sale_price) displayPrice = '₦' + Number(p.sale_price).toLocaleString();
+      else if (lt === 'lease' && p.lease_price) displayPrice = '₦' + Number(p.lease_price).toLocaleString() + '/yr';
+      else if (lt === 'rent' && p.annual_rent) displayPrice = '₦' + Number(p.annual_rent).toLocaleString() + '/yr';
+      else if (lt === 'rent' && p.monthly_rent) displayPrice = '₦' + Number(p.monthly_rent * 12).toLocaleString() + '/yr';
+    }
 
     let images = [];
     try { images = typeof p.images === 'string' ? JSON.parse(p.images) : (p.images || []); } catch(e) {}
@@ -92,7 +103,7 @@
       listing_type: lt,
       type: lt,
       title: p.title,
-      price: displayPrice || p.price || '—',
+      price: displayPrice || '—',
       monthly_rent: p.monthly_rent,
       sale_price: p.sale_price,
       lease_price: p.lease_price,
