@@ -2128,23 +2128,6 @@ function renderDisputes(){
       </div>
     </div>`).join('');
 }
-function renderTransactions(){
-  if (!transactions.length) {
-    document.getElementById('txn-table').innerHTML='<tr><td colspan="8" class="empty-state">No transactions yet — confirmed payments will appear here</td></tr>';
-    return;
-  }
-  document.getElementById('txn-table').innerHTML=transactions.map(t=>`
-    <tr>
-      <td style="font-family:monospace;font-size:.82rem;font-weight:700">${t.id}</td>
-      <td style="font-size:.85rem">${t.property}</td>
-      <td style="font-size:.82rem">${t.buyer}</td>
-      <td style="font-size:.82rem">${t.owner}</td>
-      <td style="font-weight:700">${t.amount}</td>
-      <td style="font-weight:700;color:#1a6b3c">${t.fee}</td>
-      <td>${statusPill(t.status)}</td>
-      <td style="font-size:.78rem;color:var(--adm-text-subtle)">${t.date}</td>
-    </tr>`).join('');
-}
 function renderLawyers(){
   if (!lawyers.length) {
     document.getElementById('lawyers-table').innerHTML='<tr><td colspan="8" class="empty-state"><div style="padding:8px">No lawyers added yet — click <strong>+ Add Lawyer</strong> to onboard your NBA panel</div></td></tr>';
@@ -2298,7 +2281,18 @@ async function loadPaymentsFromAPI() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.success && Array.isArray(data.payments)) {
-      manualPayments = data.payments.map(mapPaymentRow);
+      const fresh = data.payments.map(mapPaymentRow);
+      const localInFlight = manualPayments.filter(p => _paymentSyncInFlight.has(p.ref));
+      // For any ref currently mid-write, keep the local (optimistic) version
+      // instead of whatever this poll just fetched, so an in-progress
+      // confirm/release/dispute doesn't get clobbered back to its old status.
+      manualPayments = fresh.map(f => {
+        if (_paymentSyncInFlight.has(f.ref)) {
+          const local = localInFlight.find(p => p.ref === f.ref);
+          return local || f;
+        }
+        return f;
+      });
       savePayments(); renderPayments();
     }
   } catch(e) { console.warn('Could not load payments from API:', e.message); }
@@ -2306,9 +2300,20 @@ async function loadPaymentsFromAPI() {
 
 // Push a local change (confirm/release/dispute/manual-add) back to the DB so
 // it's visible from any device/browser, not just this one.
+// Refs currently being written to the backend. loadPaymentsFromAPI() (which
+// runs every 30s) skips these so a confirm/release/dispute that's still in
+// flight — or that failed silently — doesn't get clobbered back to whatever
+// the DB still has the instant the next poll's GET resolves. This was the
+// actual cause of "I confirmed it but it reverted to pending": the POST to
+// /admin/save-payment never checked res.ok (a 401 from an expired admin
+// session failed completely silently), and even when it succeeded, a poll
+// landing mid-flight would overwrite the fresh local status with stale data.
+const _paymentSyncInFlight = new Set();
+
 async function persistPayment(p) {
+  _paymentSyncInFlight.add(p.ref);
   try {
-    await fetch(GEO_API + '/admin/save-payment', {
+    const res = await fetch(GEO_API + '/admin/save-payment', {
       method: 'POST', headers: geoHeaders(),
       body: JSON.stringify({
         ref: p.ref, prop: p.prop, buyer: p.buyer, phone: p.phone,
@@ -2317,7 +2322,15 @@ async function persistPayment(p) {
         notified: p.notified || '', tenancy_id: p.tenancyId || null, release_note: p.notes || ''
       })
     });
-  } catch(e) { console.warn('Payment sync failed:', e.message); }
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
+      throw new Error(msg);
+    }
+    return true;
+  } finally {
+    _paymentSyncInFlight.delete(p.ref);
+  }
 }
 
 function fmtNaira(n) {
@@ -2394,6 +2407,8 @@ function renderPayments() {
       </td></tr>` : '') ;
     }).join('') : '<tr><td colspan="9" class="empty-state">No confirmed payments yet</td></tr>';
   }
+
+  renderTransactions();
 }
 
 function openConfirmModal(idx) {
@@ -2422,16 +2437,25 @@ function openConfirmModal(idx) {
   openModal('modal-confirm-payment');
 }
 
-function confirmPaymentAdmin(idx) {
+async function confirmPaymentAdmin(idx) {
   const note = document.getElementById('confirm-note-'+idx);
-  manualPayments[idx].status = 'confirmed';
-  manualPayments[idx].confirmedAt = new Date().toLocaleString('en-NG');
-  if (note) manualPayments[idx].notes = note.value;
+  const p = manualPayments[idx];
+  p.status = 'confirmed';
+  p.confirmedAt = new Date().toLocaleString('en-NG');
+  if (note) p.notes = note.value;
   savePayments(); renderPayments();
-  persistPayment(manualPayments[idx]);
   closeModal('modal-confirm-payment');
-  adminToast('Payment confirmed — buyer can now proceed to handover', 'success');
-  addSyncLog('Payment confirmed: ' + manualPayments[idx].ref);
+  try {
+    await persistPayment(p);
+    adminToast('Payment confirmed — buyer can now proceed to handover', 'success');
+    addSyncLog('Payment confirmed: ' + p.ref);
+  } catch(e) {
+    // Don't silently revert -- the admin already saw "confirmed" on screen.
+    // Surface the failure clearly so they know to retry rather than assume
+    // it worked, since the next poll would otherwise silently flip it back
+    // to pending with no explanation.
+    adminToast('⚠️ Confirmed locally, but saving to server failed: ' + e.message + ' — try again', 'error');
+  }
 }
 
 function openReleaseModal(idx) {
@@ -2461,23 +2485,33 @@ function openReleaseModal(idx) {
   openModal('modal-release');
 }
 
-function releasePayment(idx) {
+async function releasePayment(idx) {
   const receipt = document.getElementById('release-receipt-'+idx);
-  manualPayments[idx].status = 'released';
-  manualPayments[idx].releasedAt = new Date().toLocaleString('en-NG');
-  if (receipt) manualPayments[idx].notes = (manualPayments[idx].notes||'') + ' | Release ref: ' + receipt.value;
+  const p = manualPayments[idx];
+  p.status = 'released';
+  p.releasedAt = new Date().toLocaleString('en-NG');
+  if (receipt) p.notes = (p.notes||'') + ' | Release ref: ' + receipt.value;
   savePayments(); renderPayments();
-  persistPayment(manualPayments[idx]);
   closeModal('modal-release');
-  adminToast('Funds released to owner ✓', 'success');
-  addSyncLog('Funds released: ' + manualPayments[idx].ref + ' → ' + manualPayments[idx].owner);
+  try {
+    await persistPayment(p);
+    adminToast('Funds released to owner ✓', 'success');
+    addSyncLog('Funds released: ' + p.ref + ' → ' + p.owner);
+  } catch(e) {
+    adminToast('⚠️ Released locally, but saving to server failed: ' + e.message + ' — try again', 'error');
+  }
 }
 
-function disputePayment(idx) {
-  manualPayments[idx].status = 'disputed';
+async function disputePayment(idx) {
+  const p = manualPayments[idx];
+  p.status = 'disputed';
   savePayments(); renderPayments();
-  persistPayment(manualPayments[idx]);
-  adminToast('Payment ' + manualPayments[idx].ref + ' flagged as disputed', 'error');
+  try {
+    await persistPayment(p);
+    adminToast('Payment ' + p.ref + ' flagged as disputed', 'error');
+  } catch(e) {
+    adminToast('⚠️ Flagged locally, but saving to server failed: ' + e.message, 'error');
+  }
 }
 
 function openAddPaymentModal() {
@@ -2488,7 +2522,7 @@ function openAddPaymentModal() {
   openModal('modal-add-payment');
 }
 
-function addManualPayment() {
+async function addManualPayment() {
   const amount = parseInt(document.getElementById('mp-amount').value) || 0;
   const fee    = Math.round(amount * 0.1);
   const ownerAmt = amount - fee;
@@ -2507,9 +2541,13 @@ function addManualPayment() {
   if (!p.ref || !p.prop || !p.buyer) { adminToast('Fill in required fields','error'); return; }
   manualPayments.unshift(p);
   savePayments(); renderPayments();
-  persistPayment(p);
   closeModal('modal-add-payment');
-  adminToast('Payment logged: ' + p.ref, 'success');
+  try {
+    await persistPayment(p);
+    adminToast('Payment logged: ' + p.ref, 'success');
+  } catch(e) {
+    adminToast('⚠️ Logged locally, but saving to server failed: ' + e.message, 'error');
+  }
 }
 
 function updateAccountNumber() {
@@ -2536,13 +2574,37 @@ function exportPayments() {
 }
 
 
-// ══ TRANSACTIONS WITH REAL DATA ══
+// ══ TRANSACTIONS ══
+// This is the "Transactions" nav tab (page-transactions / #txn-table) — a
+// distinct page from the Payments tab's own pending/confirmed tables. It was
+// left permanently empty: `allTransactions` was declared but nothing ever
+// populated it, so this always rendered "No transactions yet" no matter how
+// many payments got confirmed. It's now derived from manualPayments
+// (confirmed + released) every time renderPayments() runs, so it stays in
+// sync with the same backend-persisted data.
 let allTransactions = [];
 
-// Override transactions render to use allTransactions
+function refreshTransactionsFromPayments() {
+  allTransactions = manualPayments
+    .filter(p => p.status === 'confirmed' || p.status === 'released')
+    .map(p => ({
+      id: p.ref, property: p.prop, buyer: p.buyer, owner: p.owner,
+      amount: fmtNaira(p.amount), fee: fmtNaira(p.fee),
+      status: p.status, date: p.releasedAt || p.confirmedAt || p.notified || ''
+    }));
+}
+
 function renderTransactions(){
+  refreshTransactionsFromPayments();
+  const totalEl = document.getElementById('txn-total');
+  if (totalEl) {
+    const total = manualPayments
+      .filter(p => p.status === 'confirmed' || p.status === 'released')
+      .reduce((s,p) => s + (p.amount||0), 0);
+    totalEl.textContent = 'Total Escrow: ' + fmtNaira(total);
+  }
   if (!allTransactions.length) {
-    document.getElementById('txn-table').innerHTML='<tr><td colspan="8" class="empty-state">No transactions yet</td></tr>';
+    document.getElementById('txn-table').innerHTML='<tr><td colspan="8" class="empty-state">No transactions yet — confirmed payments will appear here</td></tr>';
     return;
   }
   document.getElementById('txn-table').innerHTML=allTransactions.map(t=>`
