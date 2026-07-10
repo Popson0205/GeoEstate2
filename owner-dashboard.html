@@ -724,6 +724,19 @@
                 <button type="button" onclick="addGalleryDoc('fp')" class="btn btn-outline btn-sm">📎 Add Document(s)</button>
               </div>
 
+              <!-- Individual Units (optional) -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🚪 Individual Units <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — for hotels, hostels, or buildings with separately-rented rooms/flats)</span></div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:400">
+                  <input type="checkbox" id="fp-has-units" onchange="toggleUnitsBuilder('fp')">
+                  This property has multiple individually-rented units (e.g. Room 101, Room 102, Flat A)
+                </label>
+              </div>
+              <div id="fp-units-wrap" style="display:none">
+                <div id="fp-units-list" style="margin-bottom:8px"></div>
+                <button type="button" onclick="addUnitBuilderRow('fp')" class="btn btn-outline btn-sm">➕ Add Unit</button>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Notes for Admin (optional)</label>
                 <textarea class="form-textarea" id="fp-notes" placeholder="Anything the admin should know about this listing..." rows="2"></textarea>
@@ -957,6 +970,19 @@
               <div class="form-group">
                 <div id="buy-docs-list" style="margin-bottom:8px"><div style="font-size:.8rem;color:var(--muted)">No additional documents yet.</div></div>
                 <button type="button" onclick="addGalleryDoc('buy')" class="btn btn-outline btn-sm">📎 Add Document(s)</button>
+              </div>
+
+              <!-- Individual Units (optional) -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🚪 Individual Units <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — for an estate or building being sold as multiple separate units)</span></div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:400">
+                  <input type="checkbox" id="buy-has-units" onchange="toggleUnitsBuilder('buy')">
+                  This property has multiple individually-sold units (e.g. Flat A, Flat B)
+                </label>
+              </div>
+              <div id="buy-units-wrap" style="display:none">
+                <div id="buy-units-list" style="margin-bottom:8px"></div>
+                <button type="button" onclick="addUnitBuilderRow('buy')" class="btn btn-outline btn-sm">➕ Add Unit</button>
               </div>
 
               <div class="form-group">
@@ -1199,6 +1225,19 @@
                 <button type="button" onclick="addGalleryDoc('lease')" class="btn btn-outline btn-sm">📎 Add Document(s)</button>
               </div>
 
+              <!-- Individual Units (optional) -->
+              <div style="font-size:.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--border)">🚪 Individual Units <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — for a building with multiple individually-leased units)</span></div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:400">
+                  <input type="checkbox" id="lease-has-units" onchange="toggleUnitsBuilder('lease')">
+                  This property has multiple individually-leased units
+                </label>
+              </div>
+              <div id="lease-units-wrap" style="display:none">
+                <div id="lease-units-list" style="margin-bottom:8px"></div>
+                <button type="button" onclick="addUnitBuilderRow('lease')" class="btn btn-outline btn-sm">➕ Add Unit</button>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Notes for Admin (optional)</label>
                 <textarea class="form-textarea" id="lease-notes" placeholder="Special lease conditions, restrictions, or anything else the admin should know..." rows="2"></textarea>
@@ -1304,6 +1343,18 @@
         <div class="form-group"><label class="form-label">Monthly Price (₦)</label><input class="form-input" id="au-price" type="number" placeholder="e.g. 45000"></div>
       </div>
       <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="au-notes" placeholder="Optional notes"></div>
+      <div class="form-group">
+        <label class="form-label">Description <span style="color:var(--muted);font-weight:400">(optional — shown to customers browsing this unit)</span></label>
+        <textarea class="form-textarea" id="au-desc" rows="2" placeholder="e.g. Self-contained room with private bathroom, fitted kitchenette, ceiling fan..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Unit Photo <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <div id="au-photo-preview" style="display:none;margin-bottom:8px">
+          <img id="au-photo-preview-img" src="" style="width:100%;height:110px;object-fit:cover;border-radius:8px">
+        </div>
+        <button type="button" onclick="uploadUnitPhoto('au')" class="btn btn-outline btn-sm">📸 Upload Photo</button>
+        <input type="hidden" id="au-photo">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="document.getElementById('add-unit-modal').style.display='none'">Cancel</button>
@@ -1325,6 +1376,7 @@ let ownerProperties = [];
 let ownerEnquiries = [];
 let currentUnitsPropId = null;
 let editingUnitId = null;
+let currentUnitsList = [];
 
 // ── Toast ─────────────────────────────────────────────────────
 function toast(msg, type) {
@@ -1557,47 +1609,75 @@ async function loadAndRenderUnits(propId) {
     return;
   }
   grid.innerHTML = units.map(u => `
-    <div class="unit-cell ${u.status}" onclick="openUnitEditModal(${u.id},'${u.unit_label.replace(/'/g,"\\'")}','${u.status}','${u.current_tenant_id||''}','${u.monthly_price||0}','${u.occupied_since||''}','${u.lease_end||''}')">
+    <div class="unit-cell ${u.status}" onclick="openUnitEditModal(${u.id})">
       <div class="unit-label">${u.unit_label}</div>
       <div style="font-size:.72rem;color:var(--muted)"><span class="unit-status-dot dot-${u.status}"></span>${u.status.charAt(0).toUpperCase()+u.status.slice(1)}</div>
       ${u.monthly_price ? `<div class="unit-price">₦${Number(u.monthly_price).toLocaleString()}/mo</div>` : ''}
       ${u.status === 'occupied' ? `<div class="unit-tenant">Tenant ID: ${u.current_tenant_id||'—'}</div>` : ''}
     </div>
   `).join('');
+  currentUnitsList = units;
 }
 
-function openUnitEditModal(id, label, status, tenantId, price, since, leaseEnd) {
+function openUnitEditModal(id) {
+  const u = currentUnitsList.find(x => x.id === id) || {};
   editingUnitId = id;
-  document.getElementById('unit-edit-title').textContent = 'Unit: ' + label;
+  const photoUrl = Array.isArray(u.images) && u.images[0] ? u.images[0] : '';
+  document.getElementById('unit-edit-title').textContent = 'Unit: ' + (u.unit_label || '');
   document.getElementById('unit-edit-body').innerHTML = `
     <div class="form-group">
       <label class="form-label">Status</label>
       <select class="form-select" id="ue-status">
-        <option value="vacant" ${status==='vacant'?'selected':''}>Vacant</option>
-        <option value="occupied" ${status==='occupied'?'selected':''}>Occupied</option>
-        <option value="reserved" ${status==='reserved'?'selected':''}>Reserved</option>
-        <option value="maintenance" ${status==='maintenance'?'selected':''}>Maintenance</option>
+        <option value="vacant">Vacant</option>
+        <option value="occupied">Occupied</option>
+        <option value="reserved">Reserved</option>
+        <option value="maintenance">Maintenance</option>
       </select>
     </div>
     <div class="form-group">
       <label class="form-label">Tenant ID (if occupied)</label>
-      <input class="form-input" id="ue-tenant" value="${tenantId||''}" placeholder="USR-...">
+      <input class="form-input" id="ue-tenant" placeholder="USR-...">
     </div>
     <div class="form-grid">
       <div class="form-group">
         <label class="form-label">Monthly Price (₦)</label>
-        <input class="form-input" id="ue-price" type="number" value="${price||''}">
+        <input class="form-input" id="ue-price" type="number">
       </div>
       <div class="form-group">
         <label class="form-label">Occupied Since</label>
-        <input class="form-input" id="ue-since" type="date" value="${since||''}">
+        <input class="form-input" id="ue-since" type="date">
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">Lease End Date</label>
-      <input class="form-input" id="ue-end" type="date" value="${leaseEnd||''}">
+      <input class="form-input" id="ue-end" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description <span style="color:var(--muted);font-weight:400">(optional — shown to customers browsing this unit)</span></label>
+      <textarea class="form-textarea" id="ue-desc" rows="2" placeholder="e.g. Self-contained room with private bathroom, fitted kitchenette, ceiling fan..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Unit Photo <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <div id="ue-photo-preview" style="display:none;margin-bottom:8px">
+        <img id="ue-photo-preview-img" src="" style="width:100%;height:110px;object-fit:cover;border-radius:8px">
+      </div>
+      <button type="button" onclick="uploadUnitPhoto('ue')" class="btn btn-outline btn-sm">📸 Upload Photo</button>
+      <input type="hidden" id="ue-photo">
     </div>
   `;
+  // Set values via JS rather than string interpolation, so descriptions or
+  // labels containing quotes/HTML-sensitive characters can't break the markup.
+  document.getElementById('ue-status').value = u.status || 'vacant';
+  document.getElementById('ue-tenant').value = u.current_tenant_id || '';
+  document.getElementById('ue-price').value = u.monthly_price || '';
+  document.getElementById('ue-since').value = u.occupied_since ? String(u.occupied_since).slice(0,10) : '';
+  document.getElementById('ue-end').value = u.lease_end ? String(u.lease_end).slice(0,10) : '';
+  document.getElementById('ue-desc').value = u.description || '';
+  document.getElementById('ue-photo').value = photoUrl;
+  if (photoUrl) {
+    document.getElementById('ue-photo-preview-img').src = photoUrl;
+    document.getElementById('ue-photo-preview').style.display = 'block';
+  }
   document.getElementById('unit-edit-modal').style.display = 'flex';
 }
 
@@ -1608,12 +1688,15 @@ function closeUnitEditModal() {
 
 async function saveUnitEdit() {
   if (!editingUnitId || !currentUnitsPropId) return;
+  const photoUrl = document.getElementById('ue-photo').value;
   const payload = {
     status: document.getElementById('ue-status').value,
     current_tenant_id: document.getElementById('ue-tenant').value || null,
     monthly_price: parseFloat(document.getElementById('ue-price').value) || null,
     occupied_since: document.getElementById('ue-since').value || null,
-    lease_end: document.getElementById('ue-end').value || null
+    lease_end: document.getElementById('ue-end').value || null,
+    description: document.getElementById('ue-desc').value,
+    images: photoUrl ? [photoUrl] : []
   };
   const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units/' + editingUnitId, { method: 'PATCH', body: payload });
   if (d.error) { toast(d.error, 'error'); return; }
@@ -1624,27 +1707,33 @@ async function saveUnitEdit() {
 }
 
 function openAddUnitModal() {
+  document.getElementById('au-photo').value = '';
+  document.getElementById('au-photo-preview').style.display = 'none';
   document.getElementById('add-unit-modal').style.display = 'flex';
 }
 
 async function submitAddUnit() {
   if (!currentUnitsPropId) return;
+  const photoUrl = document.getElementById('au-photo').value;
   const payload = {
     unit_label: document.getElementById('au-label').value.trim(),
     unit_type: document.getElementById('au-type').value,
     floor_level: document.getElementById('au-floor').value,
     capacity: parseInt(document.getElementById('au-capacity').value)||1,
     monthly_price: parseFloat(document.getElementById('au-price').value)||null,
-    notes: document.getElementById('au-notes').value
+    notes: document.getElementById('au-notes').value,
+    description: document.getElementById('au-desc').value,
+    images: photoUrl ? [photoUrl] : []
   };
   if (!payload.unit_label) { toast('Unit label is required', 'error'); return; }
   const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units', { method: 'POST', body: payload });
   if (d.error) { toast(d.error, 'error'); return; }
   toast('Unit added', 'success');
   document.getElementById('add-unit-modal').style.display = 'none';
-  ['au-label','au-floor','au-notes'].forEach(id => document.getElementById(id).value = '');
+  ['au-label','au-floor','au-notes','au-desc','au-photo'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('au-capacity').value = '1';
   document.getElementById('au-price').value = '';
+  document.getElementById('au-photo-preview').style.display = 'none';
   await loadAndRenderUnits(currentUnitsPropId);
 }
 
@@ -1960,10 +2049,9 @@ window.addEventListener('DOMContentLoaded', function() {
   const GALLERY_MIN_IMAGES = 3;
   const GALLERY_MAX_VIDEO_MB = 100;
 
-  // Shared upload helper — signs + PUTs a file to Supabase Storage, falling
-  // back to a local base64 data URL (non-persistent) if storage isn't reachable.
-  async function uploadFileToStorage(file, folder) {
+  async function uploadFileToStorage(file, folder, attempt = 1) {
     const API_URL = 'https://api.geoestate.com.ng';
+    const MAX_ATTEMPTS = 3;
     try {
       const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
       const s = await fetch(API_URL + '/upload-sign', {
@@ -1981,12 +2069,16 @@ window.addEventListener('DOMContentLoaded', function() {
       if (!upRes.ok) throw new Error('Storage upload failed: HTTP ' + upRes.status);
       return sign.public_url;
     } catch (e) {
-      return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = ev => resolve(ev.target.result);
-        reader.onerror = () => reject(e);
-        reader.readAsDataURL(file);
-      });
+      // Transient network hiccups (dropped wifi, network handoff, etc.) are
+      // common on mobile connections — retry a couple of times before giving
+      // up. We deliberately do NOT fall back to embedding the file as base64:
+      // that silently produces multi-MB payloads that make the final submit
+      // request time out instead of failing clearly and immediately.
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, 600 * attempt));
+        return uploadFileToStorage(file, folder, attempt + 1);
+      }
+      throw new Error('Could not upload "' + file.name + '" — check your connection and try again (' + (e.message || 'network error') + ')');
     }
   }
 
@@ -2147,6 +2239,123 @@ window.addEventListener('DOMContentLoaded', function() {
     renderGallery(prefix);
   }
 
+  // ── Single-photo uploader for individual units (Manage Units modal) ────
+  // Units use one photo each (not a full gallery), so this is a lighter
+  // sibling to the property-level gallery module above, reusing the same
+  // uploadFileToStorage() helper (with its retry-then-fail-loudly behavior).
+  function uploadUnitPhoto(prefix) {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      document.body.removeChild(fileInput);
+      if (!file) return;
+      toast('⏳ Uploading photo…');
+      try {
+        const url = await uploadFileToStorage(file, 'geoestate/unit-images');
+        document.getElementById(prefix + '-photo').value = url;
+        const preview = document.getElementById(prefix + '-photo-preview');
+        const previewImg = document.getElementById(prefix + '-photo-preview-img');
+        if (preview && previewImg) { previewImg.src = url; preview.style.display = 'block'; }
+        toast('✅ Photo uploaded', 'success');
+      } catch (e) {
+        toast('Photo upload failed: ' + e.message, 'error');
+      }
+    });
+  }
+
+
+
+  // ── "Individual Units" builder for the Add Property form ───────────────
+  // Lets an owner define each separately-rented/sold/leased unit (label,
+  // price, description, photo) right at initial listing time, in addition
+  // to being able to add/edit them afterward via "Manage Units" on an
+  // already-live listing. Reuses uploadUnitPhoto() above for each row's
+  // photo, since it already works with any id prefix.
+  const unitsBuilderState = { fp: [], buy: [], lease: [] };
+  let _unitRowSeq = 0;
+
+  function toggleUnitsBuilder(prefix) {
+    const checked = document.getElementById(prefix + '-has-units').checked;
+    document.getElementById(prefix + '-units-wrap').style.display = checked ? 'block' : 'none';
+    if (checked && unitsBuilderState[prefix].length === 0) addUnitBuilderRow(prefix);
+  }
+
+  function addUnitBuilderRow(prefix) {
+    const rowId = ++_unitRowSeq;
+    unitsBuilderState[prefix].push(rowId);
+    const idBase = prefix + '-unit-' + rowId;
+    const list = document.getElementById(prefix + '-units-list');
+    const row = document.createElement('div');
+    row.id = idBase + '-row';
+    row.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--card2)';
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;font-size:.85rem">Unit</span>
+        <button type="button" onclick="removeUnitBuilderRow('${prefix}',${rowId})" class="btn btn-outline btn-sm" style="padding:2px 10px">✕ Remove</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Unit Label *</label>
+          <input class="form-input" id="${idBase}-label" placeholder="e.g. Room 101, Flat 2B">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Price (₦) *</label>
+          <input class="form-input" id="${idBase}-price" type="number" placeholder="e.g. 350000">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Description <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <textarea class="form-textarea" id="${idBase}-desc" rows="2" placeholder="e.g. Self-contained room, ensuite bathroom..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:10px;margin-bottom:0">
+        <label class="form-label">Unit Photo <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <div id="${idBase}-photo-preview" style="display:none;margin-bottom:8px">
+          <img id="${idBase}-photo-preview-img" src="" style="width:100%;height:100px;object-fit:cover;border-radius:8px">
+        </div>
+        <button type="button" onclick="uploadUnitPhoto('${idBase}')" class="btn btn-outline btn-sm">📸 Upload Photo</button>
+        <input type="hidden" id="${idBase}-photo">
+      </div>
+    `;
+    list.appendChild(row);
+  }
+
+  function removeUnitBuilderRow(prefix, rowId) {
+    const row = document.getElementById(prefix + '-unit-' + rowId + '-row');
+    if (row) row.remove();
+    unitsBuilderState[prefix] = unitsBuilderState[prefix].filter(id => id !== rowId);
+  }
+
+  function collectUnitsBuilder(prefix) {
+    const cb = document.getElementById(prefix + '-has-units');
+    if (!cb || !cb.checked) return [];
+    return unitsBuilderState[prefix].map(rowId => {
+      const idBase = prefix + '-unit-' + rowId;
+      const label = document.getElementById(idBase + '-label')?.value.trim();
+      if (!label) return null;
+      const photoUrl = document.getElementById(idBase + '-photo')?.value || '';
+      return {
+        unit_label: label,
+        monthly_price: parseFloat(document.getElementById(idBase + '-price')?.value) || null,
+        description: document.getElementById(idBase + '-desc')?.value || '',
+        images: photoUrl ? [photoUrl] : []
+      };
+    }).filter(Boolean);
+  }
+
+  function resetUnitsBuilder(prefix) {
+    unitsBuilderState[prefix] = [];
+    const list = document.getElementById(prefix + '-units-list');
+    if (list) list.innerHTML = '';
+    const cb = document.getElementById(prefix + '-has-units');
+    if (cb) cb.checked = false;
+    const wrap = document.getElementById(prefix + '-units-wrap');
+    if (wrap) wrap.style.display = 'none';
+  }
 
 
 // ── Transaction Type Switcher ─────────────────────────────────
@@ -2288,6 +2497,7 @@ async function submitAddProperty() {
         images: galleryState.fp.images,
         video_url: galleryState.fp.video || null,
         docs: galleryState.fp.docs,
+        units: collectUnitsBuilder('fp'),
         agreement_doc: document.getElementById('fp-rent-agreement').value || null,
         notes: document.getElementById('fp-notes').value
       };
@@ -2326,6 +2536,7 @@ async function submitAddProperty() {
         images: galleryState.fp.images,
         video_url: galleryState.fp.video || null,
         docs: galleryState.fp.docs,
+        units: collectUnitsBuilder('fp'),
         agreement_doc: document.getElementById('fp-rent-agreement').value || null,
         notes: document.getElementById('fp-notes').value
       };
@@ -2378,6 +2589,7 @@ async function submitAddProperty() {
       images: galleryState.buy.images,
       video_url: galleryState.buy.video || null,
       docs: galleryState.buy.docs,
+      units: collectUnitsBuilder('buy'),
       notes: document.getElementById('buy-notes').value
     };
 
@@ -2418,6 +2630,7 @@ async function submitAddProperty() {
       images: galleryState.lease.images,
       video_url: galleryState.lease.video || null,
       docs: galleryState.lease.docs,
+      units: collectUnitsBuilder('lease'),
       notes: document.getElementById('lease-notes').value
     };
   }
@@ -2429,6 +2642,7 @@ async function submitAddProperty() {
   toast('✅ ' + typeLabel + ' listing submitted! It will go live once admin approves.', 'success');
   // Reset form
   resetGallery('fp'); resetGallery('buy'); resetGallery('lease');
+  resetUnitsBuilder('fp'); resetUnitsBuilder('buy'); resetUnitsBuilder('lease');
   setTransactionType('rent');
   await loadAll();
   navTo('my-properties', null);
