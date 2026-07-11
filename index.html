@@ -1788,6 +1788,22 @@ document.addEventListener('click', function(e){
         📢 <strong>Phase 1 — Manual Bank Transfer:</strong> Our dedicated escrow account is currently being processed. Our sales team will contact you with the correct payment account details before any transaction is finalised. Do not transfer to any account unless confirmed by GeoEstate staff.
       </div>
 
+      <!-- Shortlet check-in/check-out (shown only for nightly-rate properties) -->
+      <div id="shortlet-dates-section" style="display:none;margin-bottom:16px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Select your stay dates</div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1">
+            <label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Check-in</label>
+            <input type="date" id="pay-checkin" onchange="onShortletDatesChange()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none">
+          </div>
+          <div style="flex:1">
+            <label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Check-out</label>
+            <input type="date" id="pay-checkout" onchange="onShortletDatesChange()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-light);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none">
+          </div>
+        </div>
+        <div id="shortlet-dates-feedback" style="font-size:.78rem;margin-top:8px;line-height:1.5"></div>
+      </div>
+
       <!-- Amount -->
       <div style="background:linear-gradient(135deg,var(--geo-green-600),var(--geo-green-700));border-radius:14px;padding:20px;margin-bottom:20px;color:white;text-align:center">
         <div style="font-size:.75rem;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Total Amount to Transfer</div>
@@ -1858,7 +1874,7 @@ document.addEventListener('click', function(e){
       </div>
 
       <!-- CTA -->
-      <button onclick="confirmPayment()" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;font-size:.95rem">
+      <button onclick="confirmPayment()" id="pay-confirm-btn" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;font-size:.95rem">
         ✅ I've Made the Transfer — Notify GeoEstate
       </button>
 
@@ -3426,6 +3442,8 @@ function generateRef() { return 'GEO-' + Math.random().toString(36).substr(2,4).
 function openPaymentModal(propTitle, price, propType) {
   // For multi-unit properties, use selected unit price + label instead of property-level price
   const isUnitPayment = window._selectedUnitId && window._selectedUnitPrice > 0;
+  const p = window._currentProp;
+  const isShortlet = !isUnitPayment && p && p.nightly_rate;
   const rawPrice = isUnitPayment
     ? Number(window._selectedUnitPrice)
     : (parseInt((price||'0').replace(/[^0-9]/g,'')) || 0);
@@ -3435,7 +3453,9 @@ function openPaymentModal(propTitle, price, propType) {
 
   const ref = generateRef();
   currentPayRef = ref;
-  window._currentPayAmount = rawPrice;
+  window._currentPayAmount = isShortlet ? 0 : rawPrice;
+  window._shortletBooked = [];
+  window._shortletNights = 0;
   // Reset receipt upload state for this fresh payment attempt
   window._paymentReceiptUrl = null;
   const dz = document.getElementById('receipt-dropzone');
@@ -3443,14 +3463,72 @@ function openPaymentModal(propTitle, price, propType) {
   const fi = document.getElementById('receipt-file-input');
   if (fi) fi.value = '';
   document.getElementById('pay-prop-label').textContent = displayLabel;
-  document.getElementById('pay-amount').textContent = rawPrice > 0 ? '₦' + rawPrice.toLocaleString('en-NG') : 'Contact us for amount';
   document.getElementById('pay-acct-num').textContent = GEOESTATE_ACCOUNT.number;
   document.getElementById('pay-ref').textContent = ref;
   document.getElementById('pay-ref-inline').textContent = ref;
   document.getElementById('copy-btn').textContent = 'Copy';
+
+  const datesSection = document.getElementById('shortlet-dates-section');
+  const confirmBtn = document.getElementById('pay-confirm-btn');
+  if (isShortlet) {
+    datesSection.style.display = 'block';
+    const ci = document.getElementById('pay-checkin'), co = document.getElementById('pay-checkout');
+    const today = new Date().toISOString().slice(0,10);
+    ci.value = ''; co.value = '';
+    ci.min = today; co.min = today;
+    document.getElementById('shortlet-dates-feedback').innerHTML = '';
+    document.getElementById('pay-amount').textContent = 'Pick your dates';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '.5';
+    // Fetch already-booked date ranges so we can warn on overlap before submit
+    fetch(GEO_API + '/properties/' + p.id + '/availability')
+      .then(r => r.json())
+      .then(d => { if (d.success) window._shortletBooked = d.booked || []; })
+      .catch(()=>{});
+  } else {
+    datesSection.style.display = 'none';
+    document.getElementById('pay-amount').textContent = rawPrice > 0 ? '₦' + rawPrice.toLocaleString('en-NG') : 'Contact us for amount';
+    confirmBtn.disabled = false;
+    confirmBtn.style.opacity = '1';
+  }
+
   document.getElementById('payment-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
+
+function datesOverlap(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && aEnd > bStart; }
+
+function onShortletDatesChange() {
+  const ciEl = document.getElementById('pay-checkin'), coEl = document.getElementById('pay-checkout');
+  const fb = document.getElementById('shortlet-dates-feedback');
+  const confirmBtn = document.getElementById('pay-confirm-btn');
+  const p = window._currentProp;
+  // Check-out must be after check-in
+  if (ciEl.value) coEl.min = ciEl.value;
+  if (!ciEl.value || !coEl.value) return;
+  const ci = new Date(ciEl.value), co = new Date(coEl.value);
+  if (co <= ci) {
+    fb.innerHTML = '<span style="color:#dc2626">Check-out must be after check-in</span>';
+    confirmBtn.disabled = true; confirmBtn.style.opacity = '.5';
+    return;
+  }
+  const conflict = (window._shortletBooked||[]).some(b => datesOverlap(ciEl.value, coEl.value, b.check_in, b.check_out));
+  if (conflict) {
+    fb.innerHTML = '<span style="color:#dc2626">⚠️ Those dates overlap an existing booking — please choose different dates</span>';
+    confirmBtn.disabled = true; confirmBtn.style.opacity = '.5';
+    document.getElementById('pay-amount').textContent = 'Unavailable';
+    window._currentPayAmount = 0;
+    return;
+  }
+  const nights = Math.round((co - ci) / 86400000);
+  const total = nights * Number(p.nightly_rate || 0);
+  window._shortletNights = nights;
+  window._currentPayAmount = total;
+  document.getElementById('pay-amount').textContent = '₦' + total.toLocaleString('en-NG');
+  fb.innerHTML = '<span style="color:#16a34a">✓ ' + nights + ' night' + (nights===1?'':'s') + ' available — ₦' + Number(p.nightly_rate).toLocaleString('en-NG') + '/night</span>';
+  confirmBtn.disabled = false; confirmBtn.style.opacity = '1';
+}
+
 function closePaymentModal() { document.getElementById('payment-modal').style.display = 'none'; document.body.style.overflow = ''; }
 function copyAcctNum() {
   navigator.clipboard.writeText(GEOESTATE_ACCOUNT.number).then(() => {
@@ -3459,53 +3537,80 @@ function copyAcctNum() {
     setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
   });
 }
-function confirmPayment() {
+async function confirmPayment() {
   if (!window._paymentReceiptUrl) {
     toast('Please upload your transfer receipt/screenshot before continuing', 'error');
     return;
   }
-  closePaymentModal();
-  document.getElementById('success-ref').textContent = currentPayRef;
-  document.getElementById('payment-success-modal').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  // Persist payment to DB so admin sees it immediately
+  const p = window._currentProp;
+  const isShortlet = p && p.nightly_rate && !(window._selectedUnitId && window._selectedUnitPrice > 0);
+  if (isShortlet) {
+    const ci = document.getElementById('pay-checkin').value, co = document.getElementById('pay-checkout').value;
+    if (!ci || !co || !window._currentPayAmount) {
+      toast('Please select valid, available check-in/check-out dates', 'error');
+      return;
+    }
+  }
+  const confirmBtn = document.getElementById('pay-confirm-btn');
+  const origLabel = confirmBtn.innerHTML;
+  confirmBtn.disabled = true; confirmBtn.innerHTML = 'Submitting…';
+
   // For multi-unit: send unit_id, unit_label, unit_price so admin sees per-unit breakdown
   const _isUnit = window._selectedUnitId && window._selectedUnitPrice > 0;
-  // Use the amount already computed (and shown to the customer) in
-  // openPaymentModal() — window._currentProp.monthly_rent was being read here
-  // directly, which silently charged off the monthly-equivalent figure
-  // instead of the actual (yearly) rent amount the customer just saw on screen.
-  const _payAmount = _isUnit
-    ? window._selectedUnitPrice
-    : (window._currentPayAmount || 0);
-  fetch(GEO_API + '/submit-payment', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      ref:            currentPayRef,
-      property_id:    window._currentProp ? window._currentProp.id : '',
-      property_title: window._currentProp ? window._currentProp.title : '',
-      buyer_name:     currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
-      buyer_email:    currentUser ? currentUser.email : '',
-      buyer_phone:    currentUser ? currentUser.phone : '',
-      owner:          window._currentProp ? window._currentProp.owner : '',
-      amount:         _payAmount,
-      receipt_url:    window._paymentReceiptUrl || '',
-      unit_id:        _isUnit ? window._selectedUnitId    : undefined,
-      unit_label:     _isUnit ? window._selectedUnitLabel : undefined,
-      unit_price:     _isUnit ? window._selectedUnitPrice : undefined,
-      // legacy fields for admin renderPayments compatibility
-      prop:           _isUnit
-                        ? (window._currentProp ? window._currentProp.title + ' — ' + window._selectedUnitLabel : '')
-                        : (window._currentProp ? window._currentProp.title : ''),
-      buyer:          currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
-      phone:          currentUser ? currentUser.phone : ''
-    })
-  }).catch(()=>{});
+  const _payAmount = _isUnit ? window._selectedUnitPrice : (window._currentPayAmount || 0);
   try {
-    const pending = JSON.parse(localStorage.getItem('pgs_pending_payments')||'[]');
-    pending.unshift({ ref: currentPayRef, time: new Date().toLocaleString('en-NG'), status: 'pending_confirmation' });
-    localStorage.setItem('pgs_pending_payments', JSON.stringify(pending.slice(0,50)));
-  } catch(e) {}
+    const res = await fetch(GEO_API + '/submit-payment', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        ref:            currentPayRef,
+        property_id:    p ? p.id : '',
+        property_title: p ? p.title : '',
+        buyer_name:     currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
+        buyer_email:    currentUser ? currentUser.email : '',
+        buyer_phone:    currentUser ? currentUser.phone : '',
+        owner:          p ? p.owner : '',
+        amount:         _payAmount,
+        receipt_url:    window._paymentReceiptUrl || '',
+        unit_id:        _isUnit ? window._selectedUnitId    : undefined,
+        unit_label:     _isUnit ? window._selectedUnitLabel : undefined,
+        unit_price:     _isUnit ? window._selectedUnitPrice : undefined,
+        check_in:       isShortlet ? document.getElementById('pay-checkin').value  : undefined,
+        check_out:      isShortlet ? document.getElementById('pay-checkout').value : undefined,
+        // legacy fields for admin renderPayments compatibility
+        prop:           _isUnit
+                          ? (p ? p.title + ' — ' + window._selectedUnitLabel : '')
+                          : (p ? p.title : ''),
+        buyer:          currentUser ? (currentUser.fname + ' ' + currentUser.lname) : '',
+        phone:          currentUser ? currentUser.phone : ''
+      })
+    });
+    const result = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      // A 409 means someone else just took those dates -- refresh availability
+      // so the customer can immediately see the conflict and pick new ones,
+      // rather than silently telling them it worked.
+      if (res.status === 409 && isShortlet) {
+        toast(result.error || 'Those dates were just booked — please pick different dates', 'error');
+        fetch(GEO_API + '/properties/' + p.id + '/availability').then(r=>r.json()).then(d=>{ if(d.success) window._shortletBooked = d.booked||[]; onShortletDatesChange(); }).catch(()=>{});
+      } else {
+        toast(result.error || 'Could not submit payment — please try again', 'error');
+      }
+      confirmBtn.disabled = false; confirmBtn.innerHTML = origLabel;
+      return;
+    }
+    closePaymentModal();
+    document.getElementById('success-ref').textContent = currentPayRef;
+    document.getElementById('payment-success-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    try {
+      const pending = JSON.parse(localStorage.getItem('pgs_pending_payments')||'[]');
+      pending.unshift({ ref: currentPayRef, time: new Date().toLocaleString('en-NG'), status: 'pending_confirmation' });
+      localStorage.setItem('pgs_pending_payments', JSON.stringify(pending.slice(0,50)));
+    } catch(e) {}
+  } catch(e) {
+    toast('Network error — please check your connection and try again', 'error');
+    confirmBtn.disabled = false; confirmBtn.innerHTML = origLabel;
+  }
 }
 function closeSuccessModal() { document.getElementById('payment-success-modal').style.display = 'none'; document.body.style.overflow = ''; }
 
