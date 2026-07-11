@@ -2271,7 +2271,7 @@ function mapPaymentRow(r) {
     status: r.status === 'pending_confirmation' ? 'pending' : r.status,
     notified: r.created_at || '', confirmedAt: r.confirmed_at || '', releasedAt: r.released_at || '',
     notes: r.release_note || '', receiptUrl: r.receipt_url || '',
-    propertyId: r.property_id || '', tenancyId: r.tenancy_id || ''
+    propertyId: r.property_id || '', tenancyId: r.tenancy_id || '', unitId: r.unit_id || ''
   };
 }
 
@@ -2298,6 +2298,23 @@ async function loadPaymentsFromAPI() {
   } catch(e) { console.warn('Could not load payments from API:', e.message); }
 }
 
+// tenancies was declared as "loaded from Supabase DB on init" but nothing
+// ever actually fetched it — the array only ever got populated by manually
+// adding a tenancy in this same browser session, so it reset to empty on
+// every page refresh even though /admin/tenancies (a real, working
+// endpoint) had rows waiting to be shown.
+async function loadTenanciesFromAPI() {
+  try {
+    const res = await fetch(GEO_API + '/admin/tenancies', { headers: geoHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.tenancies)) {
+      tenancies = data.tenancies;
+      renderTenancy();
+    }
+  } catch(e) { console.warn('Could not load tenancies from API:', e.message); }
+}
+
 // Push a local change (confirm/release/dispute/manual-add) back to the DB so
 // it's visible from any device/browser, not just this one.
 // Refs currently being written to the backend. loadPaymentsFromAPI() (which
@@ -2319,7 +2336,8 @@ async function persistPayment(p) {
         ref: p.ref, prop: p.prop, buyer: p.buyer, phone: p.phone,
         owner: p.owner, ownerAcct: p.ownerAcct, amount: p.amount, fee: p.fee, ownerAmt: p.ownerAmt,
         status: p.status === 'pending' ? 'pending_confirmation' : p.status,
-        notified: p.notified || '', tenancy_id: p.tenancyId || null, release_note: p.notes || ''
+        notified: p.notified || '', tenancy_id: p.tenancyId || null, release_note: p.notes || '',
+        property_id: p.propertyId || null, unit_id: p.unitId || null
       })
     });
     if (!res.ok) {
@@ -2449,6 +2467,10 @@ async function confirmPaymentAdmin(idx) {
     await persistPayment(p);
     adminToast('Payment confirmed — buyer can now proceed to handover', 'success');
     addSyncLog('Payment confirmed: ' + p.ref);
+    // A confirmed rent/lease payment auto-creates a Tenancy Tracker record
+    // server-side (see handleSavePayment) — refresh now so it shows up
+    // immediately instead of waiting for the next 30s poll.
+    loadTenanciesFromAPI();
   } catch(e) {
     // Don't silently revert -- the admin already saw "confirmed" on screen.
     // Surface the failure clearly so they know to retry rather than assume
@@ -3132,7 +3154,8 @@ window.initApp = function(){
   // Initial load from Neon DB then poll every 30s
   syncFromAPI();
   loadPaymentsFromAPI();
-  _syncIntervalId = setInterval(() => { syncFromAPI(); loadPaymentsFromAPI(); }, 30000);
+  loadTenanciesFromAPI();
+  _syncIntervalId = setInterval(() => { syncFromAPI(); loadPaymentsFromAPI(); loadTenanciesFromAPI(); }, 30000);
 };
 
 let _syncIntervalId = null;
