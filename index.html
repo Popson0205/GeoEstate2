@@ -3323,6 +3323,11 @@ const GEOESTATE_ACCOUNT = { name: 'Popoola Idris Bamigboye', bank: 'Guaranty Tru
 let currentPayRef = '';
 function generateRef() { return 'GEO-' + Math.random().toString(36).substr(2,4).toUpperCase() + '-' + new Date().getFullYear(); }
 function openPaymentModal(propTitle, price, propType) {
+  if (!currentUser || !currentUser.id) {
+    showAuthToast('Please create an account and log in before starting a transaction.');
+    openAuthModal('register');
+    return;
+  }
   // For multi-unit properties, use selected unit price + label instead of property-level price
   const isUnitPayment = window._selectedUnitId && window._selectedUnitPrice > 0;
   const p = window._currentProp;
@@ -7182,6 +7187,11 @@ let enquiryPropId = null;
 let enquiryPropTitle = null;
 let enquiryUnitId = null;  // FIX 3: selected unit
 function openEnquiryModal(propId, propTitle) {
+  if (!currentUser || !currentUser.id) {
+    showAuthToast('Please create an account and log in before sending an enquiry.');
+    openAuthModal('register');
+    return;
+  }
   enquiryPropId = propId;
   enquiryPropTitle = propTitle || '';
   enquiryUnitId = (typeof arguments[2] !== 'undefined') ? arguments[2] : null;
