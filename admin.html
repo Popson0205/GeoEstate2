@@ -978,7 +978,7 @@
         <div><label class="form-label">Type *</label>
           <select class="form-select" id="pe-type"><option value="rent">Rent</option><option value="buy">Buy</option><option value="lease">Lease</option></select></div>
         <div><label class="form-label">Status</label>
-          <select class="form-select" id="pe-status"><option value="pending">Pending</option><option value="live">Live</option><option value="sold">Sold/Completed</option><option value="rejected">Rejected</option></select></div>
+          <select class="form-select" id="pe-status"><option value="pending">Pending</option><option value="review">Under Review</option><option value="info">Info Requested</option><option value="live">Live</option><option value="sold">Sold/Completed</option><option value="rejected">Rejected</option></select></div>
       </div>
       <label class="form-label">Price *</label><input class="form-input" id="pe-price" placeholder="e.g. ₦3,500,000/yr">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -2659,12 +2659,25 @@ function saveManagedProperties(){
   saveState();
 }
 
+// Property IDs currently being written to the backend. syncFromAPI()'s
+// properties poll (every 30s) skips these so an edit/reject that's still in
+// flight doesn't get clobbered back to its pre-edit state by a poll landing
+// mid-write — the same race that used to silently revert confirmed payments.
+const _propertySyncInFlight = new Set();
+
 function getMergedProperties(){
-  // Merge admin-managed adminProperties with queue adminProperties
+  // adminProperties is kept in sync with the real DB via syncFromAPI() polling
+  // GET /admin/properties. managedProperties is a localStorage fallback that
+  // used to take precedence over it — meaning a property edited/removed once,
+  // long before this admin panel's API sync existed, would have its stale
+  // local status permanently mask whatever the database actually says,
+  // forever. Backend data now wins for any property it actually has;
+  // managedProperties only fills in properties the backend sync hasn't
+  // picked up yet (e.g. one just added locally, before the next poll).
   const merged = [...adminProperties];
   managedProperties.forEach(mp => {
     const idx = merged.findIndex(p => p.id === mp.id);
-    if(idx >= 0) merged[idx] = {...merged[idx], ...mp};
+    if(idx >= 0) merged[idx] = {...mp, ...merged[idx]};
     else merged.push(mp);
   });
   return merged;
@@ -2754,7 +2767,7 @@ function openAddPropertyModal(){
   openModal('modal-property-edit');
 }
 
-function savePropertyEdit(){
+async function savePropertyEdit(){
   const propId = document.getElementById('pe-idx').value;
   const newStatus = document.getElementById('pe-status').value;
   const data = {
@@ -2800,7 +2813,6 @@ function savePropertyEdit(){
       });
       localStorage.setItem('pgs_transactions', JSON.stringify(allTransactions));
     }
-    adminToast('Property marked complete — removed from portal, kept in transactions ✓','success');
   }
 
   // Update in adminProperties array
@@ -2819,24 +2831,41 @@ function savePropertyEdit(){
   else if(pIdx < 0) managedProperties.push(data);
 
   saveManagedProperties();
-
-  // Persist to backend (lat/lng, status, etc.)
-  fetch(GEO_API + '/admin/property/' + data.id, {
-    method: 'PATCH', headers: geoHeaders(),
-    body: JSON.stringify(data)
-  }).catch(() => {});
-
   renderPropertiesMgmt();
   renderPropQueue();
   updateBadges();
   closeModal('modal-property-edit');
-  adminToast(propId ? 'Property updated ✓' : 'Property added ✓','success');
-  addSyncLog((propId?'Property updated: ':'Property added: ') + data.title);
+
+  // Persist to the real DB via the upsert endpoint (handles both create
+  // and update — the old PATCH-only approach silently did nothing for a
+  // brand-new property since PATCH's UPDATE...WHERE id=$1 matches zero rows
+  // when that id doesn't exist in the table yet).
+  _propertySyncInFlight.add(data.id);
+  try {
+    const res = await fetch(GEO_API + '/admin/save-property', {
+      method: 'POST', headers: geoHeaders(), body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
+      throw new Error(msg);
+    }
+    adminToast(propId ? 'Property updated ✓' : 'Property added ✓','success');
+    addSyncLog((propId?'Property updated: ':'Property added: ') + data.title);
+    if (newStatus === 'sold' || newStatus === 'completed') {
+      adminToast('Property marked complete — removed from portal, kept in transactions ✓','success');
+    }
+  } catch(e) {
+    adminToast('⚠️ Saved locally, but the server save failed: ' + e.message + ' — try again', 'error');
+  } finally {
+    _propertySyncInFlight.delete(data.id);
+  }
 }
 
-function removePropertyById(propId){
+async function removePropertyById(propId){
   if(!confirm('Remove this property from the portal? It will be archived (not deleted).')) return;
   const pIdx = adminProperties.findIndex(p => p.id === propId);
+  const source = pIdx >= 0 ? adminProperties[pIdx] : managedProperties.find(p => p.id === propId);
   if(pIdx >= 0) adminProperties[pIdx].status = 'rejected';
   const mIdx = managedProperties.findIndex(p => p.id === propId);
   if(mIdx >= 0) managedProperties[mIdx].status = 'rejected';
@@ -2844,8 +2873,30 @@ function removePropertyById(propId){
   renderPropertiesMgmt();
   renderPropQueue();
   updateBadges();
-  adminToast('Property removed from portal','info');
   addSyncLog('Property removed: ' + propId);
+
+  // This used to only ever update the local arrays/localStorage — never the
+  // actual database — so a "removed" property would silently come back on
+  // the next 30s poll (or simply never show as rejected on any other
+  // device/browser at all).
+  if (!source) { adminToast('Property removed from portal','info'); return; }
+  _propertySyncInFlight.add(propId);
+  try {
+    const res = await fetch(GEO_API + '/admin/save-property', {
+      method: 'POST', headers: geoHeaders(),
+      body: JSON.stringify({ ...source, id: propId, status: 'rejected' })
+    });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
+      throw new Error(msg);
+    }
+    adminToast('Property removed from portal','info');
+  } catch(e) {
+    adminToast('⚠️ Removed locally, but saving to server failed: ' + e.message + ' — try again', 'error');
+  } finally {
+    _propertySyncInFlight.delete(propId);
+  }
 }
 
 function removePropertyConfirm(){
@@ -3306,6 +3357,7 @@ async function syncFromAPI(isRetry) {
         const pd = await presp.json();
         if (pd.success && Array.isArray(pd.properties)) {
           pd.properties.forEach(raw => {
+            if (_propertySyncInFlight.has(raw.id)) return; // don't clobber a save that's still in flight
             // Normalize DB row → admin UI shape (DB uses snake_case, UI uses camelCase)
             const p = {
               ...raw,
