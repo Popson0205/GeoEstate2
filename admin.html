@@ -657,6 +657,8 @@
               <option value="all">All Status</option>
               <option value="live">Live</option>
               <option value="pending">Pending</option>
+              <option value="review">Under Review</option>
+              <option value="info">Info Requested</option>
               <option value="sold">Sold/Completed</option>
               <option value="rejected">Rejected</option>
             </select>
@@ -2648,7 +2650,7 @@ function getMergedProperties(){
 
 function renderPropertiesMgmt(list){
   const all = list || getMergedProperties();
-  const tbody = document.getElementById('adminProperties-mgmt-table');
+  const tbody = document.getElementById('properties-mgmt-table');
   if(!tbody) return;
   if(!all.length){
     tbody.innerHTML='<tr><td colspan="7" class="empty-state">No adminProperties yet — approve listings from the Property Queue or add manually</td></tr>';
@@ -2687,7 +2689,9 @@ function filterPropertiesMgmt(q){
 
 function filterPropertiesMgmtStatus(v){
   const all = getMergedProperties();
-  renderPropertiesMgmt(v==='all' ? all : all.filter(p => p.status === v));
+  if (v === 'all') { renderPropertiesMgmt(all); return; }
+  if (v === 'sold') { renderPropertiesMgmt(all.filter(p => p.status === 'sold' || p.status === 'completed')); return; }
+  renderPropertiesMgmt(all.filter(p => p.status === v));
 }
 
 function openPropertyEditModal(propId){
@@ -3289,7 +3293,7 @@ async function syncFromAPI(isRetry) {
               ownerId:    raw.owner_id || '',
               submitted:  raw.submitted || raw.created_at || '—',
               type:       raw.listing_type || raw.type || 'rent',
-              price:      raw.price || (raw.monthly_rent ? '₦'+Number(raw.monthly_rent).toLocaleString()+'/mo' : (raw.sale_price ? '₦'+Number(raw.sale_price).toLocaleString() : '—')),
+              price:      raw.price || (raw.annual_rent ? '₦'+Number(raw.annual_rent).toLocaleString()+'/yr' : raw.nightly_rate ? '₦'+Number(raw.nightly_rate).toLocaleString()+'/night' : raw.monthly_rent ? '₦'+Number(raw.monthly_rent*12).toLocaleString()+'/yr' : (raw.sale_price ? '₦'+Number(raw.sale_price).toLocaleString() : '—')),
               lat:        raw.lat || null,
               lng:        raw.lng || null,
             };
