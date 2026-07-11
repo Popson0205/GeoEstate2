@@ -1254,18 +1254,7 @@ document.addEventListener('click', function(e){
         <h2 style="font-size:.95rem;font-weight:800;margin-bottom:6px">📸 Selfie &amp; ID Document</h2>
         <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:var(--space-4);line-height:1.5">Our team manually compares your selfie to your ID photo. Accepted: National ID, Driver's Licence, Voter's Card, International Passport.</p>
         <div style="margin-bottom:14px">
-          <label class="geo-label">Live Selfie <span id="vi-selfie-required-mark" style="font-weight:400;color:var(--text-muted)">* (JPEG / PNG)</span></label>
-
-          <!-- Shown when the account already has a profile photo from registration —
-               reuse it instead of asking for another selfie. -->
-          <div id="vi-selfie-reuse" style="display:none;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default)">
-            <img id="vi-selfie-reuse-img" src="" alt="Your profile photo" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0">
-            <div style="flex:1">
-              <div style="font-size:.82rem;font-weight:700">Using your profile photo ✅</div>
-              <div style="font-size:.76rem;color:var(--text-muted)">We'll use the photo from your account instead of asking for a new selfie.</div>
-            </div>
-            <button type="button" class="btn btn-outline btn-sm" onclick="viUseNewSelfie()">Replace</button>
-          </div>
+          <label class="geo-label">Live Selfie <span style="font-weight:400;color:var(--text-muted)">* (JPEG / PNG)</span></label>
 
           <label id="vi-selfie-label" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default);cursor:pointer">
             <input type="file" id="vi-selfie" accept="image/*" style="display:none" onchange="geoHandleFileSelect(this,'vi-selfie-label','vi-selfie-status')">
@@ -1941,9 +1930,7 @@ document.addEventListener('click', function(e){
           <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
             <div id="profile-edit-avatar" style="width:64px;height:64px;border-radius:50%;background:var(--geo-green-600);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;overflow:hidden">U</div>
             <div>
-              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('profile-avatar-input').click()">Change Photo</button>
-              <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" onchange="handleProfileAvatarChange(event)">
-              <div style="font-size:.72rem;color:var(--text-muted);margin-top:6px">JPG or PNG, square image works best</div>
+              <div style="font-size:.72rem;color:var(--text-muted)">Your photo is set during identity verification and can't be changed here, to keep it a reliable match for your verified ID.</div>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
@@ -2329,16 +2316,6 @@ document.addEventListener('click', function(e){
           style="width:100%;padding:10px 12px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1.5px var(--border-default);box-sizing:border-box">
       </div>
 
-      <!-- Profile photo (optional) -->
-      <div style="margin-bottom:16px">
-        <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Profile Photo <span style="font-weight:400;color:var(--text-muted)">(optional — you can add later)</span></label>
-        <label id="reg-photo-label" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface-secondary);box-shadow:inset 0 0 0 1px var(--border-default);cursor:pointer">
-          <input type="file" id="reg-photo" accept="image/*" style="display:none" onchange="geoHandleFileSelect(this,'reg-photo-label','reg-photo-status')">
-          <span style="font-size:1.2rem">🤳</span>
-          <span id="reg-photo-status" style="font-size:.82rem;color:var(--text-muted)">Tap to upload a profile photo</span>
-        </label>
-      </div>
-
       <!-- Note about step 2 -->
       <div style="background:var(--geo-green-50,#f0faf4);border-radius:9px;padding:10px 14px;margin-bottom:16px;box-shadow:inset 0 0 0 1px var(--geo-green-200,#bbf7d0)">
         <div style="font-size:.78rem;color:var(--geo-green-700,#15803d);line-height:1.5">
@@ -2565,7 +2542,6 @@ function showPage(name) {
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
-  if (name === 'verify')  initVerifySelfieReuse();
 }
 
 // ── Deep-link support ────────────────────────────────────────────────────
@@ -2641,52 +2617,6 @@ function renderProfileNotifTab() {
         <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">${n.time}</div>
       </div>
     </div>`).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">You're all caught up 🎉</div>`;
-}
-
-async function handleProfileAvatarChange(e) {
-  const input = e.target;
-  const file = input.files && input.files[0];
-  if (!file || !currentUser || !currentUser.id) return;
-
-  // Show an immediate local preview (base64) while the real upload runs —
-  // but this preview is never treated as the saved photo. It's overwritten
-  // below with the real Supabase URL once the upload finishes, and we only
-  // persist to currentUser.avatar / the backend after that succeeds.
-  const previewReader = new FileReader();
-  previewReader.onload = function (ev) {
-    const previewHTML = '<img src="' + ev.target.result + '" alt="" style="width:100%;height:100%;object-fit:cover">';
-    const heroAvatar = document.getElementById('profile-hero-avatar');
-    const editAvatar = document.getElementById('profile-edit-avatar');
-    if (heroAvatar) heroAvatar.innerHTML = previewHTML;
-    if (editAvatar) editAvatar.innerHTML = previewHTML;
-  };
-  previewReader.readAsDataURL(file);
-
-  try {
-    showAuthToast('Uploading photo…');
-    const photo_url = await geoUploadToSupabase(input, 'geoestate-docs/profile-photos');
-    if (!photo_url) throw new Error('Upload failed.');
-
-    const ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
-    const res = await fetch(GEO_API_BASE + '/owner/update-photo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ownerToken },
-      body: JSON.stringify({ photo_url })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Could not save photo.');
-
-    // Only now — after a real file is uploaded and the backend confirms
-    // it saved — do we update the session's avatar.
-    currentUser.avatar = photo_url;
-    localStorage.setItem('geo_session', JSON.stringify(currentUser));
-    populateProfilePage();
-    renderNavAuth();
-    showAuthToast('Profile photo updated.');
-  } catch (err) {
-    populateProfilePage(); // revert the local preview since nothing was saved
-    showAuthToast('Could not update photo: ' + err.message);
-  }
 }
 
 function saveProfileDetails() {
@@ -3201,45 +3131,6 @@ function previewUpload(input, previewId) {
   }
 }
 // ── IDENTITY VERIFICATION ────────────────────────────────────────────────────
-// If the account already has a profile photo (uploaded at registration), reuse
-// it as the verification selfie instead of asking the user to take another one.
-function initVerifySelfieReuse() {
-  const reuseBox   = document.getElementById('vi-selfie-reuse');
-  const reuseImg   = document.getElementById('vi-selfie-reuse-img');
-  const uploadLabel = document.getElementById('vi-selfie-label');
-  const requiredMark = document.getElementById('vi-selfie-required-mark');
-  if (!reuseBox || !uploadLabel) return;
-
-  // Only offer to reuse the profile photo if it's a real uploaded file URL.
-  // A base64/data: URI only ever exists in this one browser's localStorage —
-  // there's nothing on the server to reuse, so treating it as a selfie would
-  // silently submit verification with no selfie saved.
-  const hasRealUploadedPhoto = !!(currentUser && currentUser.avatar && /^https?:\/\//i.test(currentUser.avatar));
-
-  if (hasRealUploadedPhoto) {
-    window._viReuseExistingPhoto = true;
-    reuseImg.src = currentUser.avatar;
-    reuseBox.style.display = 'flex';
-    uploadLabel.style.display = 'none';
-    if (requiredMark) requiredMark.textContent = '(using your profile photo)';
-  } else {
-    window._viReuseExistingPhoto = false;
-    reuseBox.style.display = 'none';
-    uploadLabel.style.display = 'flex';
-    if (requiredMark) requiredMark.textContent = '* (JPEG / PNG)';
-  }
-}
-
-function viUseNewSelfie() {
-  window._viReuseExistingPhoto = false;
-  const reuseBox    = document.getElementById('vi-selfie-reuse');
-  const uploadLabel = document.getElementById('vi-selfie-label');
-  const requiredMark = document.getElementById('vi-selfie-required-mark');
-  if (reuseBox)    reuseBox.style.display = 'none';
-  if (uploadLabel) uploadLabel.style.display = 'flex';
-  if (requiredMark) requiredMark.textContent = '* (JPEG / PNG)';
-}
-
 async function submitVerification() {
   // Must be logged in
   if (!currentUser || !currentUser.id) {
@@ -3292,8 +3183,7 @@ async function submitVerification() {
   if (!kinName)                          return showErr('Please enter your next of kin name.');
   if (!kinRel)                           return showErr('Please select your next of kin relationship.');
   if (!kinPhone || kinPhone.length < 10) return showErr('Please enter a valid next of kin phone number.');
-  const reusingExistingPhoto = !!window._viReuseExistingPhoto;
-  if (!reusingExistingPhoto && (!selfieInput || !selfieInput.files || !selfieInput.files[0]))
+  if (!selfieInput || !selfieInput.files || !selfieInput.files[0])
     return showErr('Please upload your selfie photo.');
   if (!idocInput || !idocInput.files || !idocInput.files[0])
     return showErr('Please upload your government ID document.');
@@ -3303,26 +3193,19 @@ async function submitVerification() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Uploading documents…'; }
 
   try {
-    // 1. Upload selfie (skip entirely if we're reusing the profile photo
-    //    already on the account — nothing new to upload)
-    let selfie_url = null;
-    if (!reusingExistingPhoto) {
-      showProg('Uploading selfie…');
-      try {
-        selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
-      } catch (e) {
-        console.warn('Selfie upload failed:', e.message);
-      }
-    }
+    // 1. Upload selfie. This used to catch-and-continue on failure (proceeding
+    // to submit verification with selfie_url left null), which is exactly how
+    // a "documents live in the DB but nothing shows in admin" case could
+    // happen without the person even realizing their upload silently failed.
+    showProg('Uploading selfie…');
+    const selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
+    if (!selfie_url) throw new Error('Selfie upload failed — please try again.');
 
-    // 2. Upload ID document
+    // 2. Upload ID document — same: a failure here must stop submission,
+    // not silently continue with an empty id_doc_url.
     showProg('Uploading ID document…');
-    let id_doc_url = null;
-    try {
-      id_doc_url = await geoUploadToSupabase(idocInput, 'geoestate-docs/registrations/id-docs');
-    } catch (e) {
-      console.warn('ID doc upload failed:', e.message);
-    }
+    const id_doc_url = await geoUploadToSupabase(idocInput, 'geoestate-docs/registrations/id-docs');
+    if (!id_doc_url) throw new Error('ID document upload failed — please try again.');
 
     // 3. Build owner token — format: owner:<userId>:<timestamp>
     //    requireOwner() on server validates this exact format
@@ -3346,7 +3229,7 @@ async function submitVerification() {
       next_of_kin_phone: kinPhone,
       doc_type:          'Government ID',
       selfie_url:        selfie_url  || '',
-      photo_url:         selfie_url  || '',   // also stored as profile photo
+      photo_url:         selfie_url  || '',   // also used as the account's avatar
       id_doc_url:        id_doc_url  || '',
       doc_url:           id_doc_url  || ''
     };
@@ -4599,18 +4482,7 @@ async function verifyOTP() {
       registeredAt:  new Date().toISOString()
     };
 
-    // 3. Upload profile photo (non-fatal — proceeds even if upload fails)
-    const photoInput = document.getElementById('reg-photo');
-    if (photoInput && photoInput.files && photoInput.files[0]) {
-      try {
-        const photoUrl = await geoUploadToSupabase(photoInput, 'geoestate-docs/registrations/photos');
-        if (photoUrl) regPayload.photo_url = photoUrl;
-      } catch (uploadErr) {
-        console.warn('Profile photo upload skipped:', uploadErr.message);
-      }
-    }
-
-    // 4. POST to /register — this MUST succeed
+    // 3. POST to /register — this MUST succeed
     const regRes  = await fetch(GEO_API_BASE + '/register', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4622,7 +4494,7 @@ async function verifyOTP() {
       throw new Error(regData.error || 'Registration failed. Please try again.');
     }
 
-    // 5. Build session — use the server-confirmed ID so verify-identity can find the row
+    // 4. Build session — use the server-confirmed ID so verify-identity can find the row
     const sessionUser = {
       id:           regData.submissionId || ('USR-' + Date.now()),
       fname:        pendingRegData.fname,
@@ -4631,11 +4503,11 @@ async function verifyOTP() {
       phone:        pendingRegData.phone,
       role:         pendingRegData.role,
       verified:     false,
-      avatar:       regPayload.photo_url || '',
+      avatar:       '',
       registeredAt: regPayload.registeredAt
     };
 
-    // 6. Success — log in and redirect to identity verification
+    // 5. Success — log in and redirect to identity verification
     pendingRegData = null;
     clearInterval(otpTimerInterval);
     loginSuccess(sessionUser);
