@@ -2889,7 +2889,8 @@ async function renderDetail(id) {
             unit_structure: prop.unit_structure||'single', total_units: prop.total_units||0,
             unitGroups: _unitGroups,
             description: prop.description||'', amenities: (function(){try{return typeof prop.amenities==='string'?JSON.parse(prop.amenities||'[]'):(Array.isArray(prop.amenities)?prop.amenities:[]);}catch(e){return [];}})(), units: prop.units||[],
-            tags: [], video: prop.video_url||false, video_url: prop.video_url||'', owner: prop.owner||'' };
+            tags: [], video: prop.video_url||false, video_url: prop.video_url||'', owner: prop.owner||'',
+            nightly_rate: prop.nightly_rate, annual_rent: prop.annual_rent };
         };
         p = mapper(d.property);
         // Cache into local array for subsequent uses
@@ -7586,7 +7587,7 @@ function confirmListingMapPick() {
 }
 </script>
 
-<script src="geo-api.js?v=3"></script>
+<script src="geo-api.js?v=4"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     loadLiveProperties();

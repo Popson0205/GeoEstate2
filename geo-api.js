@@ -107,6 +107,8 @@
       title: p.title,
       price: displayPrice || '—',
       monthly_rent: p.monthly_rent,
+      annual_rent: p.annual_rent,
+      nightly_rate: p.nightly_rate,
       sale_price: p.sale_price,
       lease_price: p.lease_price,
       location: p.address || p.lga || p.state || '—',
