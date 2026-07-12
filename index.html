@@ -2553,6 +2553,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const params = new URLSearchParams(window.location.search);
   const target = params.get('page');
   if (!target) return;
+  // Whitelist real customer-facing pages only. This used to pass target
+  // straight to showPage() unchecked -- ?page=admin would reach the legacy
+  // embedded admin panel (login-gated, but a leftover duplicate of the real,
+  // actively-maintained admin.html that nothing here links to anymore) with
+  // no visible link needed, just a URL.
+  const validPages = ['home','map','detail','dispute','about','contact','privacy','terms','team','profile','verify'];
+  if (!validPages.includes(target)) return;
   setTimeout(function () {
     if (target === 'verify' && !currentUser) {
       openAuthModal('login');

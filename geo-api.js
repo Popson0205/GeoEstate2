@@ -100,17 +100,19 @@
     let amenities = [];
     try { amenities = typeof p.amenities === 'string' ? JSON.parse(p.amenities) : (p.amenities || []); } catch(e) {}
 
-    return {
-      id: p.id,
+    // Spread every raw field through first (Object.assign), THEN apply the
+    // derived/computed overrides below. This used to be an explicit
+    // whitelist object literal that only listed out specific fields —
+    // that's exactly how nightly_rate silently went missing (used
+    // internally above for the price fallback, but never in the returned
+    // object), and status/docs/notes/created_at were quietly dropped too.
+    // Spreading means any field the backend adds later is automatically
+    // available on the mapped property without needing a matching edit
+    // here, same as the mobile app's mapProperty already does.
+    return Object.assign({}, p, {
       listing_type: lt,
       type: lt,
-      title: p.title,
       price: displayPrice || '—',
-      monthly_rent: p.monthly_rent,
-      annual_rent: p.annual_rent,
-      nightly_rate: p.nightly_rate,
-      sale_price: p.sale_price,
-      lease_price: p.lease_price,
       location: p.address || p.lga || p.state || '—',
       state: p.state || '',
       lga: p.lga || '',
@@ -132,7 +134,7 @@
       // Property never surfaced anywhere on the site — the Video Tour button
       // on the detail page checks `p.video` but it was never populated.
       tags: [], video: p.video_url || false, video_url: p.video_url || ''
-    };
+    });
   }
 
   // ── Public API ──────────────────────────────────────────────────
