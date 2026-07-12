@@ -145,6 +145,7 @@
     .badge-closed   { background: #f0fdf4; color: #166534; }
     .badge-pending  { background: #fff7ed; color: #9a3412; }
     .badge-confirmed    { background: #f0fdf4; color: #166534; }
+    .badge-released     { background: #f0fdf4; color: #166534; }
     .badge-closed       { background: #f0fdf4; color: #166534; }
     .badge-payment_received { background: #fefce8; color: #854d0e; }
     .badge-payment_queue    { background: #eff6ff; color: #1e40af; }
@@ -1122,7 +1123,13 @@
   function renderTransactions(list) {
     const tbody = document.getElementById('txn-tbody');
     const confirmed = [
-      ...allPayments.filter(p => p.status === 'confirmed').map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
+      // 'released' (escrow funds paid out to the owner) is a further stage
+      // past 'confirmed', not a different outcome — admin.html's own
+      // Manage Properties view treats both as completed deals (see its
+      // .filter(p => p.status === 'confirmed' || p.status === 'released')).
+      // Only matching literal 'confirmed' here meant any deal that had
+      // already progressed to released dropped out of this tab entirely.
+      ...allPayments.filter(p => p.status === 'confirmed' || p.status === 'released').map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
       ...allTransactions.filter(t => t.status === 'closed' || t.status === 'escrow' || t.status === 'confirmed').map(t => ({ ref: t.id, property: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at }))
     ];
     const q = (document.getElementById('txn-search')||{}).value||'';
