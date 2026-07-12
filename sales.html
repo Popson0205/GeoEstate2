@@ -145,6 +145,7 @@
     .badge-closed   { background: #f0fdf4; color: #166534; }
     .badge-pending  { background: #fff7ed; color: #9a3412; }
     .badge-confirmed    { background: #f0fdf4; color: #166534; }
+    .badge-released     { background: #f0fdf4; color: #166534; }
     .badge-closed       { background: #f0fdf4; color: #166534; }
     .badge-payment_received { background: #fefce8; color: #854d0e; }
     .badge-payment_queue    { background: #eff6ff; color: #1e40af; }
@@ -836,7 +837,7 @@
     document.getElementById('stat-enquiries').textContent   = allEnquiries.length || '0';
     document.getElementById('stat-properties').textContent  = allProperties.length || '0';
     document.getElementById('stat-transactions').textContent = allTransactions.length || '0';
-    const pending = allPayments.filter(p => p.status === 'payment_received' || p.status === 'pending').length;
+    const pending = allPayments.filter(p => p.status === 'pending_confirmation').length;
     document.getElementById('stat-pending-pay').textContent = pending;
     document.getElementById('stat-pay-label').textContent   = pending > 0 ? `${pending} need confirmation` : 'All confirmed';
     // Update payment queue badge
@@ -1053,7 +1054,12 @@
 
   function renderPaymentQueue(q) {
     const tbody = document.getElementById('queue-tbody');
-    let queue = allPayments.filter(p => p.status === 'payment_received' || p.status === 'pending');
+    // The backend sets a freshly-submitted payment's status to
+    // 'pending_confirmation' (see handleSubmitPayment) — this used to check
+    // for 'payment_received'/'pending', which never matched anything real,
+    // so the queue always appeared empty regardless of what was actually
+    // waiting to be confirmed.
+    let queue = allPayments.filter(p => p.status === 'pending_confirmation');
     if (q) queue = queue.filter(p => (p.ref+p.prop+p.buyer).toLowerCase().includes(q.toLowerCase()));
     if (!queue.length) {
       tbody.innerHTML = '<tr><td colspan="6"><div class="sp-empty"><div class="sp-empty-icon">✅</div><div class="sp-empty-text">Payment queue is empty</div><div class="sp-empty-sub">Clients that have notified payment will appear here.</div></div></td></tr>';
@@ -1068,7 +1074,7 @@
         <td style="font-size:.85rem">${p.buyer||'—'}</td>
         <td style="font-weight:700;color:#1a6b3c">${fmtAmount(p.amount)}</td>
         <td>
-          <button class="sp-btn sp-btn-primary sp-btn-sm" onclick="confirmPayment('${p.ref}','${p.transaction_id||''}','${p.enquiry_id||''}')">
+          <button class="sp-btn sp-btn-primary sp-btn-sm" onclick="confirmPayment('${p.ref}')">
             ✅ Confirm Payment
           </button>
         </td>
@@ -1076,13 +1082,30 @@
     }).join('');
   }
 
-  async function confirmPayment(ref, transactionId, enquiryId) {
+  async function confirmPayment(ref) {
     if (!confirm('Confirm that this bank transfer has been received and close the deal?')) return;
+    // Look up the full row from what's already loaded, rather than trying to
+    // serialize every field through the onclick attribute string (fragile
+    // for anything containing quotes) — allPayments came from SELECT *, so
+    // every column the backend needs is already sitting right here.
+    const p = allPayments.find(x => x.ref === ref);
+    if (!p) { toast('⚠️ Could not find that payment — try refreshing'); return; }
     try {
-      const r = await fetch(API + '/admin/confirm-payment', {
+      // /admin/confirm-payment never existed on the backend — every "Confirm
+      // Payment" click here was silently failing before. The real endpoint
+      // is /admin/save-payment (same one admin.html's payment confirmation
+      // uses), which also needs property_id/unit_id forwarded so a
+      // confirmed rent/lease payment can auto-create its Tenancy Tracker
+      // record, exactly like confirming from the main admin panel does.
+      const r = await fetch(API + '/admin/save-payment', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref, transaction_id: transactionId || undefined, enquiry_id: enquiryId || undefined, confirmed_by: salesName })
+        body: JSON.stringify({
+          ref: p.ref, prop: p.prop, buyer: p.buyer, phone: p.phone,
+          owner: p.owner, ownerAcct: p.owner_acct, amount: p.amount, fee: p.fee, ownerAmt: p.owner_amt,
+          status: 'confirmed', notified: p.notified || '', tenancy_id: p.tenancy_id || null,
+          release_note: p.release_note || '', property_id: p.property_id || null, unit_id: p.unit_id || null
+        })
       });
       const d = await r.json();
       if (d.success) {
@@ -1100,7 +1123,13 @@
   function renderTransactions(list) {
     const tbody = document.getElementById('txn-tbody');
     const confirmed = [
-      ...allPayments.filter(p => p.status === 'confirmed').map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
+      // 'released' (escrow funds paid out to the owner) is a further stage
+      // past 'confirmed', not a different outcome — admin.html's own
+      // Manage Properties view treats both as completed deals (see its
+      // .filter(p => p.status === 'confirmed' || p.status === 'released')).
+      // Only matching literal 'confirmed' here meant any deal that had
+      // already progressed to released dropped out of this tab entirely.
+      ...allPayments.filter(p => p.status === 'confirmed' || p.status === 'released').map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
       ...allTransactions.filter(t => t.status === 'closed' || t.status === 'escrow' || t.status === 'confirmed').map(t => ({ ref: t.id, property: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at }))
     ];
     const q = (document.getElementById('txn-search')||{}).value||'';
