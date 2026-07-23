@@ -2216,7 +2216,7 @@ document.addEventListener('click', function(e){
 
       <div style="margin-bottom:14px">
         <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Email Address</label>
-        <input id="login-email-field" type="email" placeholder="your@email.com"
+        <input id="login-email-field" type="email" placeholder="your@email.com" autocomplete="username" name="email"
           style="width:100%;padding:10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.9rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
           onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
           onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
@@ -2225,7 +2225,7 @@ document.addEventListener('click', function(e){
       <div style="margin-bottom:8px">
         <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Password</label>
         <div style="position:relative">
-          <input id="login-pass-field" type="password" placeholder="••••••••"
+          <input id="login-pass-field" type="password" placeholder="••••••••" autocomplete="current-password" name="password"
             style="width:100%;padding:10px 44px 10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.9rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
             onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
             onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
@@ -2289,7 +2289,7 @@ document.addEventListener('click', function(e){
       <!-- Email -->
       <div style="margin-bottom:12px">
         <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Email Address * <span style="font-weight:400;color:var(--text-muted)">(OTP will be sent here)</span></label>
-        <input id="reg-email" type="email" placeholder="your@email.com"
+        <input id="reg-email" type="email" placeholder="your@email.com" autocomplete="username" name="email"
           style="width:100%;padding:10px 12px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1.5px var(--border-default);box-sizing:border-box">
       </div>
 
@@ -2304,7 +2304,7 @@ document.addEventListener('click', function(e){
       <div style="margin-bottom:12px">
         <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Password *</label>
         <div style="position:relative">
-          <input id="reg-pass" type="password" placeholder="Min. 8 characters"
+          <input id="reg-pass" type="password" placeholder="Min. 8 characters" autocomplete="new-password" name="new-password"
             style="width:100%;padding:10px 40px 10px 12px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1.5px var(--border-default);box-sizing:border-box">
           <button onclick="togglePassVis('reg-pass',this)" type="button"
             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.82rem;padding:4px">👁</button>
@@ -2312,7 +2312,7 @@ document.addEventListener('click', function(e){
       </div>
       <div style="margin-bottom:16px">
         <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Confirm Password *</label>
-        <input id="reg-pass2" type="password" placeholder="Repeat your password"
+        <input id="reg-pass2" type="password" placeholder="Repeat your password" autocomplete="new-password" name="confirm-password"
           style="width:100%;padding:10px 12px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1.5px var(--border-default);box-sizing:border-box">
       </div>
 
@@ -3948,6 +3948,26 @@ async function geoUploadToSupabase(fileInput, folder) {
 
 // ── REGISTER ─────────────────────────────────────────────────────────────────
 // Step 1: Validate form → store pendingRegData → fire OTP
+// ── Browser "remember password" hook ──────────────────────────────────────────
+// Explicitly tells the browser's own password manager that a login/signup just
+// succeeded, so it can offer to save/update the saved credential — this works
+// regardless of form-submit events (everything here is JS/fetch-driven, not
+// real <form> submissions, which many browsers otherwise rely on to detect a
+// login). Only Chromium-based browsers support this API; Safari/Firefox just
+// silently no-op here and fall back to their own autofill heuristics based on
+// the autocomplete="username"/"current-password"/"new-password" attributes
+// already on these fields.
+async function saveCredentialToBrowser(email, password, name) {
+  try {
+    if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) {
+      const cred = new PasswordCredential({ id: email, password: password, name: name || email });
+      await navigator.credentials.store(cred);
+    }
+  } catch (e) {
+    // Never let credential-saving failures affect the actual login/registration flow
+  }
+}
+
 function doRegister() {
   const fname  = (document.getElementById('reg-fname')  || {}).value.trim();
   const lname  = (document.getElementById('reg-lname')  || {}).value.trim();
@@ -4112,6 +4132,7 @@ async function verifyOTP() {
     };
 
     // 5. Success — log in and redirect to identity verification
+    saveCredentialToBrowser(pendingRegData.email, atob(pendingRegData.pass), pendingRegData.fname + ' ' + pendingRegData.lname);
     pendingRegData = null;
     clearInterval(otpTimerInterval);
     loginSuccess(sessionUser);
@@ -4161,6 +4182,7 @@ async function doLogin() {
 
     if (data.success && data.user) {
       loginSuccess(data.user);
+      saveCredentialToBrowser(email, pass, data.user.fname + ' ' + (data.user.lname || ''));
       // Store JWT token as owner session so submitListing (and ownerFetch) work immediately
       if (data.token && window.GeoAPI) {
         GeoAPI.setOwnerSession({ token: data.token, owner: data.user, loginTime: Date.now() });
