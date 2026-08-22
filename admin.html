@@ -1600,6 +1600,16 @@ function openPropModal(idx){
         `<div style="color:var(--adm-text-subtle);font-size:.85rem">No additional documents attached to this listing.</div>`}
     </div>
     <div class="panel-section">
+      <div class="panel-section-title">🏠 Site Visit Verification</div>
+      <div style="font-size:.8rem;color:var(--adm-text-subtle);margin-bottom:10px">A second, stronger trust tier beyond owner ID verification — mark once a GeoEstate staff member has physically visited and confirmed the property.</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;margin-bottom:8px">
+        <input type="checkbox" id="prop-site-visit-${idx}" ${p.site_visit_verified?'checked':''}>
+        Site visit completed &amp; verified
+      </label>
+      <textarea class="notes-area" id="prop-site-visit-notes-${idx}" placeholder="Optional notes from the visit (condition, accuracy of listing, etc.)">${p.site_visit_notes||''}</textarea>
+      <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="saveSiteVisit(${idx})">Save Site Visit Status</button>
+    </div>
+    <div class="panel-section">
       <div class="panel-section-title">Reviewer Notes</div>
       <textarea class="notes-area" id="prop-notes-${idx}" placeholder="Add notes about this listing...">${p.notes||''}</textarea>
     </div>
@@ -1858,6 +1868,24 @@ function rejectId(idx){
 }
 function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Tom K.';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
 function approveProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='live';fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'live',notes:adminProperties[idx].notes||''})}).catch(()=>{});saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' is now live ✓','success');addSyncLog('Property approved: '+adminProperties[idx].title);}
+
+function saveSiteVisit(idx){
+  const cb = document.getElementById('prop-site-visit-'+idx);
+  const notesEl = document.getElementById('prop-site-visit-notes-'+idx);
+  if (!cb) return;
+  const verified = cb.checked;
+  const notes = notesEl ? notesEl.value : '';
+  adminProperties[idx].site_visit_verified = verified;
+  adminProperties[idx].site_visit_notes = notes;
+  if (verified && !adminProperties[idx].site_visit_date) adminProperties[idx].site_visit_date = new Date().toISOString().slice(0,10);
+  fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({
+    site_visit_verified: verified, site_visit_notes: notes,
+    site_visit_date: verified ? (adminProperties[idx].site_visit_date || new Date().toISOString().slice(0,10)) : null
+  })}).catch(()=>{});
+  saveState();
+  adminToast(verified ? 'Marked as site-visit verified ✓' : 'Site visit status updated', 'success');
+  addSyncLog('Site visit ' + (verified?'verified':'updated') + ' for: ' + adminProperties[idx].title);
+}
 function rejectProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='rejected';fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'rejected',notes:adminProperties[idx].notes||''})}).catch(()=>{});saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' rejected','error');addSyncLog('Property rejected: '+adminProperties[idx].title);}
 function requestPropInfo(idx){adminProperties[idx].status='info';saveState();renderPropQueue();closeModal('modal-prop');adminToast('Info requested for '+adminProperties[idx].title,'info');}
 function fileNPF(idx){disputes[idx].npfFiled=true;renderDisputes();adminToast('NPF CID case file submitted for '+disputes[idx].id,'success');addSyncLog('NPF report filed: '+disputes[idx].id);}
