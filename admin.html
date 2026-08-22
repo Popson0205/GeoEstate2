@@ -348,6 +348,7 @@
     <div class="nav-item" onclick="nav('payments',this)"><span class="nav-icon">💳</span>Manual Payments<span class="nav-badge" id="badge-payments">0</span></div>
     <div class="nav-item" onclick="nav('properties-mgmt',this)"><span class="nav-icon">🏠</span>Manage Properties</div>
     <div class="nav-item" onclick="nav('tenancy',this)"><span class="nav-icon">📅</span>Tenancy Tracker<span class="nav-badge amber" id="badge-tenancy">0</span></div>
+    <div class="nav-item" onclick="nav('activity',this)"><span class="nav-icon">📜</span>Activity Log</div>
     <div class="nav-item" onclick="nav('team',this)"><span class="nav-icon">👥</span>Our Team</div>
     <div class="nav-item" onclick="nav('sync',this)"><span class="nav-icon">🔗</span>Website Sync</div>
     <div class="nav-item" onclick="nav('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
@@ -705,6 +706,19 @@
               <div style="margin-bottom:8px">3. A minimum <strong>3-month notice</strong> must be given to the tenant.</div>
               <div>4. Escrow funds for the remaining period are refunded to the tenant in full.</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ ACTIVITY LOG ══ -->
+      <div id="page-activity" class="page">
+        <div class="section-card">
+          <div class="section-header">
+            <div><div class="section-title">Activity Log</div><div class="section-sub">A running record of everything that happens on the platform — new listings, confirmed payments, tenancies, auto-delistings, and more.</div></div>
+            <button class="btn btn-outline btn-sm" onclick="loadActivityLog()">🔄 Refresh</button>
+          </div>
+          <div id="activity-log-list" style="max-height:70vh;overflow-y:auto">
+            <div class="empty-state"><div class="empty-state-icon">📜</div><div>Loading…</div></div>
           </div>
         </div>
       </div>
@@ -1308,7 +1322,7 @@ async function tryRestoreAdminSession(){
 document.addEventListener('DOMContentLoaded', tryRestoreAdminSession);
 
 // ══ NAV ══
-const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
+const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',activity:'Activity Log',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
 function nav(page,el){
   // Only touch pages INSIDE admin-root to avoid conflicting with website pages
   const adminRoot = document.getElementById('admin-root');
@@ -1323,6 +1337,7 @@ function nav(page,el){
   if(page==='sync') updateSyncPage();
   if(page==='team') renderTeam();
   if(page==='registrations') renderRegistrations();
+  if(page==='activity') loadActivityLog();
 }
 
 // ══ CLOCK ══
@@ -2315,6 +2330,35 @@ async function loadTenanciesFromAPI() {
       renderTenancy();
     }
   } catch(e) { console.warn('Could not load tenancies from API:', e.message); }
+}
+
+// Activity Log — a real, working /admin/activity endpoint has been logging
+// every meaningful platform event (new listings, confirmed payments,
+// tenancies, auto-delistings, etc.) via logActivity() this whole time, but
+// nothing in this file ever actually called it or rendered a screen for it.
+async function loadActivityLog() {
+  const list = document.getElementById('activity-log-list');
+  try {
+    const res = await fetch(GEO_API + '/admin/activity', { headers: geoHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const entries = (data.log || []);
+    if (!entries.length) {
+      list.innerHTML = '<div class="empty-state">No activity recorded yet.</div>';
+      return;
+    }
+    list.innerHTML = entries.map(e => {
+      const d = new Date(e.logged_at);
+      return `
+        <div style="display:flex;gap:14px;padding:12px 4px;border-bottom:1px solid var(--a-border)">
+          <div style="font-size:.76rem;color:var(--a-subtle);white-space:nowrap;flex-shrink:0;width:130px">${d.toLocaleDateString('en-NG',{day:'numeric',month:'short'})} · ${d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:.86rem;color:var(--a-text)">${(e.message||'').replace(/</g,'&lt;')}</div>
+        </div>
+      `;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="empty-state">Could not load activity log: ' + (e.message||'').replace(/</g,'&lt;') + '</div>';
+  }
 }
 
 // Push a local change (confirm/release/dispute/manual-add) back to the DB so
