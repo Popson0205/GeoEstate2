@@ -277,8 +277,8 @@
           if (sseHandlers['*']) sseHandlers['*'].forEach(fn => fn(d));
         } catch(ex) {}
       };
-      ['property_created','property_updated','tenancy_updated','payment_updated',
-       'registration_updated','new_enquiry','unit_updated','activity'].forEach(evt => {
+      ['property_created','property_updated','tenancy_updated','tenancy_created','payment_updated',
+       'registration_updated','new_enquiry','enquiry_updated','unit_updated','notification_new','activity'].forEach(evt => {
         sseSource.addEventListener(evt, function(e) {
           try {
             const d = JSON.parse(e.data);
