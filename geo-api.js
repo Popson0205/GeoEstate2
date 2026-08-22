@@ -339,6 +339,15 @@
       return ownerFetch('/owner/messages', { method: 'POST', body: { recipient_id: recipientId, body, property_id: propertyId || null, sender_name: senderName || '' } });
     },
 
+    // In-app notification center
+    async getNotifications() {
+      const d = await ownerFetch('/owner/notifications');
+      return d.notifications || [];
+    },
+    async markNotificationsRead(id) {
+      return ownerFetch('/owner/notifications/mark-read', { method: 'POST', body: id ? { id } : {} });
+    },
+
     // Partner (isolated session — see PARTNER_SESSION_KEY note above)
     partnerFetch,
     getPartnerSession,

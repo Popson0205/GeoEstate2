@@ -3741,6 +3741,7 @@ function initAuth() {
   try {
     currentUser = JSON.parse(saved);
     renderNavAuth();
+    loadNotificationsFromAPI();
     const vBanner = document.getElementById('verify-banner');
     if (vBanner) {
       vBanner.style.display =
@@ -3751,12 +3752,17 @@ function initAuth() {
     localStorage.removeItem('geo_session');
   }
 }
+// Polls for new notifications every 30s while signed in — matches this
+// app's existing chat-thread polling interval rather than needing SSE
+// wiring just for this.
+setInterval(() => { if (currentUser) loadNotificationsFromAPI(); }, 30000);
 
 function loginSuccess(user) {
   if (user && !user.avatar && user.photo_url) user.avatar = user.photo_url;
   currentUser = user;
   localStorage.setItem('geo_session', JSON.stringify(user));
   renderNavAuth();
+  loadNotificationsFromAPI();
   const vBanner = document.getElementById('verify-banner');
   if (vBanner) {
     vBanner.style.display =
@@ -3811,20 +3817,40 @@ function renderNavAuth() {
   }
 }
 
-// ── Notifications (lightweight, local) ────────────────────────────────────
+// ── Notifications (real backend, cached locally for sync reads) ──────────
+// cachedNotifications is refreshed from GET /owner/notifications on login
+// and every 30s while signed in; getNotifications() itself stays a plain
+// synchronous read of that cache, since renderNavAuth() (and the two render
+// functions below) all need to read the current unread count/list inline
+// without becoming async themselves.
+let cachedNotifications = [];
+
 function getNotifications() {
-  if (!currentUser) return [];
-  const key = 'geo_notifs_' + currentUser.id;
-  let stored = [];
-  try { stored = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { stored = []; }
-  if (!stored.length) {
-    stored = [
-      { id: 1, text: currentUser.verified ? 'Your identity is verified ✓' : 'Complete your identity verification to unlock full access', read: !!currentUser.verified, time: 'Today' },
-      { id: 2, text: 'Welcome to GeoEstate! Explore verified listings near you.', read: true, time: 'Earlier' }
-    ];
-    localStorage.setItem(key, JSON.stringify(stored));
-  }
-  return stored;
+  return cachedNotifications;
+}
+
+async function loadNotificationsFromAPI() {
+  if (!currentUser || !window.GeoAPI) return;
+  try {
+    cachedNotifications = (await GeoAPI.getNotifications()).map(n => ({
+      id: n.id, text: n.title + (n.body ? ' — ' + n.body : ''),
+      read: !!n.read_at, time: timeAgo(n.created_at)
+    }));
+  } catch (e) { /* keep showing whatever was last loaded rather than clearing on a transient failure */ }
+  renderNavAuth();
+  if (document.getElementById('profile-tab-notifs')?.classList.contains('active')) renderProfileNotifTab();
+}
+
+function timeAgo(dateStr) {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
 }
 
 function renderNotifPanel() {
@@ -3848,12 +3874,10 @@ function renderNotifPanel() {
     </div>`;
 }
 
-function markAllNotifsRead() {
+async function markAllNotifsRead() {
   if (!currentUser) return;
-  const key = 'geo_notifs_' + currentUser.id;
-  const notifs = getNotifications().map(n => ({ ...n, read: true }));
-  localStorage.setItem(key, JSON.stringify(notifs));
-  renderNavAuth();
+  try { await GeoAPI.markNotificationsRead(); } catch (e) {}
+  await loadNotificationsFromAPI();
 }
 
 function toggleNotifPanel(e) {
