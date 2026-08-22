@@ -323,6 +323,22 @@
     clearOwnerSession,
     isOwnerLoggedIn: function() { return !!getOwnerSession(); },
 
+    // In-app chat — uses the same owner-session bearer token any logged-in
+    // user (owner or renter/buyer) already carries, since the backend's
+    // requireOwner() validates a token from either.
+    async getConversations() {
+      const d = await ownerFetch('/owner/conversations');
+      return d.conversations || [];
+    },
+    async getThread(otherId, propertyId) {
+      const qs = '?with=' + encodeURIComponent(otherId) + (propertyId ? '&property_id=' + encodeURIComponent(propertyId) : '');
+      const d = await ownerFetch('/owner/messages' + qs);
+      return d.messages || [];
+    },
+    async sendMessage(recipientId, body, propertyId, senderName) {
+      return ownerFetch('/owner/messages', { method: 'POST', body: { recipient_id: recipientId, body, property_id: propertyId || null, sender_name: senderName || '' } });
+    },
+
     // Partner (isolated session — see PARTNER_SESSION_KEY note above)
     partnerFetch,
     getPartnerSession,

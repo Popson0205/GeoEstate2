@@ -1915,6 +1915,7 @@ document.addEventListener('click', function(e){
         <button class="profile-tab-btn active" data-tab="profile" onclick="showProfileTab('profile')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">👤 Profile</button>
         <button class="profile-tab-btn" data-tab="settings" onclick="showProfileTab('settings')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">⚙️ Account Settings</button>
         <button class="profile-tab-btn" data-tab="notifs" onclick="showProfileTab('notifs')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🔔 Notifications</button>
+        <button class="profile-tab-btn" data-tab="messages" onclick="showProfileTab('messages')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">💬 Messages</button>
         <button class="profile-tab-btn" data-tab="security" onclick="showProfileTab('security')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🔒 Security</button>
         <div style="height:1px;background:var(--border-subtle);margin:6px 4px"></div>
         <button onclick="goManageProperty()" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--geo-green-600)" id="profile-manage-property-link">🏠 Manage My Properties</button>
@@ -1956,6 +1957,11 @@ document.addEventListener('click', function(e){
             <div><div style="font-size:.88rem;font-weight:700;color:#dc2626">Sign Out</div><div style="font-size:.76rem;color:var(--text-muted)">End your current session on this device</div></div>
             <button class="btn btn-secondary btn-sm" onclick="logoutUser()">Sign Out</button>
           </div>
+        </div>
+
+        <div class="profile-tab-pane" id="profile-tab-messages" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:18px">Messages</h2>
+          <div id="conversations-list"><div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Loading…</div></div>
         </div>
 
         <div class="profile-tab-pane" id="profile-tab-notifs" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
@@ -2610,6 +2616,7 @@ function showProfileTab(tab) {
   const btn = document.querySelector('.profile-tab-btn[data-tab="' + tab + '"]');
   if (btn) { btn.classList.add('active'); btn.style.background = 'var(--geo-green-50)'; btn.style.color = 'var(--geo-green-600)'; }
   if (tab === 'notifs') renderProfileNotifTab();
+  if (tab === 'messages') renderConversationsList();
 }
 
 function renderProfileNotifTab() {
@@ -2624,6 +2631,137 @@ function renderProfileNotifTab() {
         <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">${n.time}</div>
       </div>
     </div>`).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">You're all caught up 🎉</div>`;
+}
+
+// ── In-app chat ─────────────────────────────────────────────────────────────
+// Backend is polling-based (GET /owner/conversations, /owner/messages) rather
+// than push/SSE-driven for message content itself, matching the rest of this
+// app's existing 30s-refresh pattern — see server.js's ensureMessagesTable
+// comment. A "conversation" here is derived from message pairs, not a
+// separate table, so conversation identity is always the (other_user_id,
+// property_id) pair.
+let _chatPollTimer = null;
+
+function openChatWithOwner(propertyId, ownerId, propertyTitle) {
+  if (!currentUser || !currentUser.id) {
+    showAuthToast('Please create an account and log in to message the owner.');
+    openAuthModal('register');
+    return;
+  }
+  if (!ownerId) { showAuthToast('This property has no owner on record yet.', 'error'); return; }
+  if (ownerId === currentUser.id) { showAuthToast("You can't message yourself.", 'error'); return; }
+  const ownerName = (window._currentProp && window._currentProp.owner) || 'Owner';
+  openChatModal(ownerId, propertyId, ownerName, propertyTitle);
+}
+
+function openChatModal(otherId, propertyId, otherName, propertyTitle) {
+  let modal = document.getElementById('chat-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'chat-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `
+      <div style="width:100%;max-width:480px;height:min(640px,90vh);background:var(--surface-primary);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lifted-card)">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+          <div>
+            <div id="chat-modal-name" style="font-weight:800;font-size:.95rem"></div>
+            <div id="chat-modal-property" style="font-size:.76rem;color:var(--text-muted)"></div>
+          </div>
+          <button onclick="closeChatModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted)">✕</button>
+        </div>
+        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px"></div>
+        <div style="padding:12px 16px;border-top:1px solid var(--border-subtle);display:flex;gap:8px;flex-shrink:0">
+          <input id="chat-input" type="text" placeholder="Type a message…" style="flex:1;padding:10px 14px;border:none;border-radius:20px;background:var(--surface-secondary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default)" onkeydown="if(event.key==='Enter')sendChatMessage()">
+          <button onclick="sendChatMessage()" style="background:var(--geo-green-600);color:#fff;border:none;border-radius:20px;padding:0 20px;font-weight:700;cursor:pointer;font-family:var(--font-sans)">Send</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.dataset.otherId = otherId;
+  modal.dataset.propertyId = propertyId || '';
+  document.getElementById('chat-modal-name').textContent = otherName || 'User';
+  document.getElementById('chat-modal-property').textContent = propertyTitle || '';
+  modal.style.display = 'flex';
+  loadChatThread();
+  clearInterval(_chatPollTimer);
+  _chatPollTimer = setInterval(loadChatThread, 10000);
+}
+
+function closeChatModal() {
+  const modal = document.getElementById('chat-modal');
+  if (modal) modal.style.display = 'none';
+  clearInterval(_chatPollTimer);
+  _chatPollTimer = null;
+}
+
+async function loadChatThread() {
+  const modal = document.getElementById('chat-modal');
+  if (!modal || modal.style.display === 'none') return;
+  const otherId = modal.dataset.otherId;
+  const propertyId = modal.dataset.propertyId;
+  try {
+    const messages = await GeoAPI.getThread(otherId, propertyId);
+    renderChatMessages(messages);
+  } catch (e) { /* keep showing whatever was last loaded rather than clearing on a transient failure */ }
+}
+
+function renderChatMessages(messages) {
+  const box = document.getElementById('chat-messages');
+  if (!box) return;
+  const wasNearBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
+  box.innerHTML = messages.length ? messages.map(m => {
+    const mine = m.sender_id === currentUser.id;
+    return `
+      <div style="align-self:${mine ? 'flex-end' : 'flex-start'};max-width:75%">
+        <div style="background:${mine ? 'var(--geo-green-600)' : 'var(--surface-secondary)'};color:${mine ? '#fff' : 'var(--text-primary)'};padding:9px 14px;border-radius:14px;font-size:.87rem;line-height:1.4;word-wrap:break-word">${(m.body||'').replace(/</g,'&lt;')}</div>
+        <div style="font-size:.68rem;color:var(--text-muted);margin-top:3px;text-align:${mine ? 'right' : 'left'}">${new Date(m.created_at).toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    `;
+  }).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Say hello 👋</div>`;
+  if (wasNearBottom) box.scrollTop = box.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const modal = document.getElementById('chat-modal');
+  const input = document.getElementById('chat-input');
+  if (!modal || !input) return;
+  const body = input.value.trim();
+  if (!body) return;
+  const otherId = modal.dataset.otherId;
+  const propertyId = modal.dataset.propertyId;
+  const senderName = currentUser ? (currentUser.fname + ' ' + (currentUser.lname||'')).trim() : '';
+  input.value = '';
+  input.disabled = true;
+  try {
+    await GeoAPI.sendMessage(otherId, body, propertyId, senderName);
+    await loadChatThread();
+  } catch (e) {
+    showAuthToast('Could not send message — check your connection.', 'error');
+    input.value = body; // give it back so the user doesn't lose what they typed
+  }
+  input.disabled = false;
+  input.focus();
+}
+
+async function renderConversationsList() {
+  const list = document.getElementById('conversations-list');
+  if (!list || !currentUser) return;
+  try {
+    const conversations = await GeoAPI.getConversations();
+    list.innerHTML = conversations.length ? conversations.map(c => `
+      <div onclick="openChatModal('${c.other_id}','${c.property_id||''}','${(c.other_name||'').replace(/'/g,"\\'")}','${(c.property_title||'').replace(/'/g,"\\'")}')"
+        style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-subtle);cursor:pointer">
+        <div>
+          <div style="font-weight:700;font-size:.88rem">${c.other_name || 'User'}${c.property_title ? ' · ' + c.property_title : ''}</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:2px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(c.last_message||'').replace(/</g,'&lt;')}</div>
+        </div>
+        ${c.unread ? '<div style="width:9px;height:9px;border-radius:50%;background:var(--geo-green-600);flex-shrink:0;margin-left:10px"></div>' : ''}
+      </div>
+    `).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">No conversations yet — message a property owner to get started.</div>`;
+  } catch (e) {
+    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Could not load messages.</div>`;
+  }
 }
 
 function saveProfileDetails() {
@@ -3031,6 +3169,7 @@ async function renderDetail(id) {
         </div>
         <div style="margin-top:16px;background:var(--surface-primary);border-radius:var(--radius-xl);padding:16px;box-shadow:var(--shadow-lifted-card)">
           <button onclick="openEnquiryModal(window._currentProp.id, window._currentProp.title)" style="width:100%;padding:12px;background:var(--surface-secondary);color:var(--text-primary);border:1.5px solid var(--border-light);border-radius:10px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:var(--font-sans);margin-bottom:10px;transition:background .15s">📬 Express Interest / Enquire</button>
+          <button onclick="openChatWithOwner(window._currentProp.id, window._currentProp.owner_id, window._currentProp.title)" style="width:100%;padding:12px;background:var(--geo-green-600);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:var(--font-sans);margin-bottom:10px;transition:opacity .15s">💬 Message Owner</button>
           <p style="font-size:.75rem;color:var(--text-muted);text-align:center;margin:0 0 12px">Our sales team responds within 24 hours.</p>
         </div>
         <div class="escrow-cta" style="margin-top:0">
