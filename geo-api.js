@@ -127,7 +127,11 @@
       units: p.units || [],
       owner: p.owner || '',
       owner_id: p.owner_id || '',
-      verified: true,
+      // Was hardcoded to `true` for every property regardless of anything
+      // real — now reflects the owner's actual identity verification status
+      // (a real join the backend now does against registrations.is_verified).
+      verified: !!p.owner_verified,
+      site_visit_verified: !!p.site_visit_verified,
       lat: (p.lat !== null && p.lat !== undefined && p.lat !== '') ? parseFloat(p.lat) : null,
       lng: (p.lng !== null && p.lng !== undefined && p.lng !== '') ? parseFloat(p.lng) : null,
       // Was hardcoded to `video: false`, so the "Upload Video" step in Add
