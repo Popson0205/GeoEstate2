@@ -1331,8 +1331,39 @@
       <div class="unit-grid" id="units-grid"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
         <span style="font-size:.82rem;color:var(--muted)" id="units-stats-text">—</span>
-        <button class="btn btn-primary btn-sm" onclick="openAddUnitModal()">+ Add Unit</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="openBulkImportModal()">📄 Bulk Import (CSV)</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddUnitModal()">+ Add Unit</button>
+        </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Import Units Modal -->
+<div class="modal-overlay" id="bulk-import-modal" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Bulk Import Units (CSV)</div>
+      <button class="modal-close" onclick="document.getElementById('bulk-import-modal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">
+        For properties with many rooms/flats (e.g. a large hostel) — add dozens of units at once instead of one at a time.
+        Columns: <code>unit_label, unit_type, floor_level, capacity, monthly_price, description, notes</code>.
+        Only <strong>unit_label</strong> is required. Photos can't be imported via CSV — add those per unit afterward.
+      </p>
+      <button type="button" class="btn btn-outline btn-sm" onclick="downloadUnitCsvTemplate()" style="margin-bottom:14px">⬇️ Download CSV Template</button>
+      <div class="form-group">
+        <label class="form-label">CSV File</label>
+        <input type="file" id="bulk-csv-file" accept=".csv,text/csv" class="form-input">
+      </div>
+      <div id="bulk-import-preview" style="display:none;margin-top:10px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.8rem"></div>
+      <div id="bulk-import-result" style="margin-top:10px;font-size:.82rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('bulk-import-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-primary" id="bulk-import-submit-btn" onclick="submitBulkImport()" disabled>Import Units</button>
     </div>
   </div>
 </div>
@@ -1738,6 +1769,110 @@ function openAddUnitModal() {
   document.getElementById('au-photo').value = '';
   document.getElementById('au-photo-preview').style.display = 'none';
   document.getElementById('add-unit-modal').style.display = 'flex';
+}
+
+// ── Bulk unit import (CSV) ──────────────────────────────────────────────
+let bulkImportRows = [];
+
+function downloadUnitCsvTemplate() {
+  const csv = 'unit_label,unit_type,floor_level,capacity,monthly_price,description,notes\n'
+    + 'Room 101,room,Ground,1,45000,Self-contained room with private bathroom,\n'
+    + 'Room 102,room,Ground,1,45000,Self-contained room with private bathroom,\n'
+    + 'Flat 2A,flat,1st,4,180000,3-bedroom flat with balcony,';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'geoestate-units-template.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Lightweight RFC-4180-ish CSV parser — handles quoted fields containing
+// commas/newlines and "" as an escaped quote, without pulling in a library
+// for what's a genuinely small amount of parsing.
+function parseUnitsCsv(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && next === '\n') i++;
+        row.push(field); field = '';
+        if (row.some(f => f.trim() !== '')) rows.push(row);
+        row = [];
+      } else { field += c; }
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  return rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (r[i] || '').trim(); });
+    return obj;
+  }).filter(o => o.unit_label);
+}
+
+function openBulkImportModal() {
+  bulkImportRows = [];
+  document.getElementById('bulk-csv-file').value = '';
+  document.getElementById('bulk-import-preview').style.display = 'none';
+  document.getElementById('bulk-import-result').innerHTML = '';
+  document.getElementById('bulk-import-submit-btn').disabled = true;
+  document.getElementById('bulk-import-modal').style.display = 'flex';
+  document.getElementById('bulk-csv-file').onchange = handleBulkCsvSelected;
+}
+
+function handleBulkCsvSelected(e) {
+  const file = e.target.files[0];
+  const preview = document.getElementById('bulk-import-preview');
+  const submitBtn = document.getElementById('bulk-import-submit-btn');
+  document.getElementById('bulk-import-result').innerHTML = '';
+  if (!file) { preview.style.display = 'none'; submitBtn.disabled = true; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    bulkImportRows = parseUnitsCsv(String(reader.result));
+    if (!bulkImportRows.length) {
+      preview.style.display = 'block';
+      preview.innerHTML = '<span style="color:var(--red)">No valid rows found — make sure the first row has headers and at least a unit_label column.</span>';
+      submitBtn.disabled = true;
+      return;
+    }
+    const shown = bulkImportRows.slice(0, 8);
+    preview.style.display = 'block';
+    preview.innerHTML = `<strong>${bulkImportRows.length} unit${bulkImportRows.length===1?'':'s'} found:</strong><br>`
+      + shown.map(r => `• ${r.unit_label}${r.unit_type ? ' (' + r.unit_type + ')' : ''}${r.monthly_price ? ' — ₦' + Number(r.monthly_price).toLocaleString() : ''}`).join('<br>')
+      + (bulkImportRows.length > shown.length ? `<br>…and ${bulkImportRows.length - shown.length} more` : '');
+    submitBtn.disabled = false;
+  };
+  reader.readAsText(file);
+}
+
+async function submitBulkImport() {
+  if (!currentUnitsPropId || !bulkImportRows.length) return;
+  const btn = document.getElementById('bulk-import-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  const d = await GeoAPI.ownerFetch('/owner/property/' + currentUnitsPropId + '/units/bulk', { method: 'POST', body: { units: bulkImportRows } });
+  btn.textContent = 'Import Units';
+  if (d.error) {
+    document.getElementById('bulk-import-result').innerHTML = `<span style="color:var(--red)">${d.error}</span>`;
+    btn.disabled = false;
+    return;
+  }
+  const resultEl = document.getElementById('bulk-import-result');
+  resultEl.innerHTML = `<span style="color:var(--green)">✅ Imported ${d.inserted} unit${d.inserted===1?'':'s'}.</span>`
+    + (d.skipped && d.skipped.length ? `<br><span style="color:var(--muted)">${d.skipped.length} row(s) skipped: ${d.skipped.map(s=>'row '+s.row+' ('+s.reason+')').join(', ')}</span>` : '');
+  toast(d.inserted + ' unit(s) imported', 'success');
+  await loadAndRenderUnits(currentUnitsPropId);
+  setTimeout(() => { document.getElementById('bulk-import-modal').style.display = 'none'; }, 1500);
 }
 
 async function submitAddUnit() {
