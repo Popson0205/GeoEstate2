@@ -3070,6 +3070,7 @@ async function renderDetail(id) {
   const verifyDate = `${Math.floor(Math.random()*28)+1} ${['Jan','Feb','Mar','Apr','May','Jun'][Math.floor(Math.random()*6)]} 2026`;
   window._currentProp = p;
   window._currentPropRealImages = realImages;
+  recordPropertyView(p.id);
   document.getElementById('detail-content').innerHTML = `
     <button class="btn btn-ghost btn-sm mb-4" onclick="showPage('map')">← Back to Map</button>
     <div class="property-gallery">
@@ -4121,6 +4122,20 @@ async function geoUploadToSupabase(fileInput, folder) {
 // silently no-op here and fall back to their own autofill heuristics based on
 // the autocomplete="username"/"current-password"/"new-password" attributes
 // already on these fields.
+// Records a property view for the owner analytics dashboard — deduped to
+// once per property per browser session (sessionStorage, not
+// localStorage — a returning visitor tomorrow should count as a new
+// view). Fire-and-forget: never blocks rendering, never surfaces an
+// error to the visitor if it fails.
+function recordPropertyView(propertyId) {
+  if (!propertyId) return;
+  const key = 'geo_viewed_' + propertyId;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, '1');
+  const apiBase = window.GEO_API_PUBLIC || 'https://api.geoestate.com.ng';
+  fetch(apiBase + '/properties/' + encodeURIComponent(propertyId) + '/view', { method: 'POST' }).catch(() => {});
+}
+
 async function saveCredentialToBrowser(email, password, name) {
   try {
     if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) {

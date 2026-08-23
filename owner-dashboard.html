@@ -303,6 +303,7 @@
       <div class="sb-section">Properties</div>
       <div class="sb-item" onclick="navTo('my-properties',this)"><span class="sb-icon">🏠</span>My Properties<span class="sb-badge" id="badge-props" style="display:none">0</span></div>
       <div class="sb-item" onclick="navTo('add-property',this)"><span class="sb-icon">➕</span>Add New Property</div>
+      <div class="sb-item" onclick="navTo('analytics',this)"><span class="sb-icon">📈</span>Analytics</div>
       <div class="sb-section">Tenants</div>
       <div class="sb-item" onclick="navTo('enquiries',this)"><span class="sb-icon">📬</span>Enquiries<span class="sb-badge" id="badge-enq" style="display:none">0</span></div>
       <div class="sb-item" onclick="navTo('tenancy-tracker',this)"><span class="sb-icon">📋</span>Tenancy Tracker</div>
@@ -1265,6 +1266,32 @@
         </div>
       </div>
 
+      <!-- Analytics -->
+      <div id="page-analytics" class="page-section" style="display:none">
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">Analytics</h2>
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px">How your listings are performing — views, enquiries, and conversion.</div>
+        <div id="analytics-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
+        <div class="card">
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+              <thead>
+                <tr style="text-align:left;border-bottom:1px solid var(--border)">
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Property</th>
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Status</th>
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Views</th>
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Enquiries</th>
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Enquiry Rate</th>
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Days Live</th>
+                </tr>
+              </thead>
+              <tbody id="owner-analytics-tbody">
+                <tr><td colspan="6" style="padding:24px 16px;text-align:center;color:var(--muted)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Tenancy Tracker -->
       <div id="page-tenancy-tracker" class="page-section" style="display:none">
         <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">Tenancy Tracker</h2>
@@ -1513,7 +1540,7 @@ async function loadAll() {
 }
 
 // ── Nav ───────────────────────────────────────────────────────
-const pageTitles = { overview: 'Overview', 'my-properties': 'My Properties', 'add-property': 'Add New Property', enquiries: 'Enquiries', 'tenancy-tracker': 'Tenancy Tracker', profile: 'My Profile', verification: 'Verification' };
+const pageTitles = { overview: 'Overview', 'my-properties': 'My Properties', 'add-property': 'Add New Property', analytics: 'Analytics', enquiries: 'Enquiries', 'tenancy-tracker': 'Tenancy Tracker', profile: 'My Profile', verification: 'Verification' };
 function navTo(page, el) {
   document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
@@ -1527,6 +1554,7 @@ function navTo(page, el) {
   if (page === 'verification') renderVerification();
   if (page === 'enquiries') renderEnquiries();
   if (page === 'tenancy-tracker') renderOwnerTenancyTracker();
+  if (page === 'analytics') renderOwnerAnalytics();
   if (page === 'add-property') checkVerificationForAdd();
 }
 
@@ -1982,6 +2010,52 @@ function renderEnquiries() {
       </div>
       <div style="font-size:.72rem;color:var(--subtle);white-space:nowrap">${new Date(e.created_at).toLocaleDateString('en-NG')}</div>
     </div>
+  `).join('');
+}
+
+// ── Analytics ─────────────────────────────────────────────────
+async function renderOwnerAnalytics() {
+  const summaryEl = document.getElementById('analytics-summary');
+  const tbody = document.getElementById('owner-analytics-tbody');
+  const d = await GeoAPI.ownerFetch('/owner/analytics').catch(() => ({}));
+  const list = d.properties || [];
+  const totals = d.totals || { total_views: 0, total_enquiries: 0, total_properties: 0 };
+
+  summaryEl.innerHTML = `
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800">${totals.total_views.toLocaleString()}</div>
+      <div style="font-size:.78rem;color:var(--muted)">Total Views</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800">${totals.total_enquiries.toLocaleString()}</div>
+      <div style="font-size:.78rem;color:var(--muted)">Total Enquiries</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800">${totals.total_views > 0 ? Math.round((totals.total_enquiries/totals.total_views)*100) : 0}%</div>
+      <div style="font-size:.78rem;color:var(--muted)">Overall Enquiry Rate</div>
+    </div>
+  `;
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:0">
+      <div class="empty"><div class="empty-icon">📈</div><div class="empty-title">No properties yet</div><div class="empty-sub">Once you list a property, its views and enquiries will show here.</div></div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${p.img ? `<img src="${p.img}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0">` : ''}
+          <span>${p.title || '—'}</span>
+        </div>
+      </td>
+      <td style="padding:10px 16px"><span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;background:${p.status==='live'?'var(--green-l)':'#fef3c7'};color:${p.status==='live'?'var(--green-d)':'#92400e'}">${p.status||'—'}</span></td>
+      <td style="padding:10px 16px">${(p.view_count||0).toLocaleString()}</td>
+      <td style="padding:10px 16px">${(p.enquiry_count||0).toLocaleString()}</td>
+      <td style="padding:10px 16px">${p.enquiry_rate||0}%</td>
+      <td style="padding:10px 16px">${p.days_live||0}</td>
+    </tr>
   `).join('');
 }
 
