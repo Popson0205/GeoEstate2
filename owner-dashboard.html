@@ -1308,10 +1308,11 @@
                   <th style="padding:10px 16px;color:var(--muted);font-weight:600">End Date</th>
                   <th style="padding:10px 16px;color:var(--muted);font-weight:600">Days Left</th>
                   <th style="padding:10px 16px;color:var(--muted);font-weight:600">Status</th>
+                  <th style="padding:10px 16px;color:var(--muted);font-weight:600">Agreement</th>
                 </tr>
               </thead>
               <tbody id="owner-tenancy-tbody">
-                <tr><td colspan="7" style="padding:24px 16px;text-align:center;color:var(--muted)">Loading…</td></tr>
+                <tr><td colspan="8" style="padding:24px 16px;text-align:center;color:var(--muted)">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -2065,7 +2066,7 @@ async function renderOwnerTenancyTracker() {
   const d = await GeoAPI.ownerFetch('/owner/tenancies').catch(() => ({}));
   const list = d.tenancies || [];
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="padding:0">
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:0">
       <div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No active tenancies yet</div><div class="empty-sub">A tenancy is created automatically here once a rent or lease payment on one of your properties is confirmed.</div></div>
     </td></tr>`;
     return;
@@ -2086,9 +2087,69 @@ async function renderOwnerTenancyTracker() {
         <td style="padding:10px 16px">${t.end ? new Date(t.end).toLocaleDateString('en-NG') : '—'}</td>
         <td style="padding:10px 16px">${days !== null ? (days >= 0 ? days + ' days' : 'Overdue') : '—'}</td>
         <td style="padding:10px 16px"><span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;background:${pillBg};color:${pillColor}">${pillText}</span></td>
+        <td style="padding:10px 16px"><button class="btn btn-outline btn-sm" onclick="openAgreementModal(${t.id})">📝 View / Sign</button></td>
       </tr>
     `;
   }).join('');
+}
+
+// ── E-signature tenancy agreements ─────────────────────────────
+async function openAgreementModal(tenancyId) {
+  let modal = document.getElementById('agreement-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'agreement-modal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title">Tenancy Agreement</div>
+        <button class="modal-close" onclick="document.getElementById('agreement-modal').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body" id="agreement-modal-body" style="max-height:60vh;overflow-y:auto">
+        <div style="text-align:center;padding:24px;color:var(--muted)">Loading…</div>
+      </div>
+    </div>
+  `;
+  const d = await GeoAPI.ownerFetch('/owner/tenancy/' + tenancyId + '/agreement').catch(e => ({ error: e.message }));
+  const body = document.getElementById('agreement-modal-body');
+  if (d.error) {
+    body.innerHTML = `<div style="color:var(--red)">${d.error}</div>`;
+    return;
+  }
+  const ag = d.agreement;
+  const role = d.role;
+  const mySigned = role === 'owner' ? ag.owner_signature : ag.tenant_signature;
+  const mySignedAt = role === 'owner' ? ag.owner_signed_at : ag.tenant_signed_at;
+  body.innerHTML = `
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:.82rem;line-height:1.6;background:var(--card2);padding:16px;border-radius:8px;margin-bottom:16px">${ag.content.replace(/</g,'&lt;')}</pre>
+    <div style="display:flex;gap:20px;margin-bottom:16px;font-size:.82rem">
+      <div>Owner: ${ag.owner_signature ? '✅ Signed (' + new Date(ag.owner_signed_at).toLocaleDateString('en-NG') + ')' : '⏳ Not signed yet'}</div>
+      <div>Tenant: ${ag.tenant_signature ? '✅ Signed (' + new Date(ag.tenant_signed_at).toLocaleDateString('en-NG') + ')' : '⏳ Not signed yet'}</div>
+    </div>
+    ${mySigned
+      ? `<div style="padding:12px;background:var(--green-bg);border-radius:8px;font-size:.85rem">✅ You signed this as <strong>${mySigned}</strong> on ${new Date(mySignedAt).toLocaleDateString('en-NG')}.</div>`
+      : `<div class="form-group">
+          <label class="form-label">Type your full legal name to sign</label>
+          <input class="form-input" id="agreement-sign-input" placeholder="e.g. John A. Doe">
+          <div style="font-size:.72rem;color:var(--muted);margin-top:6px">By typing your name and clicking Sign, you're electronically signing this agreement.</div>
+        </div>
+        <button class="btn btn-primary" onclick="submitAgreementSignature(${tenancyId})">✍️ Sign Agreement</button>`
+    }
+  `;
+}
+
+async function submitAgreementSignature(tenancyId) {
+  const input = document.getElementById('agreement-sign-input');
+  const signature = input ? input.value.trim() : '';
+  if (!signature) { toast('Please type your full name to sign', 'error'); return; }
+  const d = await GeoAPI.ownerFetch('/owner/tenancy/' + tenancyId + '/agreement/sign', { method: 'POST', body: { signature } });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Agreement signed ✓', 'success');
+  openAgreementModal(tenancyId);
 }
 
 // ── Profile ───────────────────────────────────────────────────
