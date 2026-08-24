@@ -287,6 +287,7 @@
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <!-- ═══════════════════════ ADMIN PORTAL ═══════════════════════ -->
@@ -349,6 +350,7 @@
     <div class="nav-item" onclick="nav('properties-mgmt',this)"><span class="nav-icon">🏠</span>Manage Properties</div>
     <div class="nav-item" onclick="nav('tenancy',this)"><span class="nav-icon">📅</span>Tenancy Tracker<span class="nav-badge amber" id="badge-tenancy">0</span></div>
     <div class="nav-item" onclick="nav('activity',this)"><span class="nav-icon">📜</span>Activity Log</div>
+    <div class="nav-item" onclick="nav('support-staff',this)"><span class="nav-icon">🔐</span>Support Staff</div>
     <div class="nav-item" onclick="nav('team',this)"><span class="nav-icon">👥</span>Our Team</div>
     <div class="nav-item" onclick="nav('sync',this)"><span class="nav-icon">🔗</span>Website Sync</div>
     <div class="nav-item" onclick="nav('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
@@ -723,7 +725,44 @@
         </div>
       </div>
 
-      <!-- ══ TEAM MANAGEMENT ══ -->
+      <div id="page-support-staff" class="page">
+        <div class="section-card">
+          <div class="section-header">
+            <div><div class="section-title">Support Staff</div><div class="section-sub">Everyone listed here can sign into the shared "GeoEstate Support" chat app with their own authenticator app — no shared password, no waiting on an emailed code.</div></div>
+            <button class="btn btn-primary btn-sm" onclick="openAddStaffModal()">+ Add Staff Member</button>
+          </div>
+          <div id="support-staff-list" style="max-height:70vh;overflow-y:auto">
+            <div class="empty-state"><div class="empty-state-icon">🔐</div><div>Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Staff Modal -->
+      <div class="modal-overlay" id="add-staff-modal" style="display:none">
+        <div class="modal" style="max-width:420px">
+          <div class="modal-header">
+            <div class="modal-title">Add Staff Member</div>
+            <button class="modal-close" onclick="document.getElementById('add-staff-modal').style.display='none'">✕</button>
+          </div>
+          <div class="modal-body" id="add-staff-body">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input class="form-input" id="staff-name" placeholder="e.g. Adejumo Aminat">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" id="staff-email" type="email" placeholder="their.email@example.com">
+              <div style="font-size:.72rem;color:var(--a-subtle);margin-top:6px">Just their identity in the system — the code comes from their authenticator app, not this email.</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('add-staff-modal').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" id="add-staff-submit-btn" onclick="submitAddStaff()">Generate Setup Code</button>
+          </div>
+        </div>
+      </div>
+
+
             <div id="adm-page-team" class="page">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div>
@@ -1322,7 +1361,7 @@ async function tryRestoreAdminSession(){
 document.addEventListener('DOMContentLoaded', tryRestoreAdminSession);
 
 // ══ NAV ══
-const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',activity:'Activity Log',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
+const pageTitles={overview:'Overview',registrations:'Registrations','id-queue':'Identity Verification Queue','prop-queue':'Property Listing Queue',users:'Verified Users',disputes:'Disputes & Fraud',transactions:'Transaction Ledger',lawyers:'Lawyer Panel',payments:'Manual Payment Confirmation','properties-mgmt':'Property Management',tenancy:'Tenancy Tracker',activity:'Activity Log','support-staff':'Support Staff',team:'Team Management',sync:'Website Sync',settings:'Settings',team:'Team Management'};
 function nav(page,el){
   // Only touch pages INSIDE admin-root to avoid conflicting with website pages
   const adminRoot = document.getElementById('admin-root');
@@ -1338,6 +1377,7 @@ function nav(page,el){
   if(page==='team') renderTeam();
   if(page==='registrations') renderRegistrations();
   if(page==='activity') loadActivityLog();
+  if(page==='support-staff') loadSupportStaff();
 }
 
 // ══ CLOCK ══
@@ -2387,6 +2427,125 @@ async function loadActivityLog() {
   } catch(e) {
     list.innerHTML = '<div class="empty-state">Could not load activity log: ' + (e.message||'').replace(/</g,'&lt;') + '</div>';
   }
+}
+
+// ── Support Staff (TOTP authenticator-app login for the shared support inbox) ──
+async function loadSupportStaff() {
+  const list = document.getElementById('support-staff-list');
+  try {
+    const res = await fetch(GEO_API + '/admin/support-staff', { headers: geoHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const staff = data.staff || [];
+    if (!staff.length) {
+      list.innerHTML = '<div class="empty-state">No staff enrolled yet — click "+ Add Staff Member" to get started.</div>';
+      return;
+    }
+    list.innerHTML = staff.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 4px;border-bottom:1px solid var(--a-border)">
+        <div style="min-width:0">
+          <div style="font-weight:700;color:var(--a-text);display:flex;align-items:center;gap:8px">
+            ${(s.name||'').replace(/</g,'&lt;')}
+            ${s.revoked ? '<span style="font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#fee2e2;color:#991b1b">Revoked</span>' : ''}
+          </div>
+          <div style="font-size:.8rem;color:var(--a-subtle)">${(s.email||'').replace(/</g,'&lt;')}</div>
+          <div style="font-size:.72rem;color:var(--a-subtle);margin-top:3px">Last sign-in: ${s.last_login_at ? new Date(s.last_login_at).toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Never'}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-outline btn-sm" onclick="regenerateStaffCredential(${s.id}, '${(s.name||'').replace(/'/g,"\\'")}')">🔄 Reset</button>
+          ${!s.revoked ? `<button class="btn btn-outline btn-sm" style="color:#b91c1c" onclick="revokeStaffAccess(${s.id}, '${(s.name||'').replace(/'/g,"\\'")}')">Revoke</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="empty-state">Could not load support staff: ' + (e.message||'').replace(/</g,'&lt;') + '</div>';
+  }
+}
+
+function openAddStaffModal() {
+  document.getElementById('add-staff-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" id="staff-name" placeholder="e.g. Adejumo Aminat">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="staff-email" type="email" placeholder="their.email@example.com">
+      <div style="font-size:.72rem;color:var(--a-subtle);margin-top:6px">Just their identity in the system — the code comes from their authenticator app, not this email.</div>
+    </div>
+  `;
+  document.getElementById('add-staff-submit-btn').style.display = '';
+  document.getElementById('add-staff-submit-btn').textContent = 'Generate Setup Code';
+  document.getElementById('add-staff-submit-btn').onclick = submitAddStaff;
+  document.getElementById('add-staff-modal').style.display = 'flex';
+}
+
+async function submitAddStaff() {
+  const name = document.getElementById('staff-name').value.trim();
+  const email = document.getElementById('staff-email').value.trim();
+  if (!name || !email) { adminToast('Enter a name and email', 'error'); return; }
+  const btn = document.getElementById('add-staff-submit-btn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const res = await fetch(GEO_API + '/admin/support-staff', { method: 'POST', headers: geoHeaders(), body: JSON.stringify({ name, email }) });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Could not enroll staff member');
+    showStaffQrSetup(name, email, d.otpauth_uri, d.secret);
+    loadSupportStaff();
+    addSyncLog('Support staff enrolled: ' + name);
+  } catch(e) {
+    adminToast(e.message || 'Could not enroll staff member', 'error');
+  }
+  btn.disabled = false;
+}
+
+async function regenerateStaffCredential(id, name) {
+  if (!confirm('Reset ' + name + '\'s sign-in credential? Their current authenticator code will stop working immediately.')) return;
+  try {
+    const res = await fetch(GEO_API + '/admin/support-staff/' + id + '/regenerate', { method: 'POST', headers: geoHeaders() });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Could not reset credential');
+    document.getElementById('add-staff-modal').style.display = 'flex';
+    showStaffQrSetup(name, null, d.otpauth_uri, d.secret);
+    loadSupportStaff();
+    addSyncLog('Support staff credential reset: ' + name);
+  } catch(e) {
+    adminToast(e.message || 'Could not reset credential', 'error');
+  }
+}
+
+async function revokeStaffAccess(id, name) {
+  if (!confirm('Revoke ' + name + '\'s access to the support inbox? They will no longer be able to sign in.')) return;
+  try {
+    const res = await fetch(GEO_API + '/admin/support-staff/' + id, { method: 'DELETE', headers: geoHeaders() });
+    if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Could not revoke access'); }
+    adminToast(name + '\'s access revoked', 'success');
+    loadSupportStaff();
+    addSyncLog('Support staff access revoked: ' + name);
+  } catch(e) {
+    adminToast(e.message || 'Could not revoke access', 'error');
+  }
+}
+
+// Shows the QR code + manual-entry secret once, right after enrollment or a
+// credential reset — this is the only time the secret is ever available;
+// the list/GET endpoint never returns it again after this.
+function showStaffQrSetup(name, email, otpauthUri, secret) {
+  const body = document.getElementById('add-staff-body');
+  body.innerHTML = `
+    <div style="text-align:center">
+      <div style="font-weight:700;color:var(--a-text);margin-bottom:4px">${name.replace(/</g,'&lt;')}${email ? ' · ' + email.replace(/</g,'&lt;') : ''}</div>
+      <div style="font-size:.82rem;color:var(--a-subtle);margin-bottom:16px">Have them open Google Authenticator, Authy, or Microsoft Authenticator, and scan this code now — it's only shown once.</div>
+      <div id="staff-qr-code" style="display:flex;justify-content:center;margin-bottom:14px"></div>
+      <div style="font-size:.72rem;color:var(--a-subtle);margin-bottom:4px">Can't scan? Enter this key manually:</div>
+      <code style="display:inline-block;background:var(--a-input-bg);padding:8px 14px;border-radius:8px;font-size:.86rem;letter-spacing:1px;word-break:break-all">${secret}</code>
+    </div>
+  `;
+  new QRCode(document.getElementById('staff-qr-code'), { text: otpauthUri, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  const btn = document.getElementById('add-staff-submit-btn');
+  btn.textContent = 'Done';
+  btn.disabled = false;
+  btn.onclick = () => { document.getElementById('add-staff-modal').style.display = 'none'; };
 }
 
 // Push a local change (confirm/release/dispute/manual-add) back to the DB so
