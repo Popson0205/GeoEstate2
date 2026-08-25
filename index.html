@@ -1916,6 +1916,7 @@ document.addEventListener('click', function(e){
         <button class="profile-tab-btn" data-tab="settings" onclick="showProfileTab('settings')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">⚙️ Account Settings</button>
         <button class="profile-tab-btn" data-tab="notifs" onclick="showProfileTab('notifs')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🔔 Notifications</button>
         <button class="profile-tab-btn" data-tab="messages" onclick="showProfileTab('messages')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">💬 Messages</button>
+        <button class="profile-tab-btn" data-tab="tenancy" onclick="showProfileTab('tenancy')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🏠 My Tenancy</button>
         <button class="profile-tab-btn" data-tab="security" onclick="showProfileTab('security')" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--text-primary)">🔒 Security</button>
         <div style="height:1px;background:var(--border-subtle);margin:6px 4px"></div>
         <button onclick="goManageProperty()" style="text-align:left;padding:11px 14px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:.86rem;font-weight:700;color:var(--geo-green-600)" id="profile-manage-property-link">🏠 Manage My Properties</button>
@@ -1962,6 +1963,12 @@ document.addEventListener('click', function(e){
         <div class="profile-tab-pane" id="profile-tab-messages" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
           <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:18px">Messages</h2>
           <div id="conversations-list"><div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Loading…</div></div>
+        </div>
+
+        <div class="profile-tab-pane" id="profile-tab-tenancy" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:4px">My Tenancy</h2>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:18px">Any active rent or lease created once a payment on a property you're renting is confirmed.</div>
+          <div id="my-tenancy-list"><div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Loading…</div></div>
         </div>
 
         <div class="profile-tab-pane" id="profile-tab-notifs" style="display:none;background:var(--surface-primary);border-radius:14px;box-shadow:var(--shadow-lifted-card);padding:28px">
@@ -2617,6 +2624,7 @@ function showProfileTab(tab) {
   if (btn) { btn.classList.add('active'); btn.style.background = 'var(--geo-green-50)'; btn.style.color = 'var(--geo-green-600)'; }
   if (tab === 'notifs') renderProfileNotifTab();
   if (tab === 'messages') renderConversationsList();
+  if (tab === 'tenancy') renderMyTenancyTab();
 }
 
 function renderProfileNotifTab() {
@@ -2699,6 +2707,70 @@ function closeChatModal() {
   _chatPollTimer = null;
 }
 
+// The customer-facing e-signature modal, reused from My Tenancy. This was
+// originally only built in owner-dashboard.html, using classes/variables
+// (.modal-overlay, var(--muted), var(--red), etc.) that don't exist
+// anywhere in this file — rebuilt here matching the same inline-style
+// pattern openChatModal above already uses successfully in this exact
+// file, not a copy-paste of the owner-dashboard version.
+async function openAgreementModal(tenancyId) {
+  let modal = document.getElementById('agreement-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'agreement-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div style="width:100%;max-width:560px;max-height:85vh;background:var(--surface-primary);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lifted-card)">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+        <div style="font-weight:800;font-size:.95rem">Tenancy Agreement</div>
+        <button onclick="document.getElementById('agreement-modal').style.display='none'" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted)">✕</button>
+      </div>
+      <div id="agreement-modal-body" style="padding:20px;overflow-y:auto">
+        <div style="text-align:center;padding:24px;color:var(--text-muted)">Loading…</div>
+      </div>
+    </div>
+  `;
+  const d = await GeoAPI.ownerFetch('/owner/tenancy/' + tenancyId + '/agreement').catch(e => ({ error: e.message }));
+  const body = document.getElementById('agreement-modal-body');
+  if (d.error) {
+    body.innerHTML = `<div style="color:var(--red)">${d.error}</div>`;
+    return;
+  }
+  const ag = d.agreement;
+  const role = d.role;
+  const mySigned = role === 'owner' ? ag.owner_signature : ag.tenant_signature;
+  const mySignedAt = role === 'owner' ? ag.owner_signed_at : ag.tenant_signed_at;
+  body.innerHTML = `
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:.82rem;line-height:1.6;background:var(--surface-secondary);padding:16px;border-radius:8px;margin-bottom:16px">${ag.content.replace(/</g,'&lt;')}</pre>
+    <div style="display:flex;gap:20px;margin-bottom:16px;font-size:.82rem;color:var(--text-primary)">
+      <div>Owner: ${ag.owner_signature ? '✅ Signed (' + new Date(ag.owner_signed_at).toLocaleDateString('en-NG') + ')' : '⏳ Not signed yet'}</div>
+      <div>Tenant: ${ag.tenant_signature ? '✅ Signed (' + new Date(ag.tenant_signed_at).toLocaleDateString('en-NG') + ')' : '⏳ Not signed yet'}</div>
+    </div>
+    ${mySigned
+      ? `<div style="padding:12px;background:var(--geo-green-50);border-radius:8px;font-size:.85rem">✅ You signed this as <strong>${mySigned}</strong> on ${new Date(mySignedAt).toLocaleDateString('en-NG')}.</div>`
+      : `<div class="form-group">
+          <label style="display:block;font-size:.82rem;font-weight:700;margin-bottom:6px">Type your full legal name to sign</label>
+          <input id="agreement-sign-input" placeholder="e.g. John A. Doe" style="width:100%;padding:10px 14px;border:none;border-radius:8px;background:var(--surface-secondary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default)">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-top:6px">By typing your name and clicking Sign, you're electronically signing this agreement.</div>
+        </div>
+        <button onclick="submitAgreementSignature(${tenancyId})" style="margin-top:12px;padding:10px 20px;background:var(--geo-green-600);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--font-sans)">✍️ Sign Agreement</button>`
+    }
+  `;
+}
+
+async function submitAgreementSignature(tenancyId) {
+  const input = document.getElementById('agreement-sign-input');
+  const signature = input ? input.value.trim() : '';
+  if (!signature) { toast('Please type your full name to sign', 'error'); return; }
+  const d = await GeoAPI.ownerFetch('/owner/tenancy/' + tenancyId + '/agreement/sign', { method: 'POST', body: { signature } });
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Agreement signed ✓', 'success');
+  openAgreementModal(tenancyId);
+}
+
 async function loadChatThread() {
   const modal = document.getElementById('chat-modal');
   if (!modal || modal.style.display === 'none') return;
@@ -2765,6 +2837,50 @@ async function renderConversationsList() {
     `).join('') : `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">No conversations yet — message a property owner to get started.</div>`;
   } catch (e) {
     list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Could not load messages.</div>`;
+  }
+}
+
+// The customer-facing counterpart to the Owner Dashboard's Tenancy Tracker
+// — same status logic, but scoped to whatever the current user is renting
+// rather than what they own. Reuses openAgreementModal() as-is (already
+// built for the owner side) since the backend resolves 'owner' vs 'tenant'
+// role automatically — nothing about the modal itself is owner-specific.
+async function renderMyTenancyTab() {
+  const list = document.getElementById('my-tenancy-list');
+  if (!list || !currentUser) return;
+  try {
+    const d = await GeoAPI.ownerFetch('/owner/my-tenancies');
+    const tenancies = d.tenancies || [];
+    if (!tenancies.length) {
+      list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">No active tenancy yet — this fills in automatically once a rent or lease payment you've made is confirmed.</div>`;
+      return;
+    }
+    const daysUntil = (dateStr) => Math.ceil((new Date(dateStr) - new Date()) / (1000*60*60*24));
+    list.innerHTML = tenancies.map(t => {
+      const days = t.end ? daysUntil(t.end) : null;
+      let pillBg = 'var(--geo-green-50)', pillColor = 'var(--geo-green-600)', pillText = 'Active';
+      if (t.status === 'expired' || (days !== null && days < 0)) { pillBg = '#fee2e2'; pillColor = '#991b1b'; pillText = 'Expired'; }
+      else if (days !== null && days <= 14) { pillBg = '#fef3c7'; pillColor = '#92400e'; pillText = 'Ending Soon'; }
+      else if (t.status === 'packing-out') { pillBg = '#fef3c7'; pillColor = '#92400e'; pillText = 'Packing Out'; }
+      return `
+        <div style="padding:16px 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+            <div>
+              <div style="font-weight:700;font-size:.92rem">${t.property || '—'}</div>
+              <div style="font-size:.78rem;color:var(--text-muted);text-transform:capitalize;margin-top:2px">${t.type || 'rent'} · Owner: ${t.owner || '—'}</div>
+            </div>
+            <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;background:${pillBg};color:${pillColor};white-space:nowrap">${pillText}</span>
+          </div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:10px">
+            ${t.start ? new Date(t.start).toLocaleDateString('en-NG') : '—'} → ${t.end ? new Date(t.end).toLocaleDateString('en-NG') : '—'}
+            ${days !== null ? ' · ' + (days >= 0 ? days + ' days left' : 'Overdue') : ''}
+          </div>
+          <button onclick="openAgreementModal(${t.id})" style="padding:8px 16px;background:transparent;color:var(--geo-green-600);border:1.5px solid var(--geo-green-600);border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;font-family:var(--font-sans)">📝 View / Sign Agreement</button>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:.85rem;padding:24px 0">Could not load your tenancy.</div>`;
   }
 }
 
