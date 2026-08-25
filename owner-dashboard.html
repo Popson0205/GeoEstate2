@@ -2132,6 +2132,27 @@ async function openAgreementModal(tenancyId) {
     </div>
     ${mySigned
       ? `<div style="padding:12px;background:var(--green-bg);border-radius:8px;font-size:.85rem">✅ You signed this as <strong>${mySigned}</strong> on ${new Date(mySignedAt).toLocaleDateString('en-NG')}.</div>`
+      : role === 'owner'
+      ? `<div class="form-group">
+          <label class="form-label">Type your full legal name to sign</label>
+          <input class="form-input" id="agreement-sign-input" placeholder="e.g. John A. Doe">
+        </div>
+        <div style="margin:16px 0 6px;font-size:.82rem;font-weight:700">Payout account</div>
+        <div style="font-size:.76rem;color:var(--muted);margin-bottom:12px">This is where GeoEstate sends your funds after handover — supplied by you directly, not typed in by our team, since it becomes part of what you're signing.</div>
+        <div class="form-group">
+          <label class="form-label">Bank Name</label>
+          <input class="form-input" id="agreement-bank-name" placeholder="e.g. Guaranty Trust Bank">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Number</label>
+          <input class="form-input" id="agreement-account-number" placeholder="10-digit account number" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Name</label>
+          <input class="form-input" id="agreement-account-name" placeholder="Name on the account">
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px">By typing your name and clicking Sign, you're electronically signing this agreement.</div>
+        <button class="btn btn-primary" onclick="submitAgreementSignature(${tenancyId})">✍️ Sign Agreement</button>`
       : `<div class="form-group">
           <label class="form-label">Type your full legal name to sign</label>
           <input class="form-input" id="agreement-sign-input" placeholder="e.g. John A. Doe">
@@ -2146,7 +2167,21 @@ async function submitAgreementSignature(tenancyId) {
   const input = document.getElementById('agreement-sign-input');
   const signature = input ? input.value.trim() : '';
   if (!signature) { toast('Please type your full name to sign', 'error'); return; }
-  const d = await GeoAPI.ownerFetch('/owner/tenancy/' + tenancyId + '/agreement/sign', { method: 'POST', body: { signature } });
+  const body = { signature };
+  // Bank fields only exist in the DOM when signing as the owner (see the
+  // conditional form above) — this branch is a no-op for a tenant signing.
+  const bankNameEl = document.getElementById('agreement-bank-name');
+  if (bankNameEl) {
+    const bank_name = bankNameEl.value.trim();
+    const account_number = document.getElementById('agreement-account-number').value.trim();
+    const account_name = document.getElementById('agreement-account-name').value.trim();
+    if (!bank_name || !account_number || !account_name) {
+      toast('Bank name, account number, and account name are all required to sign', 'error');
+      return;
+    }
+    Object.assign(body, { bank_name, account_number, account_name });
+  }
+  const d = await GeoAPI.ownerFetch('/owner/tenancy/' + tenancyId + '/agreement/sign', { method: 'POST', body });
   if (d.error) { toast(d.error, 'error'); return; }
   toast('Agreement signed ✓', 'success');
   openAgreementModal(tenancyId);
