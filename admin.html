@@ -2487,7 +2487,7 @@ async function submitAddStaff() {
     const res = await fetch(GEO_API + '/admin/support-staff', { method: 'POST', headers: geoHeaders(), body: JSON.stringify({ name, email }) });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || 'Could not enroll staff member');
-    showStaffQrSetup(name, email, d.otpauth_uri, d.secret);
+    showStaffQrSetup(name, email, d.otpauth_uri, d.secret, d.setup_url);
     loadSupportStaff();
     addSyncLog('Support staff enrolled: ' + name);
   } catch(e) {
@@ -2503,7 +2503,7 @@ async function regenerateStaffCredential(id, name) {
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || 'Could not reset credential');
     document.getElementById('add-staff-modal').style.display = 'flex';
-    showStaffQrSetup(name, null, d.otpauth_uri, d.secret);
+    showStaffQrSetup(name, null, d.otpauth_uri, d.secret, d.setup_url);
     loadSupportStaff();
     addSyncLog('Support staff credential reset: ' + name);
   } catch(e) {
@@ -2527,11 +2527,21 @@ async function revokeStaffAccess(id, name) {
 // Shows the QR code + manual-entry secret once, right after enrollment or a
 // credential reset — this is the only time the secret is ever available;
 // the list/GET endpoint never returns it again after this.
-function showStaffQrSetup(name, email, otpauthUri, secret) {
+function showStaffQrSetup(name, email, otpauthUri, secret, setupUrl) {
   const body = document.getElementById('add-staff-body');
   body.innerHTML = `
     <div style="text-align:center">
       <div style="font-weight:700;color:var(--a-text);margin-bottom:4px">${name.replace(/</g,'&lt;')}${email ? ' · ' + email.replace(/</g,'&lt;') : ''}</div>
+      ${setupUrl ? `
+        <div style="font-size:.82rem;color:var(--a-subtle);margin:12px 0 10px">Not with them in person? Send this link instead — it shows the same QR code and a manual-entry key on their own phone. Valid for 7 days.</div>
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <input class="form-input" readonly value="${setupUrl}" style="font-size:.78rem" onclick="this.select()">
+          <button class="btn btn-primary btn-sm" style="flex-shrink:0" onclick="copyStaffSetupLink('${setupUrl}')">Copy Link</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--a-subtle);font-size:.76rem">
+          <div style="flex:1;height:1px;background:var(--a-border)"></div>OR SET UP NOW IN PERSON<div style="flex:1;height:1px;background:var(--a-border)"></div>
+        </div>
+      ` : ''}
       <div style="font-size:.82rem;color:var(--a-subtle);margin-bottom:16px">Have them open Google Authenticator, Authy, or Microsoft Authenticator, and scan this code now — it's only shown once.</div>
       <div id="staff-qr-code" style="display:flex;justify-content:center;margin-bottom:14px"></div>
       <div style="font-size:.72rem;color:var(--a-subtle);margin-bottom:4px">Can't scan? Enter this key manually:</div>
@@ -2543,6 +2553,14 @@ function showStaffQrSetup(name, email, otpauthUri, secret) {
   btn.textContent = 'Done';
   btn.disabled = false;
   btn.onclick = () => { document.getElementById('add-staff-modal').style.display = 'none'; };
+}
+
+function copyStaffSetupLink(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    adminToast('Setup link copied — send it via WhatsApp, email, or SMS', 'success');
+  }).catch(() => {
+    adminToast('Could not copy — select and copy the link manually', 'error');
+  });
 }
 
 // Push a local change (confirm/release/dispute/manual-add) back to the DB so

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GeoEstate Support — Account Setup</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="geoestate-theme.css?v=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--geo-green-dark);
+    color: #f4f9f6;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 20px 60px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: #0f2417;
+    border-radius: 20px;
+    padding: 32px 26px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.4);
+  }
+  .logo { font-size: 34px; text-align: center; margin-bottom: 8px; }
+  h1 { font-size: 20px; font-weight: 800; text-align: center; margin: 0 0 4px; }
+  .staff-name { text-align: center; color: var(--geo-green-300); font-weight: 700; font-size: 15px; margin-bottom: 24px; }
+  .sub { font-size: 13.5px; color: #a9c2b3; text-align: center; line-height: 1.6; margin-bottom: 28px; }
+  .qr-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+  .qr-wrap > div { background: #fff; padding: 14px; border-radius: 14px; }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; color: #6f8a79; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+  .manual-label { font-size: 12.5px; color: #a9c2b3; margin-bottom: 8px; text-align: center; }
+  .secret-box {
+    display: flex; align-items: center; gap: 10px;
+    background: #12291a; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 6px;
+  }
+  .secret-text { flex: 1; font-family: monospace; font-size: 15px; letter-spacing: 1.5px; word-break: break-all; }
+  .copy-btn { background: var(--geo-green-400); color: #06170d; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 12.5px; cursor: pointer; flex-shrink: 0; }
+  .steps { margin-top: 28px; padding: 18px; background: #12291a; border-radius: 14px; }
+  .steps-title { font-weight: 700; font-size: 13.5px; margin-bottom: 10px; }
+  .steps ol { margin: 0; padding-left: 20px; font-size: 13px; color: #c3d5cb; line-height: 1.8; }
+  .error-box { text-align: center; padding: 20px 0; }
+  .error-box .icon { font-size: 40px; margin-bottom: 10px; }
+  .error-box p { font-size: 14px; color: #a9c2b3; line-height: 1.6; }
+  .loading { text-align: center; padding: 40px 0; color: #a9c2b3; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="loading">Loading your setup details…</div>
+  </div>
+
+<script>
+const API_BASE = 'https://api.geoestate.com.ng';
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const card = document.getElementById('card');
+
+  if (!token) {
+    card.innerHTML = errorHtml('Missing setup link', 'This link is missing its setup code. Ask an admin to resend it.');
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + '/support-staff-setup?token=' + encodeURIComponent(token));
+    const d = await res.json();
+    if (!res.ok || !d.success) throw new Error(d.error || 'This setup link has expired or is no longer valid.');
+
+    card.innerHTML = `
+      <div class="logo">🔐</div>
+      <h1>GeoEstate Support</h1>
+      <div class="staff-name">${esc(d.name)}</div>
+      <div class="sub">Set up your sign-in below. You'll use this every time you open the Support app — your email plus a fresh 6-digit code from your authenticator app.</div>
+      <div class="qr-wrap"><div id="qr"></div></div>
+      <div class="divider">or enter manually</div>
+      <div class="manual-label">Open Google Authenticator, Authy, or Microsoft Authenticator → "Enter setup key" / "Manual entry" → paste this:</div>
+      <div class="secret-box">
+        <div class="secret-text" id="secret">${d.secret}</div>
+        <button class="copy-btn" id="copy-btn">Copy</button>
+      </div>
+      <div class="steps">
+        <div class="steps-title">To finish setup</div>
+        <ol>
+          <li>Open your authenticator app of choice</li>
+          <li>Scan the code above, or enter the key manually — account name: <strong>${esc(d.email)}</strong></li>
+          <li>Open the GeoEstate Support app, enter your email and the 6-digit code showing in your authenticator app</li>
+        </ol>
+      </div>
+    `;
+    new QRCode(document.getElementById('qr'), { text: d.otpauth_uri, width: 190, height: 190, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    document.getElementById('copy-btn').onclick = () => {
+      navigator.clipboard.writeText(d.secret).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+      });
+    };
+  } catch (e) {
+    card.innerHTML = errorHtml('Link expired or invalid', e.message || 'This setup link is no longer valid — ask an admin to send you a new one.');
+  }
+}
+
+function errorHtml(title, message) {
+  return `
+    <div class="error-box">
+      <div class="icon">⚠️</div>
+      <h1>${esc(title)}</h1>
+      <p>${esc(message)}</p>
+    </div>
+  `;
+}
+
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+init();
+</script>
+</body>
+</html>
