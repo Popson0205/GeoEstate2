@@ -2353,7 +2353,17 @@ function mapPaymentRow(r) {
     status: r.status === 'pending_confirmation' ? 'pending' : r.status,
     notified: r.created_at || '', confirmedAt: r.confirmed_at || '', releasedAt: r.released_at || '',
     notes: r.release_note || '', receiptUrl: r.receipt_url || '',
-    propertyId: r.property_id || '', tenancyId: r.tenancy_id || '', unitId: r.unit_id || ''
+    propertyId: r.property_id || '', tenancyId: r.tenancy_id || '', unitId: r.unit_id || '',
+    // Joined in from GET /admin/payments (tenancy_agreements, via the
+    // resolved tenancy for this payment's ref) — lets the release modal
+    // show whether the agreement is genuinely signed and where the owner
+    // themselves said funds should go, not just the free-text ownerAcct
+    // field above (which admin typed in manually, usually secondhand).
+    ownerSigned: !!r.owner_signature, ownerSignedAt: r.owner_signed_at || '',
+    tenantSigned: !!r.tenant_signature, tenantSignedAt: r.tenant_signed_at || '',
+    agreementBankName: r.owner_bank_name || '', agreementAccountNumber: r.owner_account_number || '',
+    agreementAccountName: r.owner_account_name || '',
+    handoverConfirmedAt: r.handover_confirmed_at || '', handoverConfirmedBy: r.handover_confirmed_by || ''
   };
 }
 
@@ -2730,29 +2740,86 @@ async function confirmPaymentAdmin(idx) {
 
 function openReleaseModal(idx) {
   const p = manualPayments[idx];
+  const bothSigned = p.ownerSigned && p.tenantSigned;
   document.getElementById('modal-release-body').innerHTML = `
-    <div style="background:var(--adm-surface-2);border-radius:10px;padding:16px;margin-bottom:16px">
-      <div style="font-size:.72rem;font-weight:700;color:var(--adm-text-subtle);text-transform:uppercase;margin-bottom:10px">Release Breakdown</div>
+    <div style="background:${bothSigned ? 'var(--adm-green-bg, #f0fdf4)' : 'var(--adm-amber-bg, #fffbeb)'};border-radius:10px;padding:14px 16px;margin-bottom:14px;box-shadow:inset 0 0 0 1px ${bothSigned ? '#86efac' : '#fcd34d'}">
+      <div style="font-size:.72rem;font-weight:700;color:${bothSigned ? '#15803d' : '#92400e'};text-transform:uppercase;margin-bottom:8px">Tenancy Agreement</div>
+      <div style="display:flex;gap:20px;font-size:.82rem">
+        <div>Owner: ${p.ownerSigned ? '✅ Signed (' + new Date(p.ownerSignedAt).toLocaleDateString('en-NG') + ')' : '⏳ Not signed'}</div>
+        <div>Tenant: ${p.tenantSigned ? '✅ Signed (' + new Date(p.tenantSignedAt).toLocaleDateString('en-NG') + ')' : '⏳ Not signed'}</div>
+      </div>
+      ${!bothSigned ? `<div style="font-size:.76rem;color:#92400e;margin-top:8px">⚠️ Agreement isn't fully signed yet — confirm this is genuinely ready before releasing.</div>` : ''}
+    </div>
+    <div style="background:var(--adm-surface-2, #f3f4f6);border-radius:10px;padding:16px;margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--adm-text-subtle, #6b7280);text-transform:uppercase;margin-bottom:10px">Release Breakdown</div>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:.85rem">
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle)">Total Received</span><span style="font-weight:700">${fmtNaira(p.amount)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle)">Owner Gets (90%)</span><span style="font-weight:800;color:#1a6b3c;font-size:1rem">${fmtNaira(p.ownerAmt)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle)">GeoEstate Fee (10%)</span><span style="font-weight:700">${fmtNaira(p.fee)}</span></div>
-        <div style="height:1px;background:var(--adm-surface-2)"></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle)">Transfer to</span><span style="font-weight:600">${p.owner}</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle)">Account</span><span style="font-weight:600;font-size:.82rem">${p.ownerAcct}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle, #6b7280)">Total Received</span><span style="font-weight:700">${fmtNaira(p.amount)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle, #6b7280)">Owner Gets (90%)</span><span style="font-weight:800;color:#1a6b3c;font-size:1rem">${fmtNaira(p.ownerAmt)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle, #6b7280)">GeoEstate Fee (10%)</span><span style="font-weight:700">${fmtNaira(p.fee)}</span></div>
+        <div style="height:1px;background:var(--adm-surface-2, #e5e7eb)"></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle, #6b7280)">Transfer to</span><span style="font-weight:600">${p.owner}</span></div>
+        ${p.agreementAccountNumber
+          ? `<div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle, #6b7280)">Account (owner-verified ✓)</span><span style="font-weight:700">${p.agreementAccountName} · ${p.agreementBankName} · ${p.agreementAccountNumber}</span></div>`
+          : `<div style="display:flex;justify-content:space-between"><span style="color:var(--adm-text-subtle, #6b7280)">Account (admin-entered, unverified)</span><span style="font-weight:600;font-size:.82rem">${p.ownerAcct || '—'}</span></div>`
+        }
       </div>
     </div>
-    <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px;font-size:.82rem;color:#15803d;box-shadow:inset 0 0 0 1px #86efac;margin-bottom:14px">
-      ✅ <strong>Action required:</strong> Manually transfer <strong>${fmtNaira(p.ownerAmt)}</strong> to the owner's account above via your bank app, then click Release below to record it.
+    <div style="background:var(--adm-surface-2, #f3f4f6);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--adm-text-subtle, #6b7280);text-transform:uppercase;margin-bottom:4px">Handover</div>
+        <div style="font-size:.82rem">${p.handoverConfirmedAt ? '✅ Confirmed ' + new Date(p.handoverConfirmedAt).toLocaleDateString('en-NG') + ' by ' + p.handoverConfirmedBy : '⏳ Not marked yet'}</div>
+      </div>
+      ${!p.handoverConfirmedAt ? `<button class="btn btn-outline btn-sm" onclick="confirmHandover(${idx})">Mark Complete</button>` : ''}
+    </div>
+    <div id="release-confirm-area">
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px;font-size:.82rem;color:#15803d;box-shadow:inset 0 0 0 1px #86efac;margin-bottom:14px">
+        ✅ <strong>Action required:</strong> Manually transfer <strong>${fmtNaira(p.ownerAmt)}</strong> to the owner's account above via your bank app, then click Release below to record it.
+      </div>
+      <label class="form-label">Transfer Receipt / Reference</label>
+      <input class="form-input" id="release-receipt-${idx}" placeholder="e.g. Bank transfer ref: FBN2026XXXXXX">
+    </div>
+  `;
+  document.getElementById('modal-release-footer').innerHTML = `
+    <button class="btn btn-primary btn-lg" style="flex:1;justify-content:center" onclick="confirmReleaseStep(${idx})">💸 Mark as Released</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-release')">Cancel</button>
+  `;
+  openModal('modal-release');
+}
+
+// Swaps the release button for a real, explicit "are you sure" step
+// showing the exact amount and recipient one more time — this moves real
+// money and can't be undone from within the app, so a single click was too
+// easy to fire by accident.
+function confirmReleaseStep(idx) {
+  const p = manualPayments[idx];
+  document.getElementById('release-confirm-area').innerHTML = `
+    <div style="background:var(--adm-red-bg, #fef2f2);border-radius:8px;padding:16px;box-shadow:inset 0 0 0 1px #fca5a5;margin-bottom:14px;text-align:center">
+      <div style="font-size:.9rem;font-weight:800;color:#991b1b;margin-bottom:6px">Confirm Release</div>
+      <div style="font-size:.85rem;color:#7f1d1d">You're about to send <strong>${fmtNaira(p.ownerAmt)}</strong> to <strong>${p.owner}</strong>. This cannot be undone from here.</div>
     </div>
     <label class="form-label">Transfer Receipt / Reference</label>
     <input class="form-input" id="release-receipt-${idx}" placeholder="e.g. Bank transfer ref: FBN2026XXXXXX">
   `;
   document.getElementById('modal-release-footer').innerHTML = `
-    <button class="btn btn-primary btn-lg" style="flex:1;justify-content:center" onclick="releasePayment(${idx})">💸 Mark as Released</button>
-    <button class="btn btn-ghost" onclick="closeModal('modal-release')">Cancel</button>
+    <button class="btn btn-primary btn-lg" style="flex:1;justify-content:center;background:#b91c1c" onclick="releasePayment(${idx})">✅ Yes, Release Funds</button>
+    <button class="btn btn-ghost" onclick="openReleaseModal(${idx})">Back</button>
   `;
-  openModal('modal-release');
+}
+
+async function confirmHandover(idx) {
+  const p = manualPayments[idx];
+  try {
+    const res = await fetch(GEO_API + '/admin/payment/' + encodeURIComponent(p.ref) + '/handover', { method: 'POST', headers: geoHeaders() });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Could not confirm handover');
+    p.handoverConfirmedAt = d.payment?.handover_confirmed_at || new Date().toISOString();
+    p.handoverConfirmedBy = d.payment?.handover_confirmed_by || '';
+    adminToast('Handover confirmed — both parties notified', 'success');
+    addSyncLog('Handover confirmed: ' + p.ref);
+    openReleaseModal(idx);
+  } catch (e) {
+    adminToast(e.message || 'Could not confirm handover', 'error');
+  }
 }
 
 async function releasePayment(idx) {
