@@ -3845,6 +3845,12 @@ async function loadNotificationsFromAPI() {
   } catch (e) { /* keep showing whatever was last loaded rather than clearing on a transient failure */ }
   renderNavAuth();
   if (document.getElementById('profile-tab-notifs')?.classList.contains('active')) renderProfileNotifTab();
+  // The bell-icon dropdown previously never got refreshed here at all — if
+  // it was open when "Mark all read" was clicked, the backend update went
+  // through correctly but the panel just sat there showing the old unread
+  // state, indistinguishable from the request having failed.
+  const dropdown = document.getElementById('notif-dropdown');
+  if (dropdown && dropdown.style.display !== 'none') renderNotifPanel();
 }
 
 function timeAgo(dateStr) {
@@ -3882,8 +3888,13 @@ function renderNotifPanel() {
 
 async function markAllNotifsRead() {
   if (!currentUser) return;
-  try { await GeoAPI.markNotificationsRead(); } catch (e) {}
-  await loadNotificationsFromAPI();
+  try {
+    await GeoAPI.markNotificationsRead();
+    await loadNotificationsFromAPI();
+    toast('All caught up', 'success');
+  } catch (e) {
+    toast('Could not mark notifications as read — check your connection', 'error');
+  }
 }
 
 function toggleNotifPanel(e) {
