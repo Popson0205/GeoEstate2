@@ -968,43 +968,83 @@ document.addEventListener('click', function(e){
       <p class="section-subtitle" style="margin:0 auto">Whether you're renting a studio in Lagos or buying land in Abuja — every transaction goes through the same verified, escrow-backed process.</p>
     </div>
 
-    <div class="grid-4">
-      <div class="geo-card" style="padding:var(--space-6);cursor:pointer" onclick="showPage('map')">
-        <div style="font-size:2.5rem;margin-bottom:var(--space-4)">🏠</div>
-        <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-2)">Rent</h3>
-        <p style="font-size:0.85rem;color:var(--text-tertiary);line-height:1.6;margin-bottom:var(--space-4)">Monthly to yearly residential rentals. Verified landlord, signed agreement, escrow deposit.</p>
+    <div class="grid-4 txn-type-grid">
+      <div class="geo-card txn-type-card" onclick="showPage('map')">
+        <div class="txn-type-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg>
+        </div>
+        <h3>Rent</h3>
+        <p>Monthly to yearly residential rentals. Verified landlord, signed agreement, escrow deposit.</p>
         <div class="flex items-center gap-2">
-          <span class="chip">📍 Nationwide</span>
-          <span class="chip">🔒 Escrow</span>
+          <span class="chip">Nationwide</span>
+          <span class="chip">Escrow</span>
         </div>
       </div>
-      <div class="geo-card" style="padding:var(--space-6);cursor:pointer" onclick="showPage('map')">
-        <div style="font-size:2.5rem;margin-bottom:var(--space-4)">📋</div>
-        <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-2)">Lease</h3>
-        <p style="font-size:0.85rem;color:var(--text-tertiary);line-height:1.6;margin-bottom:var(--space-4)">2–10 year commercial or residential leases. Lawyer-drafted agreements. Staged payments.</p>
+      <div class="geo-card txn-type-card" onclick="showPage('map')">
+        <div class="txn-type-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M15 3v4h4M9 13h6M9 17h6"/></svg>
+        </div>
+        <h3>Lease</h3>
+        <p>2–10 year commercial or residential leases. Lawyer-drafted agreements. Staged payments.</p>
         <div class="flex items-center gap-2">
-          <span class="chip">⚖️ Lawyer</span>
-          <span class="chip">📄 Agreement</span>
+          <span class="chip">Lawyer</span>
+          <span class="chip">Agreement</span>
         </div>
       </div>
-      <div class="geo-card" style="padding:var(--space-6);cursor:pointer" onclick="showPage('map')">
-        <div style="font-size:2.5rem;margin-bottom:var(--space-4)">🔑</div>
-        <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-2)">Buy</h3>
-        <p style="font-size:0.85rem;color:var(--text-tertiary);line-height:1.6;margin-bottom:var(--space-4)">Full property purchase. Title verified, C of O confirmed, Deed of Assignment on-platform.</p>
+      <div class="geo-card txn-type-card" onclick="showPage('map')">
+        <div class="txn-type-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 4h4v4M13 7l2.5 2.5"/></svg>
+        </div>
+        <h3>Buy</h3>
+        <p>Full property purchase. Title verified, C of O confirmed, Deed of Assignment on-platform.</p>
         <div class="flex items-center gap-2">
-          <span class="chip">📜 C of O</span>
-          <span class="chip">🛡️ Verified</span>
+          <span class="chip">C of O</span>
+          <span class="chip">Verified</span>
         </div>
       </div>
-      <div class="geo-card" style="padding:var(--space-6);cursor:pointer;background:linear-gradient(135deg,var(--geo-green-600),var(--geo-green-700));color:white" onclick="goListProperty()">
-        <div style="font-size:2.5rem;margin-bottom:var(--space-4)">💰</div>
-        <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:var(--space-2);color:white">Sell</h3>
-        <p style="font-size:0.85rem;opacity:0.8;line-height:1.6;margin-bottom:var(--space-4)">List your verified property. Reach qualified, identity-checked buyers nationwide.</p>
+      <div class="geo-card txn-type-card txn-type-card--cta" onclick="goListProperty()">
+        <div class="txn-type-icon txn-type-icon--light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6.5c0-1.9-2.2-3.5-5-3.5S7 4.6 7 6.5 9.2 10 12 10s5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/></svg>
+        </div>
+        <h3>Sell</h3>
+        <p>List your verified property. Reach qualified, identity-checked buyers nationwide.</p>
         <div class="flex items-center gap-2">
-          <span style="background:rgba(255,255,255,0.15);border-radius:999px;padding:3px 10px;font-size:0.78rem;font-weight:600;color:white">10% on close</span>
+          <span class="chip chip--light">10% on close</span>
         </div>
       </div>
     </div>
+
+    <style>
+      .txn-type-grid { gap: 20px; }
+      .txn-type-card {
+        padding: 28px;
+        cursor: pointer;
+        box-shadow: none;
+        border: 1px solid var(--border-subtle);
+      }
+      .txn-type-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); border-color: transparent; }
+      .txn-type-icon {
+        width: 44px; height: 44px;
+        border-radius: 10px;
+        background: var(--verify-dim, rgba(47,158,91,0.12));
+        color: var(--verify);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 18px;
+      }
+      .txn-type-icon svg { width: 22px; height: 22px; }
+      .txn-type-card h3 { font-size: 1.08rem; font-weight: 800; margin-bottom: 8px; color: var(--text-primary); }
+      .txn-type-card p { font-size: 0.85rem; color: var(--text-tertiary); line-height: 1.6; margin-bottom: 16px; }
+      .txn-type-card .chip { background: var(--surface-secondary); color: var(--text-secondary); border: none; }
+
+      .txn-type-card--cta {
+        background: var(--ink);
+        border-color: transparent;
+      }
+      .txn-type-card--cta h3, .txn-type-card--cta p { color: var(--paper); }
+      .txn-type-card--cta p { opacity: 0.72; }
+      .txn-type-icon--light { background: rgba(247,245,239,0.12); color: var(--geo-green-300); }
+      .chip--light { background: rgba(247,245,239,0.14) !important; color: var(--paper) !important; }
+    </style>
   </div>
 
   <!-- HOW IT WORKS -->
@@ -1017,29 +1057,34 @@ document.addEventListener('click', function(e){
       <div class="grid-4" style="position:relative">
         <div class="how-step">
           <div class="how-step-number">1</div>
-          <div class="how-step-icon">🪪</div>
+          <div class="how-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M7 16c.5-1.5 1.8-2 2-2s1.5.5 2 2M15 9h4M15 13h4"/></svg></div>
           <h3>Verify Your Identity</h3>
           <p>Submit your NIN, bio data, and a government ID. Our team cross-checks against NIMC records. No fake names. No ghost landlords.</p>
         </div>
         <div class="how-step">
           <div class="how-step-number">2</div>
-          <div class="how-step-icon">📄</div>
+          <div class="how-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M15 3v4h4M9 13h6M9 17h6"/></svg></div>
           <h3>Submit Property Docs</h3>
           <p>Upload your C of O, Survey Plan, or Deed of Assignment. Our lawyers verify against state land registry records before approval.</p>
         </div>
         <div class="how-step">
           <div class="how-step-number">3</div>
-          <div class="how-step-icon">🤝</div>
+          <div class="how-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12l3 3 7-7"/><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
           <h3>Transact on Platform</h3>
           <p>Both parties sign a digital agreement. Payments are made via bank transfer to GeoEstate's designated account — our dedicated escrow account is currently being processed and will be activated in Phase 2. Zero off-platform payments. Zero illegal fees. The consent agreement prohibits it.</p>
         </div>
         <div class="how-step">
           <div class="how-step-number">4</div>
-          <div class="how-step-icon">🔓</div>
+          <div class="how-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 017.4-2.1"/><circle cx="12" cy="15.5" r="1.5"/></svg></div>
           <h3>Handover & Release</h3>
           <p>Confirm handover on the platform. GeoEstate transfers 90% to the property owner (less any applicable buyer service fee). Both parties receive a signed receipt and document vault. Full escrow automation activates in Phase 2.</p>
         </div>
       </div>
+
+      <style>
+        .how-step-icon { color: var(--verify); margin-bottom: var(--space-3); }
+        .how-step-icon svg { width: 26px; height: 26px; }
+      </style>
     </div>
   </div>
 
@@ -1069,19 +1114,19 @@ document.addEventListener('click', function(e){
   <div style="background:var(--geo-green-600);padding:64px var(--space-8);">
     <div style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-8);text-align:center">
       <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">₦480B+</div>
+        <div style="font-family:var(--font-display);font-size:2.4rem;font-weight:600;color:white;letter-spacing:-0.01em">₦480B+</div>
         <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Lost to property fraud annually in Nigeria</div>
       </div>
       <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">60%</div>
+        <div style="font-family:var(--font-display);font-size:2.4rem;font-weight:600;color:white;letter-spacing:-0.01em">60%</div>
         <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Of Nigerian property deals happen informally</div>
       </div>
       <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">₦0</div>
+        <div style="font-family:var(--font-display);font-size:2.4rem;font-weight:600;color:white;letter-spacing:-0.01em">₦0</div>
         <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Illegal agent fees on GeoEstate — ever</div>
       </div>
       <div>
-        <div style="font-size:2.5rem;font-weight:900;color:white;letter-spacing:-0.03em">72h</div>
+        <div style="font-family:var(--font-display);font-size:2.4rem;font-weight:600;color:white;letter-spacing:-0.01em">72h</div>
         <div style="font-size:0.85rem;color:rgba(255,255,255,0.65);margin-top:4px">Average verification turnaround</div>
       </div>
     </div>
