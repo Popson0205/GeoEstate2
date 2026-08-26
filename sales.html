@@ -537,11 +537,12 @@
                   <th>Property</th>
                   <th>Buyer</th>
                   <th>Amount</th>
+                  <th>Agreement</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody id="txn-tbody">
-                <tr><td colspan="6" style="text-align:center;padding:40px"><div class="loading-spinner"></div></td></tr>
+                <tr><td colspan="7" style="text-align:center;padding:40px"><div class="loading-spinner"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -1129,23 +1130,36 @@
       // .filter(p => p.status === 'confirmed' || p.status === 'released')).
       // Only matching literal 'confirmed' here meant any deal that had
       // already progressed to released dropped out of this tab entirely.
-      ...allPayments.filter(p => p.status === 'confirmed' || p.status === 'released').map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at })),
-      ...allTransactions.filter(t => t.status === 'closed' || t.status === 'escrow' || t.status === 'confirmed').map(t => ({ ref: t.id, property: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at }))
+      // owner_signature/tenant_signature come straight from GET
+      // /admin/payments' join (see server.js's handleGetPayments) — this
+      // file reads the API response directly with no separate mapping
+      // step, unlike admin.html's mapPaymentRow, so these are already
+      // sitting right here with no extra work.
+      ...allPayments.filter(p => p.status === 'confirmed' || p.status === 'released').map(p => ({ ref: p.ref, property: p.prop, buyer: p.buyer, amount: p.amount, status: p.status, date: p.created_at, ownerSigned: !!p.owner_signature, tenantSigned: !!p.tenant_signature })),
+      ...allTransactions.filter(t => t.status === 'closed' || t.status === 'escrow' || t.status === 'confirmed').map(t => ({ ref: t.id, property: t.property, buyer: t.buyer, amount: t.amount, status: t.status, date: t.created_at, ownerSigned: false, tenantSigned: false }))
     ];
     const q = (document.getElementById('txn-search')||{}).value||'';
     const filtered = q ? confirmed.filter(t => (t.ref+t.property+t.buyer).toLowerCase().includes(q.toLowerCase())) : confirmed;
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="sp-empty"><div class="sp-empty-icon">💳</div><div class="sp-empty-text">No confirmed transactions</div><div class="sp-empty-sub">Deals appear here once payment is confirmed.</div></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7"><div class="sp-empty"><div class="sp-empty-icon">💳</div><div class="sp-empty-text">No confirmed transactions</div><div class="sp-empty-sub">Deals appear here once payment is confirmed.</div></div></td></tr>';
       return;
     }
     tbody.innerHTML = filtered.map(t => {
       const date = t.date ? new Date(t.date).toLocaleDateString('en-NG') : '—';
+      // Read-only visibility only — releasing funds is an admin.html-only
+      // action by design (sales confirms receipt of payment; admin handles
+      // the payout side), so this deliberately isn't a button, just a status.
+      let agreementLabel = '—';
+      if (t.ownerSigned && t.tenantSigned) agreementLabel = '<span style="color:#15803d;font-weight:700">✅ Fully signed</span>';
+      else if (t.ownerSigned || t.tenantSigned) agreementLabel = '<span style="color:#92400e;font-weight:700">⏳ Partially signed</span>';
+      else if (t.status === 'confirmed' || t.status === 'released') agreementLabel = '<span style="color:var(--text-muted)">Not signed yet</span>';
       return `<tr>
         <td style="font-size:.78rem;color:var(--text-muted)">${date}</td>
         <td style="font-family:monospace;font-size:.78rem;font-weight:700">${t.ref||'—'}</td>
         <td style="font-size:.85rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.property||'—'}</td>
         <td style="font-size:.85rem">${t.buyer||'—'}</td>
         <td style="font-weight:700;color:#1a6b3c">${fmtAmount(t.amount)}</td>
+        <td style="font-size:.78rem">${agreementLabel}</td>
         <td><span class="badge badge-${t.status||'closed'}">${t.status||'closed'}</span></td>
       </tr>`;
     }).join('');
