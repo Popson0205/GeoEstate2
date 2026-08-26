@@ -3240,8 +3240,8 @@ window.addEventListener('load', handleRoute);
     <div class="nav-item" onclick="nav('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
     <div class="sidebar-footer">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div class="sidebar-avatar">TK</div>
-        <div><div class="sidebar-user-name">Tom Khan</div><div class="sidebar-user-role">Super Admin</div></div>
+        <div class="sidebar-avatar">IG</div>
+        <div><div class="sidebar-user-name">Idris@GeoEstate</div><div class="sidebar-user-role">Super Admin</div></div>
       </div>
       <button class="logout-btn" onclick="adminDoLogout()">Sign Out</button>
     </div>
@@ -4496,7 +4496,7 @@ the investigation of this matter and will provide all platform
 records upon formal request.
 
 Signed: _________________________
-Name:   Tom Khan (Super Admin)
+Name:   Idris@GeoEstate (Super Admin)
 Date:   ${new Date().toLocaleDateString('en-NG')}
 Email:  admin@geoestate.ng
 
@@ -4520,21 +4520,21 @@ Station: ___________________
 function saveNotes(idx){const el=document.getElementById('notes-'+idx);if(el) submissions[idx].notes=el.value;}
 function approveId(idx){
   saveNotes(idx);
-  submissions[idx].status='approved';submissions[idx].reviewer='Tom K.';
+  submissions[idx].status='approved';submissions[idx].reviewer='Idris@GeoEstate';
   saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
   adminToast(submissions[idx].name+' approved ✓','success');
   addSyncLog('Identity approved: '+submissions[idx].name);
-  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
+  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'approved',reviewer:'Idris@GeoEstate',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
 function rejectId(idx){
   saveNotes(idx);
-  submissions[idx].status='rejected';submissions[idx].reviewer='Tom K.';
+  submissions[idx].status='rejected';submissions[idx].reviewer='Idris@GeoEstate';
   saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');
   adminToast(submissions[idx].name+' rejected','error');
   addSyncLog('Identity rejected: '+submissions[idx].name);
-  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'rejected',reviewer:'Tom K.',notes:submissions[idx].notes||''})}).catch(()=>{});
+  fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'rejected',reviewer:'Idris@GeoEstate',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
-function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Tom K.';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
+function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Idris@GeoEstate';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
 function approveProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='live';saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' is now live ✓','success');addSyncLog('Property approved: '+adminProperties[idx].title);}
 function rejectProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='rejected';saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' rejected','error');addSyncLog('Property rejected: '+adminProperties[idx].title);}
 function requestPropInfo(idx){adminProperties[idx].status='info';saveState();renderPropQueue();closeModal('modal-prop');adminToast('Info requested for '+adminProperties[idx].title,'info');}
