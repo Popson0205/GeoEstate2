@@ -288,6 +288,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <!-- ═══════════════════════ ADMIN PORTAL ═══════════════════════ -->
@@ -1815,73 +1816,172 @@ function openDisputeModal(idx){
   openModal('modal-dispute');
 }
 
-// ══ NPF FORM DOWNLOAD ══
+// ══ NPF FORM DOWNLOAD (letterhead PDF, via jsPDF) ══
+const GEOESTATE_LOGO_PNG = 'data:image/png;base64,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';
+
 function downloadNPFForm(idx){
-  const d=disputes[idx];
-  const content=`NIGERIA POLICE FORCE
-CRIMINAL INVESTIGATION DEPARTMENT (CID)
-FRAUD CASE REPORT FORM
+  const d = disputes[idx];
+  // jsPDF's built-in fonts (Helvetica etc.) only support WinAnsiEncoding,
+  // which doesn't include the Naira sign (U+20A6) - it silently rendered
+  // as a garbled "¦" character until this was caught in a rendered test
+  // output, not just assumed to work. "NGN" is the standard fallback
+  // convention for Naira amounts in text-only/legacy-encoding contexts.
+  const pdfSafe = (s) => String(s == null ? '' : s).replace(/\u20a6/g, 'NGN ');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginL = 18, marginR = 18;
+  const contentW = pageW - marginL - marginR;
+  const forest = [26, 107, 60]; // matches --geo-green-600
+  const ink = [20, 33, 27];
+  const muted = [107, 122, 114];
+  let y = 15;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CASE REFERENCE: ${d.id}
-DATE FILED: ${d.filed}
-REPORTING PLATFORM: GeoEstate (GeoEstate NIG Limited)
-PLATFORM CONTACT: admin@geoestate.ng | +234 000 000 0000
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Keeps every section's page-break logic in one place, rather than
+  // repeating the same "would this overflow?" check at every call site.
+  function ensureSpace(neededHeight) {
+    if (y + neededHeight > pageH - 22) {
+      doc.addPage();
+      y = 20;
+    }
+  }
 
-SECTION A — COMPLAINANT DETAILS
-Name:         ${d.complainant}
-Platform ID:  ${d.complainantId}
-Verified:     YES — Identity verified via GeoEstate platform
-              (Bio data, photo ID, live selfie, NIN on file)
+  function drawLetterhead() {
+    doc.addImage(GEOESTATE_LOGO_PNG, 'PNG', marginL, 10, 10.5, 12.6);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...ink);
+    doc.text('GeoEstate NIG Limited', marginL + 14, 16);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...muted);
+    doc.text("RC: 9631300  \u00b7  Nigeria's Verified Property Marketplace", marginL + 14, 21);
+    doc.setFontSize(8);
+    doc.text('www.geoestate.com.ng', pageW - marginR, 16, { align: 'right' });
+    doc.text('geoestate.ng@gmail.com', pageW - marginR, 20.5, { align: 'right' });
+    doc.setDrawColor(...forest); doc.setLineWidth(0.8);
+    doc.line(marginL, 26, pageW - marginR, 26);
+    y = 36;
+  }
 
-SECTION B — RESPONDENT DETAILS
-Name:         ${d.respondent}
-Platform ID:  ${d.respondentId}
-Verified:     ${d.respondentId ? 'YES — Identity verified via GeoEstate platform' : 'NO — Not a registered platform user'}
+  function sectionHeader(label) {
+    ensureSpace(10);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...forest);
+    doc.text(label, marginL, y);
+    doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.2);
+    doc.line(marginL, y + 1.5, pageW - marginR, y + 1.5);
+    y += 7;
+  }
 
-SECTION C — PROPERTY IN DISPUTE
-Property:     ${d.property}
-Amount:       ${d.amount}
+  function fieldRow(label, value) {
+    ensureSpace(6);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...muted);
+    doc.text(label, marginL, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...ink);
+    doc.text(pdfSafe(value) || '\u2014', marginL + 42, y);
+    y += 6;
+  }
 
-SECTION D — NATURE OF COMPLAINT
-${d.title}
+  function paragraph(text) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+    const lines = doc.splitTextToSize(pdfSafe(text) || '(no description provided)', contentW);
+    lines.forEach(line => {
+      ensureSpace(5.5);
+      doc.text(line, marginL, y);
+      y += 5.2;
+    });
+    y += 3;
+  }
 
-SECTION E — FULL DESCRIPTION
-${d.description}
+  drawLetterhead();
 
-SECTION F — EVIDENCE AVAILABLE
-- Verified identity records for both parties (held by GeoEstate)
-- Transaction records and escrow trail
-- Platform communication logs
-- Timestamp records of all platform interactions
+  // Title block
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...ink);
+  doc.text('NIGERIA POLICE FORCE', pageW / 2, y, { align: 'center' }); y += 6;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...muted);
+  doc.text('Criminal Investigation Department (CID) \u2014 Fraud Case Report', pageW / 2, y, { align: 'center' }); y += 10;
 
-SECTION G — DECLARATION
-I, the undersigned, certify that the information provided in this
-report is accurate to the best of my knowledge. GeoEstate is
-prepared to cooperate fully with the Nigeria Police Force CID in
-the investigation of this matter and will provide all platform
-records upon formal request.
+  // Case reference bar
+  doc.setFillColor(244, 246, 245);
+  doc.roundedRect(marginL, y - 5, contentW, 14, 1.5, 1.5, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...ink);
+  doc.text('Case Ref: ' + pdfSafe(d.id), marginL + 4, y);
+  doc.text('Date Filed: ' + pdfSafe(d.filed), marginL + 4, y + 5.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...muted);
+  doc.text('Reporting Platform: GeoEstate (GeoEstate NIG Limited)', pageW - marginR - 4, y, { align: 'right' });
+  doc.text('Contact: geoestate.ng@gmail.com', pageW - marginR - 4, y + 5.5, { align: 'right' });
+  y += 16;
 
-Signed: _________________________
-Name:   Tom Khan (Super Admin)
-Date:   ${new Date().toLocaleDateString('en-NG')}
-Email:  admin@geoestate.ng
+  sectionHeader('SECTION A \u2014 COMPLAINANT DETAILS');
+  fieldRow('Name', d.complainant);
+  fieldRow('Platform ID', d.complainantId || '\u2014');
+  fieldRow('Verified', 'YES \u2014 Identity verified via GeoEstate platform (bio data, photo ID, live selfie, NIN on file)');
+  y += 2;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FOR NPF USE ONLY
-Case Number: ___________________
-Receiving Officer: ___________________
-Date Received: ___________________
-Station: ___________________
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  sectionHeader('SECTION B \u2014 RESPONDENT DETAILS');
+  fieldRow('Name', d.respondent || '\u2014');
+  fieldRow('Platform ID', d.respondentId || '\u2014');
+  fieldRow('Verified', d.respondentId ? 'YES \u2014 Identity verified via GeoEstate platform' : 'NO \u2014 Not a registered platform user');
+  y += 2;
 
-  const blob=new Blob([content],{type:'text/plain'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`NPF_Case_${d.id}_${d.filed}.txt`;
-  a.click();
-  adminToast('NPF case file downloaded','success');
+  sectionHeader('SECTION C \u2014 PROPERTY IN DISPUTE');
+  fieldRow('Property', d.property);
+  fieldRow('Amount', d.amount);
+  y += 2;
+
+  sectionHeader('SECTION D \u2014 NATURE OF COMPLAINT');
+  paragraph(d.title);
+
+  sectionHeader('SECTION E \u2014 FULL DESCRIPTION');
+  paragraph(d.description);
+
+  sectionHeader('SECTION F \u2014 EVIDENCE AVAILABLE');
+  ['Verified identity records for both parties (held by GeoEstate)', 'Transaction records and escrow trail', 'Platform communication logs', 'Timestamp records of all platform interactions'].forEach(item => {
+    ensureSpace(5.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+    doc.text('\u2022  ' + item, marginL + 2, y);
+    y += 5.5;
+  });
+  y += 2;
+
+  sectionHeader('SECTION G \u2014 DECLARATION');
+  paragraph('I, the undersigned, certify that the information provided in this report is accurate to the best of my knowledge. GeoEstate is prepared to cooperate fully with the Nigeria Police Force CID in the investigation of this matter and will provide all platform records upon formal request.');
+
+  ensureSpace(28);
+  doc.setDrawColor(...ink); doc.setLineWidth(0.2);
+  doc.line(marginL, y + 6, marginL + 70, y + 6);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...muted);
+  doc.text('Signed', marginL, y + 10);
+  y += 16;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...ink);
+  doc.text('Tom Khan (Super Admin)', marginL, y);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...muted);
+  doc.text(new Date().toLocaleDateString('en-NG') + '  \u00b7  geoestate.ng@gmail.com', marginL, y + 5);
+  y += 14;
+
+  // FOR NPF USE ONLY box
+  ensureSpace(38);
+  doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.3);
+  doc.rect(marginL, y, contentW, 34);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...muted);
+  doc.text('FOR NPF USE ONLY', marginL + 4, y + 6);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...ink);
+  const npfFields = ['Case Number:', 'Receiving Officer:', 'Date Received:', 'Station:'];
+  npfFields.forEach((label, i) => {
+    const fy = y + 13 + i * 5.5;
+    doc.text(label, marginL + 4, fy);
+    doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.2);
+    doc.line(marginL + 34, fy + 0.5, marginL + contentW - 4, fy + 0.5);
+  });
+
+  // Footer stamp on every page, added last so the final page count is known
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...muted);
+    doc.text('Generated by GeoEstate NIG Limited \u00b7 ' + new Date().toLocaleString('en-NG'), marginL, pageH - 10);
+    doc.text('Page ' + p + ' of ' + totalPages, pageW - marginR, pageH - 10, { align: 'right' });
+  }
+
+  doc.save(`NPF_Case_${d.id}_${d.filed}.pdf`);
+  adminToast('NPF case file (PDF) downloaded','success');
 }
 
 // ══ ACTIONS ══
