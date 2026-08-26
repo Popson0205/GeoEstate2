@@ -1770,13 +1770,16 @@ document.addEventListener('click', function(e){
   <div style="max-width:720px;margin:0 auto;padding:var(--space-8) var(--space-6)">
 
     <div style="margin-bottom:32px">
-      <div class="section-label" style="background:#fef2f2;color:#b91c1c;box-shadow:inset 0 0 0 1px #fca5a5">⚠️ Dispute & Fraud Reporting</div>
-      <h1 style="font-size:2rem;font-weight:900;letter-spacing:-.03em;margin-bottom:8px">File a Complaint</h1>
+      <div class="section-label" style="background:#fef2f2;color:#b91c1c;box-shadow:inset 0 0 0 1px #fca5a5;display:inline-flex;align-items:center;gap:7px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        Dispute & Fraud Reporting
+      </div>
+      <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:600;letter-spacing:-.01em;margin-bottom:8px">File a Complaint</h1>
       <p style="color:var(--text-tertiary);font-size:.95rem;line-height:1.6">If you have been defrauded, extorted, or encountered an illegal fee demand — report it here. Every complaint is reviewed by our team within 2 hours and escalated to the Nigeria Police Force CID where required. Your verified identity protects you.</p>
     </div>
 
     <div style="background:#fef2f2;border-radius:12px;padding:16px 20px;margin-bottom:28px;box-shadow:inset 0 0 0 1px #fca5a5;display:flex;gap:12px;align-items:flex-start">
-      <div style="font-size:1.2rem;flex-shrink:0">🛡️</div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;margin-top:1px"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
       <div style="font-size:.85rem;color:#7f1d1d;line-height:1.6">
         <strong>Your report is protected.</strong> All dispute reports are handled confidentially. Your identity is shared with law enforcement only when a formal NPF referral is made — and only with your awareness. Off-platform fee demands are a criminal offence under Nigerian law.
       </div>
@@ -1796,7 +1799,7 @@ document.addEventListener('click', function(e){
 
     <!-- STEP 1: Your Details -->
     <div id="ds-step-1" style="background:var(--surface-primary);border-radius:16px;padding:28px;box-shadow:var(--shadow-lifted-card)">
-      <div style="font-size:1rem;font-weight:800;margin-bottom:20px">👤 Step 1 — Your Details</div>
+      <div style="font-size:1rem;font-weight:800;margin-bottom:20px">Step 1 — Your Details</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div>
           <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Full Name *</label>
@@ -1826,7 +1829,7 @@ document.addEventListener('click', function(e){
 
     <!-- STEP 2: Incident Details -->
     <div id="ds-step-2" style="display:none;background:var(--surface-primary);border-radius:16px;padding:28px;box-shadow:var(--shadow-lifted-card)">
-      <div style="font-size:1rem;font-weight:800;margin-bottom:20px">⚠️ Step 2 — Incident Details</div>
+      <div style="font-size:1rem;font-weight:800;margin-bottom:20px">Step 2 — Incident Details</div>
       <div style="margin-bottom:14px">
         <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Type of Complaint *</label>
         <select id="ds-type" style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box;cursor:pointer">
@@ -1873,7 +1876,7 @@ document.addEventListener('click', function(e){
         <div style="border:2px dashed var(--border-default);border-radius:10px;padding:20px;text-align:center;color:var(--text-muted);cursor:pointer;font-size:.85rem">
           <input type="file" accept="image/*,application/pdf" multiple style="display:none" id="upload-dispute" onchange="previewUpload(this,'prev-dispute')">
           <label for="upload-dispute" style="cursor:pointer;display:block">
-            📎 Tap to upload screenshots, receipts, or documents<br>
+            Tap to upload screenshots, receipts, or documents<br>
             <span style="font-size:.75rem">JPG, PNG, PDF up to 10MB each · Multiple files allowed</span>
           </label>
           <div id="prev-dispute" style="margin-top:8px"></div>
@@ -1887,15 +1890,15 @@ document.addEventListener('click', function(e){
 
     <!-- STEP 3: Review & Submit -->
     <div id="ds-step-3" style="display:none;background:var(--surface-primary);border-radius:16px;padding:28px;box-shadow:var(--shadow-lifted-card)">
-      <div style="font-size:1rem;font-weight:800;margin-bottom:16px">✍️ Step 3 — Review & Submit</div>
+      <div style="font-size:1rem;font-weight:800;margin-bottom:16px">Step 3 — Review & Submit</div>
       <div style="background:var(--surface-secondary);border-radius:10px;padding:16px;font-size:.85rem;margin-bottom:20px;line-height:1.7">
         <div style="font-weight:700;margin-bottom:8px">What happens after you submit:</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div>✅ Your complaint is logged with a unique case reference number</div>
-          <div>✅ Our team reviews within 2 hours</div>
-          <div>✅ If fraud is confirmed, a case file is submitted to NPF CID automatically</div>
-          <div>✅ You receive email and SMS updates on your case</div>
-          <div>✅ A GeoEstate lawyer is assigned if legal support is needed</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:flex-start;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="var(--verify)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;margin-top:2px"><path d="M20 6L9 17l-5-5"/></svg>Your complaint is logged with a unique case reference number</div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="var(--verify)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;margin-top:2px"><path d="M20 6L9 17l-5-5"/></svg>Our team reviews within 2 hours</div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="var(--verify)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;margin-top:2px"><path d="M20 6L9 17l-5-5"/></svg>If fraud is confirmed, a case file is submitted to NPF CID automatically</div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="var(--verify)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;margin-top:2px"><path d="M20 6L9 17l-5-5"/></svg>You receive email and SMS updates on your case</div>
+          <div style="display:flex;align-items:flex-start;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="var(--verify)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;margin-top:2px"><path d="M20 6L9 17l-5-5"/></svg>A GeoEstate lawyer is assigned if legal support is needed</div>
         </div>
       </div>
       <div style="margin-bottom:20px">
@@ -1906,14 +1909,16 @@ document.addEventListener('click', function(e){
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:20px">
         <button class="btn btn-ghost" onclick="dsStep(2)">← Back</button>
-        <button class="btn btn-reject btn-lg" onclick="submitDispute()" style="background:#dc2626;color:white">⚠️ Submit Complaint</button>
+        <button class="btn btn-reject btn-lg" onclick="submitDispute()" style="background:#dc2626;color:white">Submit Complaint</button>
       </div>
     </div>
 
     <!-- Success -->
     <div id="ds-success" style="display:none;text-align:center;padding:48px 0">
-      <div style="font-size:3.5rem;margin-bottom:16px">🛡️</div>
-      <h2 style="font-size:1.6rem;font-weight:900;margin-bottom:8px">Complaint Filed</h2>
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--verify-dim, rgba(47,158,91,0.14));display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--verify)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <h2 style="font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:8px">Complaint Filed</h2>
       <div style="display:inline-block;background:var(--geo-green-50);color:var(--geo-green-700);border-radius:8px;padding:8px 20px;font-size:.88rem;font-weight:700;margin-bottom:16px;box-shadow:inset 0 0 0 1px var(--geo-green-200)" id="ds-ref-num">Case Ref: DSP-XXXX</div>
       <p style="color:var(--text-tertiary);max-width:440px;margin:0 auto 24px;line-height:1.6;font-size:.9rem">Your complaint has been received and assigned to our team. You will receive a confirmation at your email address. Our team will contact you within 2 hours.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
