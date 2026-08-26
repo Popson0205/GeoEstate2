@@ -1838,7 +1838,7 @@ Verified:     YES — Identity verified via GeoEstate platform
 SECTION B — RESPONDENT DETAILS
 Name:         ${d.respondent}
 Platform ID:  ${d.respondentId}
-Verified:     ${d.respondentId !== 'N/A' ? 'YES — Identity verified via GeoEstate platform' : 'NO — Not a registered platform user'}
+Verified:     ${d.respondentId ? 'YES — Identity verified via GeoEstate platform' : 'NO — Not a registered platform user'}
 
 SECTION C — PROPERTY IN DISPUTE
 Property:     ${d.property}
@@ -3649,7 +3649,22 @@ async function syncFromAPI(isRetry) {
       if (dresp.ok) {
         const dd = await dresp.json();
         if (dd.success && Array.isArray(dd.disputes)) {
-          dd.disputes.forEach(d => {
+          // The backend returns raw columns (SELECT * FROM disputes) —
+          // complainant_id/respondent_id/lawyer_assigned/npf_filed, all
+          // snake_case — while the NPF report generator and the rest of
+          // this file's dispute rendering read camelCase
+          // (complainantId/respondentId/lawyerAssigned/npfFiled). Without
+          // this mapping, every one of those was genuinely undefined
+          // regardless of what was actually submitted — hence "Platform
+          // ID: undefined" appearing on every generated NPF report.
+          const mapped = dd.disputes.map(d => ({
+            ...d,
+            complainantId: d.complainant_id || '',
+            respondentId: d.respondent_id || '',
+            lawyerAssigned: d.lawyer_assigned || '',
+            npfFiled: !!d.npf_filed
+          }));
+          mapped.forEach(d => {
             const exists = disputes.find(x => x.id === d.id);
             if (!exists) disputes.unshift(d);
             else {

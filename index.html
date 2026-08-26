@@ -1674,13 +1674,19 @@ document.addEventListener('click', function(e){
         </select>
       </div>
       <div style="margin-bottom:14px">
-        <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Property Address Involved *</label>
-        <input id="ds-property" type="text" placeholder="Full address of the property in question" style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box">
+        <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Property Involved *</label>
+        <select id="ds-property-select" onchange="onDisputePropertyChange()" style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box;cursor:pointer">
+          <option value="">Loading your properties…</option>
+        </select>
+        <div id="ds-property-manual" style="display:none;margin-top:8px">
+          <input id="ds-property" type="text" placeholder="Full address of the property in question" style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box">
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
         <div>
           <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Name of Accused Person</label>
           <input id="ds-accused" type="text" placeholder="If known" style="width:100%;padding:9px 12px;border:none;border-radius:8px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box">
+          <div id="ds-accused-verified" style="font-size:.72rem;color:var(--geo-green-600);margin-top:4px;display:none">✓ Matched to a verified GeoEstate account</div>
         </div>
         <div>
           <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Amount Involved (₦)</label>
@@ -2555,6 +2561,7 @@ function showPage(name) {
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
+  if (name === 'dispute') loadDisputePropertyOptions();
 }
 
 // ── Deep-link support ────────────────────────────────────────────────────
@@ -3547,6 +3554,78 @@ function verifySuccess() {
 
 // ── CONTACT / DISPUTE ───────────────────────────────────────────────────────
 function contactSuccess() { document.getElementById('contact-success').style.display = 'block'; }
+// ── Dispute form: property picker ───────────────────────────────────────
+// Previously a free-text "Property Address Involved" field — replaced with
+// a picker built from the current user's actual properties/tenancies, so
+// the respondent can be resolved to a real registered account instead of a
+// free-typed name with no way to verify who they actually are. Falls back
+// to manual entry (the old behavior) if the user isn't logged in, has no
+// properties/tenancies on file, or picks "my situation isn't listed".
+window._dsPropertyOptions = [];
+window._dsResolvedRespondentId = '';
+
+async function loadDisputePropertyOptions() {
+  const select = document.getElementById('ds-property-select');
+  if (!select) return;
+  if (!currentUser || !currentUser.id) {
+    // Not logged in — nothing to pick from, go straight to manual entry.
+    select.innerHTML = '<option value="manual">Not sure / not listed here</option>';
+    document.getElementById('ds-property-manual').style.display = 'block';
+    return;
+  }
+  window._dsPropertyOptions = [];
+  try {
+    const [asOwner, asTenant] = await Promise.all([
+      GeoAPI.ownerFetch('/owner/tenancies').catch(() => ({ tenancies: [] })),
+      GeoAPI.ownerFetch('/owner/my-tenancies').catch(() => ({ tenancies: [] }))
+    ]);
+    (asOwner.tenancies || []).forEach(t => {
+      window._dsPropertyOptions.push({
+        label: t.property + ' — Tenant: ' + (t.tenant || 'Unknown'),
+        property: t.property, respondentName: t.tenant || '', respondentId: t.tenantId || ''
+      });
+    });
+    (asTenant.tenancies || []).forEach(t => {
+      window._dsPropertyOptions.push({
+        label: t.property + ' — Owner: ' + (t.owner || 'Unknown'),
+        property: t.property, respondentName: t.owner || '', respondentId: t.ownerId || ''
+      });
+    });
+  } catch (e) { /* fall through to manual-only below */ }
+
+  const opts = window._dsPropertyOptions.map((o, i) => `<option value="${i}">${o.label.replace(/</g,'&lt;')}</option>`).join('');
+  select.innerHTML = opts + '<option value="manual">Something else / not listed here</option>';
+  if (window._dsPropertyOptions.length) {
+    select.value = '0';
+    onDisputePropertyChange();
+  } else {
+    select.value = 'manual';
+    onDisputePropertyChange();
+  }
+}
+
+function onDisputePropertyChange() {
+  const select = document.getElementById('ds-property-select');
+  const manualBox = document.getElementById('ds-property-manual');
+  const accused = document.getElementById('ds-accused');
+  const verifiedNote = document.getElementById('ds-accused-verified');
+  if (!select) return;
+  if (select.value === 'manual') {
+    manualBox.style.display = 'block';
+    accused.value = '';
+    window._dsResolvedRespondentId = '';
+    verifiedNote.style.display = 'none';
+  } else {
+    manualBox.style.display = 'none';
+    const opt = window._dsPropertyOptions[parseInt(select.value, 10)];
+    if (opt) {
+      accused.value = opt.respondentName;
+      window._dsResolvedRespondentId = opt.respondentId || '';
+      verifiedNote.style.display = opt.respondentId ? 'block' : 'none';
+    }
+  }
+}
+
 function dsStep(n) {
   [1,2,3].forEach(i => {
     const el = document.getElementById('ds-step-' + i);
@@ -3565,11 +3644,15 @@ function dsStep(n) {
 function submitDispute() {
   const consent = document.getElementById('ds-consent');
   if (!consent || !consent.checked) { alert('Please confirm the declaration before submitting.'); return; }
-  const title       = (document.getElementById('ds-title') || {}).value || 'Property Dispute';
-  const property    = (document.getElementById('ds-property') || {}).value || '';
+  const title       = (document.getElementById('ds-type') || {}).value || 'Property Dispute';
+  const select      = document.getElementById('ds-property-select');
+  const property    = (select && select.value !== 'manual' && window._dsPropertyOptions[parseInt(select.value,10)])
+                         ? window._dsPropertyOptions[parseInt(select.value,10)].property
+                         : (document.getElementById('ds-property') || {}).value || '';
   const complainant = (document.getElementById('ds-name') || {}).value || '';
-  const phone       = (document.getElementById('ds-phone') || {}).value || '';
-  const description = (document.getElementById('ds-description') || document.getElementById('ds-details') || {}).value || '';
+  const respondent  = (document.getElementById('ds-accused') || {}).value || '';
+  const amount      = (document.getElementById('ds-amount') || {}).value || '0';
+  const description = (document.getElementById('ds-desc') || {}).value || '';
   const severity    = (document.getElementById('ds-severity') || {}).value || 'medium';
   const ref = 'DSP-' + Math.floor(1000 + Math.random() * 9000);
 
@@ -3577,8 +3660,9 @@ function submitDispute() {
   fetch(GEO_API + '/submit-dispute', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ title, property, complainant, description, severity,
-      complainantId: currentUser ? currentUser.id : '', respondent: '', amount: '0' })
+    body: JSON.stringify({ title, property, complainant, description, severity, amount,
+      complainantId: currentUser ? currentUser.id : '',
+      respondent, respondentId: window._dsResolvedRespondentId || '' })
   }).catch(() => {});
 
   [1,2,3].forEach(i => { const el = document.getElementById('ds-step-' + i); if (el) el.style.display = 'none'; });
