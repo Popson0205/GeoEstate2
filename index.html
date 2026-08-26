@@ -60,7 +60,7 @@ YPE html>
   <meta name="description" content="Buy, sell, rent and lease verified properties across Nigeria. Every owner identity-checked. Every property title-verified. Payments secured by GeoEstate.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css">
@@ -636,185 +636,241 @@ document.addEventListener('click', function(e){
 
   <!-- HERO -->
   <section class="geo-hero">
-
-    <!-- ====================================================
-         FULL-SCREEN PROPERTY PHOTO SLIDESHOW
-         Real Nigerian-style luxury & residential properties
-         Ken Burns pan+zoom on each slide
-         ==================================================== -->
-    <div id="hero-slideshow" aria-hidden="true">
-      <!-- Slide 1 — Luxury Lagos apartment exterior -->
-      <div class="hero-slide active" style="background-image:url('https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1600&q=85&auto=format&fit=crop')"></div>
-      <!-- Slide 2 — Modern residential house -->
-      <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&q=85&auto=format&fit=crop')"></div>
-      <!-- Slide 3 — Apartment building pool view -->
-      <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1600&q=85&auto=format&fit=crop')"></div>
-      <!-- Slide 4 — Contemporary detached villa -->
-      <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=85&auto=format&fit=crop')"></div>
-      <!-- Slide 5 — Aerial estate view -->
-      <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=85&auto=format&fit=crop')"></div>
-      <!-- Slide 6 — Modern city apartment block -->
-      <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600&q=85&auto=format&fit=crop')"></div>
-    </div>
-
-    <!-- Slideshow dot indicators -->
-    <div id="hero-dots" style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:3">
-      <button class="hero-dot active" onclick="goToSlide(0)" aria-label="Slide 1"></button>
-      <button class="hero-dot" onclick="goToSlide(1)" aria-label="Slide 2"></button>
-      <button class="hero-dot" onclick="goToSlide(2)" aria-label="Slide 3"></button>
-      <button class="hero-dot" onclick="goToSlide(3)" aria-label="Slide 4"></button>
-      <button class="hero-dot" onclick="goToSlide(4)" aria-label="Slide 5"></button>
-      <button class="hero-dot" onclick="goToSlide(5)" aria-label="Slide 6"></button>
-    </div>
-
-    <!-- Current property label (bottom-left) -->
-    <div id="hero-label" style="position:absolute;bottom:32px;left:40px;z-index:3;display:flex;align-items:center;gap:10px">
-      <span id="hero-label-text" style="background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);color:rgba(255,255,255,0.85);border-radius:999px;padding:5px 14px;font-size:0.78rem;font-weight:600;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15)">📍 Lekki Phase 1, Lagos</span>
-    </div>
-
-    <!-- Floating property cards (z-index above overlay) -->
-    <div class="hero-float-card hero-float-card-1">
-      <div style="font-size:0.7rem;opacity:0.7;margin-bottom:3px">VERIFIED PROPERTY</div>
-      <div style="font-weight:800;font-size:0.95rem">₦3.5M/yr</div>
-      <div style="font-size:0.75rem;opacity:0.7">3-Bed · Lekki, Lagos</div>
-    </div>
-    <div class="hero-float-card hero-float-card-2">
-      <div style="font-size:0.7rem;opacity:0.7;margin-bottom:3px">✓ NIN VERIFIED OWNER</div>
-      <div style="font-weight:800;font-size:0.95rem">₦85M</div>
-      <div style="font-size:0.75rem;opacity:0.7">4-Bed · Maitama, Abuja</div>
-    </div>
-    <div class="hero-float-card hero-float-card-3">
-      <div style="display:flex;align-items:center;gap:6px">
-        <div style="width:8px;height:8px;background:#4ade80;border-radius:50%;animation:blink 1.5s infinite"></div>
-        <span style="font-size:0.75rem;font-weight:700">ESCROW ACTIVE</span>
-      </div>
-    </div>
-
-    <style>
-      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-      /* Slideshow container */
-      #hero-slideshow {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-      }
-
-      /* Each slide */
-      .hero-slide {
-        position: absolute;
-        inset: 0;
-        background-size: cover;
-        background-position: center;
-        opacity: 0;
-        transition: opacity 1.4s ease-in-out;
-        will-change: transform, opacity;
-      }
-      .hero-slide.active {
-        opacity: 1;
-        animation: kenBurns 8s ease-in-out forwards;
-      }
-      .hero-slide.prev {
-        opacity: 0;
-        transition: opacity 1.4s ease-in-out;
-      }
-
-      /* Ken Burns — 6 variants, each slide gets a different one */
-      .hero-slide:nth-child(1).active { animation: kenBurns1 8s ease-in-out forwards; }
-      .hero-slide:nth-child(2).active { animation: kenBurns2 8s ease-in-out forwards; }
-      .hero-slide:nth-child(3).active { animation: kenBurns3 8s ease-in-out forwards; }
-      .hero-slide:nth-child(4).active { animation: kenBurns4 8s ease-in-out forwards; }
-      .hero-slide:nth-child(5).active { animation: kenBurns5 8s ease-in-out forwards; }
-      .hero-slide:nth-child(6).active { animation: kenBurns6 8s ease-in-out forwards; }
-
-      @keyframes kenBurns1 {
-        from { transform: scale(1.0) translate(0, 0); }
-        to   { transform: scale(1.08) translate(-1.5%, -1%); }
-      }
-      @keyframes kenBurns2 {
-        from { transform: scale(1.08) translate(-2%, 0); }
-        to   { transform: scale(1.0) translate(0, -1.5%); }
-      }
-      @keyframes kenBurns3 {
-        from { transform: scale(1.0) translate(1.5%, 1%); }
-        to   { transform: scale(1.1) translate(-1%, -0.5%); }
-      }
-      @keyframes kenBurns4 {
-        from { transform: scale(1.1) translate(0, -1%); }
-        to   { transform: scale(1.0) translate(1.5%, 1%); }
-      }
-      @keyframes kenBurns5 {
-        from { transform: scale(1.0) translate(-1%, 1.5%); }
-        to   { transform: scale(1.08) translate(1%, -1%); }
-      }
-      @keyframes kenBurns6 {
-        from { transform: scale(1.06) translate(1%, 0); }
-        to   { transform: scale(1.0) translate(-1.5%, 1%); }
-      }
-
-      /* Slideshow dots */
-      .hero-dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.35);
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        transition: all 0.3s ease;
-      }
-      .hero-dot.active {
-        background: white;
-        width: 24px;
-        border-radius: 4px;
-      }
-      .hero-dot:hover { background: rgba(255,255,255,0.7); }
-
-      /* Ensure hero content sits above overlay (z-index 1) */
-      .geo-hero-content { position: relative; z-index: 2; }
-      .hero-float-card  { z-index: 3; }
-    </style>
-
     <div class="geo-hero-content">
-      <div class="geo-hero-eyebrow">
-        🇳🇬 Nigeria's First Geospatial Property Platform
-      </div>
-      <h1>Real Estate You Can<br><span>Actually Trust</span></h1>
-      <p class="geo-hero-sub">
-        Every property owner identity-verified. Every title document checked. Lawyer-backed. Police-linked. Secure payments. No illegal fees. Ever.
-      </p>
+      <div class="hero-grid">
+        <div>
+          <div class="geo-hero-eyebrow">Nigeria's First Geospatial Property Platform</div>
+          <h1>Real estate<br>you can<br><em>actually trust.</em></h1>
+          <p class="geo-hero-sub">Every property owner identity-verified. Every title document checked. Lawyer-backed. Police-linked. Secure payments. No illegal fees. Ever.</p>
 
-      <!-- Search Bar -->
-      <div class="geo-search-bar">
-        <select>
-          <option>🏠 Rent</option>
-          <option>📋 Lease</option>
-          <option>🔑 Buy</option>
-          <option>💰 Sell</option>
-        </select>
-        <input type="text" placeholder="Search by state, LGA, or neighbourhood...">
-        <button onclick="showPage('map')">Search Properties →</button>
-      </div>
+          <div class="geo-search-bar">
+            <select>
+              <option>🏠 Rent</option>
+              <option>📋 Lease</option>
+              <option>🔑 Buy</option>
+              <option>💰 Sell</option>
+            </select>
+            <input type="text" placeholder="Search by state, LGA, or neighbourhood...">
+            <button onclick="showPage('map')">Search Properties →</button>
+          </div>
 
-      <!-- Stats -->
-      <div class="geo-hero-stats">
-        <div>
-          <div class="hero-stat-value">0</div>
-          <div class="hero-stat-label">Verified Properties</div>
+          <div class="geo-hero-stats">
+            <div>
+              <div class="hero-stat-value">0</div>
+              <div class="hero-stat-label">Verified Properties</div>
+            </div>
+            <div>
+              <div class="hero-stat-value">36</div>
+              <div class="hero-stat-label">States Covered</div>
+            </div>
+            <div>
+              <div class="hero-stat-value">₦0</div>
+              <div class="hero-stat-label">Illegal Agent Fees</div>
+            </div>
+            <div>
+              <div class="hero-stat-value">100%</div>
+              <div class="hero-stat-label">NIN-Verified Owners</div>
+            </div>
+          </div>
         </div>
-        <div>
-          <div class="hero-stat-value">36</div>
-          <div class="hero-stat-label">States Covered</div>
-        </div>
-        <div>
-          <div class="hero-stat-value">₦0</div>
-          <div class="hero-stat-label">Illegal Agent Fees</div>
-        </div>
-        <div>
-          <div class="hero-stat-value">100%</div>
-          <div class="hero-stat-label">NIN-Verified Owners</div>
+
+        <!-- Signature element: a verification stamp, tied directly to the
+             real "Owner ID Verified" / "Site Visit Verified" badges used
+             throughout the product — not decorative, the actual thesis of
+             the page (trust made visible) rendered as one image. -->
+        <div class="hero-stamp-wrap" aria-hidden="true">
+          <svg class="hero-stamp" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <path id="stampRingTop" d="M 40,150 A 110,110 0 0 1 260,150" fill="none"/>
+              <path id="stampRingBottom" d="M 40,150 A 110,110 0 0 0 260,150" fill="none"/>
+            </defs>
+            <circle cx="150" cy="150" r="145" fill="none" stroke="var(--verify)" stroke-width="2.5" opacity="0.9"/>
+            <circle cx="150" cy="150" r="118" fill="none" stroke="var(--verify)" stroke-width="1" opacity="0.55" stroke-dasharray="2 4"/>
+            <text class="hero-stamp-text"><textPath href="#stampRingTop" startOffset="50%" text-anchor="middle">GEOESTATE · NIGERIA</textPath></text>
+            <text class="hero-stamp-text"><textPath href="#stampRingBottom" startOffset="50%" text-anchor="middle">ID CHECKED · TITLE VERIFIED</textPath></text>
+            <g transform="translate(150,150)">
+              <circle r="58" fill="none" stroke="var(--verify)" stroke-width="1.5" opacity="0.7"/>
+              <path d="M -26,2 L -8,20 L 28,-22" fill="none" stroke="var(--verify)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
         </div>
       </div>
     </div><!-- /geo-hero-content -->
+
+    <style>
+      .geo-hero {
+        min-height: 0;
+        display: block;
+        background: var(--ink);
+        position: relative;
+        overflow: hidden;
+        padding: var(--nav-height) clamp(20px, 5vw, 80px) 0;
+      }
+      .geo-hero::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: radial-gradient(circle at 15% 20%, rgba(47,158,91,0.09), transparent 42%),
+                    radial-gradient(circle at 88% 78%, rgba(184,134,11,0.07), transparent 46%);
+        pointer-events: none;
+      }
+      .geo-hero-content { position: relative; z-index: 2; max-width: 1280px; margin: 0 auto; padding: 0; }
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 48px;
+        align-items: center;
+        padding: 76px 0;
+        min-width: 0;
+      }
+      .hero-grid > * { min-width: 0; }
+
+      .geo-hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        backdrop-filter: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--geo-green-300);
+        margin-bottom: 22px;
+      }
+      .geo-hero-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--geo-green-300); flex-shrink: 0; }
+
+      .geo-hero h1 {
+        font-family: var(--font-display);
+        font-size: clamp(2.5rem, 4.4vw, 3.9rem);
+        font-weight: 600;
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+        margin-bottom: 22px;
+        color: var(--paper);
+      }
+      .geo-hero h1 em {
+        font-style: italic;
+        font-weight: 500;
+        color: var(--geo-green-300);
+      }
+
+      .geo-hero-sub {
+        font-size: 1.02rem;
+        line-height: 1.55;
+        color: rgba(247,245,239,0.68);
+        max-width: 460px;
+        margin-bottom: 30px;
+      }
+
+      .geo-search-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        align-content: flex-start;
+        background: rgba(247,245,239,0.06);
+        border: 1px solid rgba(247,245,239,0.14);
+        border-radius: 14px;
+        box-shadow: none;
+        overflow: visible;
+        max-width: none;
+        padding: 6px;
+        gap: 4px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(8px);
+      }
+      .geo-search-bar select,
+      .geo-search-bar input {
+        border: none;
+        border-right: none;
+        outline: none;
+        font-family: var(--font-sans);
+        color: var(--paper);
+        background: transparent;
+      }
+      .geo-search-bar select {
+        font-size: 0.88rem;
+        font-weight: 600;
+        padding: 12px 14px;
+        min-width: 0;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .geo-search-bar select option { color: var(--ink); }
+      .geo-search-bar input {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: auto;
+        font-size: 0.9rem;
+        padding: 12px 8px;
+      }
+      .geo-search-bar input::placeholder { color: rgba(247,245,239,0.4); }
+      .geo-search-bar button {
+        background: var(--verify);
+        color: var(--ink);
+        border: none;
+        border-radius: 9px;
+        padding: 0 22px;
+        font-family: var(--font-sans);
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-height: 44px;
+        transition: none;
+      }
+      .geo-search-bar button:hover { background: var(--verify); opacity: 0.92; }
+
+      /* The site-wide mobile form-element fix (input/select/button width:
+         100% !important) is a deliberate accessibility fix for other forms,
+         but fights this bar's intentionally compact, inline layout — normal
+         specificity can't override !important, so this matches it. */
+      @media (max-width: 768px) {
+        .geo-search-bar select,
+        .geo-search-bar input {
+          width: auto !important;
+          padding: 12px 14px !important;
+          border-radius: 0 !important;
+          font-size: 0.9rem !important;
+        }
+        .geo-search-bar button {
+          width: auto !important;
+          padding: 0 22px !important;
+          min-height: 44px !important;
+          border-radius: 9px !important;
+        }
+      }
+
+      .geo-hero-stats { display: flex; gap: 36px; flex-wrap: wrap; row-gap: 16px; }
+      .hero-stat-value {
+        font-family: var(--font-display);
+        font-size: 1.65rem;
+        font-weight: 600;
+        color: var(--paper);
+      }
+      .hero-stat-label { font-size: 0.74rem; color: rgba(247,245,239,0.5); margin-top: 2px; }
+
+      .hero-stamp-wrap { display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; }
+      .hero-stamp { width: 320px; height: 320px; filter: drop-shadow(0 20px 40px rgba(47,158,91,0.15)); }
+      .hero-stamp-text {
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        fill: var(--verify);
+      }
+
+      @media (max-width: 860px) {
+        .geo-hero { min-height: 0; }
+        .hero-grid { grid-template-columns: 1fr; padding: 48px 0 36px; gap: 32px; }
+        .hero-stamp-wrap { order: -1; margin-bottom: 4px; }
+        .hero-stamp { width: 190px; height: 190px; }
+        .geo-hero-stats { gap: 22px; }
+      }
+    </style>
   </section>
 
   <!-- TRUST BANNER -->
@@ -3889,8 +3945,6 @@ document.addEventListener('click', function(e) {
   if (e.target.id === 'payment-success-modal') closeSuccessModal();
 });
 
-// ── HERO SLIDESHOW ──────────────────────────────────────────────────────────
-const slideLabels = ['📍 Lekki Phase 1, Lagos','📍 Maitama, Abuja','📍 Victoria Island, Lagos','📍 GRA, Port Harcourt','📍 Asokoro, Abuja','📍 Ikeja GRA, Lagos'];
 // ── Type-page loader hook ───────────────────────────────────────────────────
 // (Used to also inject a full embedded admin panel copy here on
 // showPage('admin') -- that panel was a stale, unreachable duplicate of the
@@ -3904,28 +3958,6 @@ const slideLabels = ['📍 Lekki Phase 1, Lagos','📍 Maitama, Abuja','📍 Vic
   };
   window.showPage._geoPatched = true;
 })();
-
-
-let currentSlide = 0;
-let slideshowTimer = null;
-function goToSlide(n) {
-  const slides = document.querySelectorAll('.hero-slide');
-  const dots   = document.querySelectorAll('.hero-dot');
-  if (!slides.length) return;
-  slides[currentSlide].classList.remove('active');
-  slides[currentSlide].classList.add('prev');
-  dots[currentSlide].classList.remove('active');
-  setTimeout(() => {
-    slides[currentSlide].classList.remove('prev');
-    currentSlide = n;
-    slides[currentSlide].classList.add('active');
-    dots[currentSlide].classList.add('active');
-    const label = document.getElementById('hero-label-text');
-    if (label) label.textContent = slideLabels[currentSlide];
-  }, 80);
-}
-function nextSlide() { const total = document.querySelectorAll('.hero-slide').length; goToSlide((currentSlide + 1) % total); }
-function startSlideshow() { slideshowTimer = setInterval(nextSlide, 6000); }
 
 // ── ADMIN GATEWAY ───────────────────────────────────────────────────────────
 

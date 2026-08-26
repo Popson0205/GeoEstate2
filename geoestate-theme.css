@@ -46,6 +46,21 @@ html, body {
 
   /* Nav height */
   --nav-height: 72px;
+
+  /* ── Redesign tokens (additive — existing --geo-green-* etc. stay
+     intact for sales.html/staff-setup.html, which share this file and
+     aren't part of this pass) ──────────────────────────────────────
+     --verify-* is deliberately reserved for verification UI only (the
+     "Owner ID Verified" / "Site Visit Verified" badges, and the hero's
+     stamp motif) — kept visually distinct from the general brand green
+     so it reads as something earned, not just decoration. */
+  --ink:          #0b1f16;
+  --paper:        #f7f5ef;
+  --forest:       #14532d;
+  --verify:       #2f9e5b;
+  --verify-dim:   rgba(47,158,91,0.14);
+  --naira-gold:   #b8860b;
+  --font-display: 'Fraunces', Georgia, serif;
 }
 
 html.dark {
