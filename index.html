@@ -730,8 +730,10 @@ document.addEventListener('click', function(e){
   <a href="#" onclick="navTo('team')">👥 Our Team</a>
   <a href="#" onclick="navTo('contact')">📞 Contact</a>
   <div class="geo-mobile-nav-cta">
-    <button class="btn btn-primary" onclick="closeMobileNav();openAuthModal('register')">Create Account</button>
-    <button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>
+    <div id="mobile-auth-area" style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="closeMobileNav();openAuthModal('register')">Create Account</button>
+      <button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>
+    </div>
     <a href="/owner-dashboard" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🏠 Owner Portal</a>
     <a href="/sales" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">📊 Sales Portal</a>
     <a href="/admin" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🔐 Admin Portal</a>
@@ -4268,7 +4270,40 @@ function logoutUser() {
 }
 
 // ── Nav rendering ─────────────────────────────────────────────────────────────
+// Mobile drawer: #nav-auth-area is hidden on phones (CSS), so the drawer must
+// itself reflect the signed-in state - otherwise a successful login looks like
+// nothing happened and the user just sees the homepage again.
+function renderMobileAuth() {
+  const box = document.getElementById('mobile-auth-area');
+  if (!box) return;
+  if (!currentUser) {
+    box.innerHTML =
+      `<button class="btn btn-primary" onclick="closeMobileNav();openAuthModal('register')">Create Account</button>` +
+      `<button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>`;
+    return;
+  }
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const initials = ((currentUser.fname || '?')[0] + ((currentUser.lname || '')[0] || '')).toUpperCase();
+  const avatar = currentUser.avatar
+    ? `<img src="${esc(currentUser.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover">`
+    : esc(initials);
+  const isOwner = currentUser.role === 'owner';
+  box.innerHTML =
+    `<div style="display:flex;align-items:center;gap:12px;padding:4px 0 8px">
+       <div style="width:44px;height:44px;border-radius:50%;background:var(--geo-green-600);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;overflow:hidden;flex-shrink:0">${avatar}</div>
+       <div style="min-width:0">
+         <div style="font-weight:800;font-size:.95rem;color:var(--text-primary)">${esc(currentUser.fname)} ${esc(currentUser.lname)}</div>
+         <div style="font-size:.75rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(currentUser.email)}</div>
+       </div>
+     </div>` +
+    `<button class="btn btn-primary" onclick="closeMobileNav();showPage('profile')">My Profile</button>` +
+    `<button class="btn btn-secondary" onclick="closeMobileNav();goManageProperty()">${isOwner ? 'Manage My Properties' : 'List a Property'}</button>` +
+    (currentUser.verified ? '' : `<button class="btn btn-secondary" onclick="closeMobileNav();showPage('verify')">Complete Verification</button>`) +
+    `<button class="btn btn-ghost" style="color:#dc2626" onclick="closeMobileNav();logoutUser()">Sign Out</button>`;
+}
+
 function renderNavAuth() {
+  renderMobileAuth();
   const area = document.getElementById('nav-auth-area');
   if (!area) return;
   if (currentUser) {
