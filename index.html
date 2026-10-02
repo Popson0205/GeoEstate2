@@ -64,116 +64,7 @@ YPE html>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="geoestate-theme.css?v=3">
-<style id="geoestate-final-responsive-fix">
-/* GeoEstate final mobile navigation + map fix. */
-@media (max-width: 768px) {
-  /* Main mobile hamburger: the existing markup already contains it. */
-  #geo-hamburger.geo-hamburger {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 5px !important;
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    margin: 0 !important;
-    padding: 6px !important;
-    background: transparent !important;
-    border: 0 !important;
-    color: var(--text-primary) !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    position: relative !important;
-    z-index: 1101 !important;
-  }
-  #geo-hamburger.geo-hamburger span {
-    display: block !important;
-    width: 22px !important;
-    height: 2px !important;
-    margin: 0 !important;
-    background: currentColor !important;
-    border-radius: 2px !important;
-  }
-  /* Hide the separate desktop portals hamburger on phones. */
-  #portal-dropdown { display: none !important; }
-  #nav-auth-area { display: none !important; }
-  .geo-nav-cta { display: flex !important; align-items: center !important; margin-left: auto !important; gap: 6px !important; }
-  .geo-nav-cta .theme-toggle { display: flex !important; }
-
-  /* Map page: the original wrapper is a horizontal flex row. On phones it
-     must become a vertical layout or the map gets squeezed to zero width. */
-  #page-map > div:first-child {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    height: calc(100svh - var(--nav-height)) !important;
-    min-height: 0 !important;
-    margin-top: var(--nav-height) !important;
-    padding-top: 0 !important;
-    overflow: hidden !important;
-  }
-
-  #page-map .map-sidebar {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 46svh !important;
-    max-height: 46svh !important;
-    min-height: 0 !important;
-    flex: 0 0 46svh !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding: 20px 16px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,.08) !important;
-    z-index: 5 !important;
-  }
-
-  #page-map > div:first-child > div:last-child {
-    position: relative !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    height: 54svh !important;
-    flex: 1 1 auto !important;
-    overflow: hidden !important;
-  }
-
-  #page-map #map {
-    display: block !important;
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    z-index: 1 !important;
-  }
-
-  #page-map .leaflet-container {
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-  }
-}
-
-@media (max-width: 480px) {
-  #page-map .map-sidebar {
-    height: 47svh !important;
-    max-height: 47svh !important;
-    flex-basis: 47svh !important;
-  }
-  #page-map > div:first-child > div:last-child {
-    height: 53svh !important;
-  }
-}
-</style>
-
+  <link rel="stylesheet" href="geoestate-theme.css?v=4">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2543,12 +2434,12 @@ document.addEventListener('click', function(e){
       <div style="margin-bottom:8px">
         <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Password</label>
         <div style="position:relative">
-          <input id="login-pass-field" type="password" placeholder="••••••••" autocomplete="current-password" name="password"
+          <input id="login-pass-field" class="auth-password-input" type="password" placeholder="••••••••" autocomplete="current-password" name="password"
             style="width:100%;padding:10px 44px 10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.9rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
             onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
             onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
             onkeydown="if(event.key==='Enter')doLogin()">
-          <button onclick="togglePassVis('login-pass-field',this)"
+          <button type="button" class="auth-password-toggle" onclick="togglePassVis('login-pass-field',this)"
             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.85rem;color:var(--text-muted)">👁</button>
         </div>
       </div>
@@ -6014,6 +5905,45 @@ document.addEventListener('DOMContentLoaded', function() {
   populateLGA('buy-state',   'buy-lga');
   populateLGA('lease-state', 'lease-lga');
 });
+</script>
+<script>
+/* GeoEstate mobile auth input fix */
+(function () {
+  function bindAuthInputFix() {
+    var field = document.getElementById('login-pass-field');
+    if (!field || field.dataset.mobileAuthFixed === '1') return;
+    field.dataset.mobileAuthFixed = '1';
+
+    field.disabled = false;
+    field.readOnly = false;
+    field.removeAttribute('disabled');
+    field.removeAttribute('readonly');
+    field.setAttribute('inputmode', 'text');
+    field.setAttribute('autocomplete', 'current-password');
+
+    ['pointerdown', 'touchstart', 'mousedown'].forEach(function (eventName) {
+      field.addEventListener(eventName, function (e) {
+        e.stopPropagation();
+        field.disabled = false;
+        field.readOnly = false;
+        try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
+      }, true);
+    });
+
+    field.addEventListener('click', function (e) {
+      e.stopPropagation();
+      field.disabled = false;
+      field.readOnly = false;
+      try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
+    }, true);
+  }
+
+  document.addEventListener('DOMContentLoaded', bindAuthInputFix);
+  document.addEventListener('click', bindAuthInputFix, true);
+  document.addEventListener('touchstart', bindAuthInputFix, true);
+  setTimeout(bindAuthInputFix, 100);
+  setTimeout(bindAuthInputFix, 800);
+})();
 </script>
 </body>
 </html>
