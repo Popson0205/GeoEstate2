@@ -486,3 +486,297 @@
   .hero-stat-value { font-size: 1.2rem !important; }
   .hero-stat-label { font-size: 0.58rem !important; }
 }
+
+
+/* ================================================================
+   GeoEstate SAFE MOBILE CORRECTION
+   Based directly on the original GeoEstate2/geoestate-theme.css.
+   Does NOT replace or modify index.html.
+   ================================================================ */
+
+/* ---------------- MOBILE NAVIGATION ---------------- */
+@media (max-width: 768px) {
+  /* Main mobile hamburger already exists in index.html */
+  #geo-hamburger {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    cursor: pointer !important;
+    z-index: 3001 !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+  }
+
+  #geo-hamburger span {
+    display: block !important;
+    width: 23px !important;
+    height: 2px !important;
+    margin: 3px 0 !important;
+    border-radius: 2px !important;
+    background: currentColor !important;
+  }
+
+  /* The mobile drawer already exists in index.html */
+  #geo-mobile-nav {
+    display: none !important;
+    position: fixed !important;
+    top: var(--nav-height) !important;
+    left: 10px !important;
+    right: 10px !important;
+    z-index: 3000 !important;
+    max-height: calc(100dvh - var(--nav-height) - 20px) !important;
+    overflow-y: auto !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    background: var(--surface-primary, #111) !important;
+    border: 1px solid var(--border-default, rgba(255,255,255,.12)) !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35) !important;
+    box-sizing: border-box !important;
+  }
+
+  #geo-mobile-nav.open {
+    display: block !important;
+  }
+
+  #geo-mobile-nav > a {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 46px !important;
+    padding: 11px 13px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    color: var(--text-primary, #fff) !important;
+    text-decoration: none !important;
+    font-size: .9rem !important;
+  }
+
+  #geo-mobile-nav > a:active,
+  #geo-mobile-nav > a:hover {
+    background: var(--surface-secondary, rgba(255,255,255,.08)) !important;
+  }
+
+  .geo-mobile-nav-cta {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--border-subtle, rgba(255,255,255,.1)) !important;
+  }
+
+  .geo-mobile-nav-cta > * {
+    min-width: 0 !important;
+  }
+
+  /* Keep desktop portal hamburger separate from the main mobile nav */
+  #portal-menu-btn {
+    display: none !important;
+  }
+
+  .geo-nav {
+    position: relative !important;
+    z-index: 3002 !important;
+  }
+
+  .geo-nav-inner {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .geo-nav-cta {
+    min-width: 0 !important;
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  #nav-auth-area {
+    display: none !important;
+  }
+
+  .geo-nav-links {
+    display: none !important;
+  }
+
+  #theme-toggle-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    padding: 4px !important;
+  }
+
+  /* ---------------- MAP PAGE ---------------- */
+
+  /*
+   * Original markup:
+   * <div style="padding-top:var(--nav-height);display:flex;height:100vh;overflow:hidden;">
+   *   <div class="map-sidebar">...</div>
+   *   <div style="flex:1;position:relative"><div id="map"></div></div>
+   *
+   * On mobile the original horizontal flex layout lets the sidebar consume
+   * the viewport width and leaves the Leaflet map with no useful width.
+   */
+  #page-map > div:first-child {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: calc(100dvh - var(--nav-height)) !important;
+    min-height: calc(100dvh - var(--nav-height)) !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #page-map .map-sidebar {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    max-height: 52dvh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #page-map > div:first-child > div:last-child {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 320px !important;
+    height: auto !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #page-map #map {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 320px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #page-map .leaflet-container {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 320px !important;
+    z-index: 1 !important;
+  }
+
+  #page-map .leaflet-tile {
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  #page-map .leaflet-control-container {
+    z-index: 1000 !important;
+  }
+
+  /* ---------------- AUTH MODAL / PASSWORD ---------------- */
+
+  #auth-modal {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+  }
+
+  #auth-modal > div {
+    position: relative !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
+    touch-action: auto !important;
+  }
+
+  #auth-login {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+  }
+
+  #auth-login > div {
+    pointer-events: auto !important;
+  }
+
+  #login-email-field,
+  #login-pass-field {
+    position: relative !important;
+    z-index: 2 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: default !important;
+    opacity: 1 !important;
+  }
+
+  #login-pass-field {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  #auth-login #login-pass-field + button {
+    position: absolute !important;
+    z-index: 3 !important;
+    width: 44px !important;
+    height: 44px !important;
+    right: 4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #geo-mobile-nav {
+    left: 8px !important;
+    right: 8px !important;
+  }
+
+  #page-map .map-sidebar {
+    max-height: 50dvh !important;
+  }
+
+  #page-map > div:first-child > div:last-child,
+  #page-map #map,
+  #page-map .leaflet-container {
+    min-height: 300px !important;
+  }
+
+  #auth-modal {
+    padding: 10px !important;
+    align-items: center !important;
+  }
+
+  #auth-modal > div {
+    max-width: 100% !important;
+    max-height: calc(100dvh - 20px) !important;
+    overflow-y: auto !important;
+  }
+
+  #auth-login {
+    padding: 22px 14px !important;
+  }
+}
