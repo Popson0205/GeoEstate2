@@ -52,10 +52,53 @@
     gap: 6px !important;
   }
 
-  /* Hide desktop auth controls and portal hamburger on phones. */
-  .geo-nav-cta #nav-auth-area,
-  .geo-nav-cta .portal-dropdown {
+  /* Keep only compact mobile controls.  The existing GeoEstate markup
+     uses the portal/dropdown control as the mobile menu trigger on some
+     builds, so it must NOT be hidden here. */
+  .geo-nav-cta #nav-auth-area {
     display: none !important;
+  }
+
+  .geo-nav-cta .portal-dropdown,
+  .geo-nav-cta .geo-hamburger,
+  .geo-nav-cta .mobile-menu-toggle,
+  .geo-nav-cta .nav-toggle,
+  .geo-nav-cta .menu-toggle,
+  .geo-nav-cta .hamburger,
+  .geo-nav-cta [aria-label*="menu" i],
+  .geo-nav-cta [aria-label*="navigation" i],
+  .geo-nav-cta [data-mobile-menu],
+  .geo-nav-cta [data-menu-toggle] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    cursor: pointer !important;
+  }
+
+  /* If the portal control contains a label, keep the control icon-only. */
+  .geo-nav-cta .portal-dropdown > span:not(.hamburger):not(.bar),
+  .geo-nav-cta .portal-dropdown > .portal-label,
+  .geo-nav-cta .portal-dropdown .portal-text {
+    display: none !important;
+  }
+
+  .geo-nav-cta .portal-dropdown::before {
+    content: "☰";
+    display: block;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 700;
   }
 
   .geo-nav-cta .theme-toggle {
@@ -72,14 +115,21 @@
     flex: 0 0 40px !important;
     width: 40px !important;
     height: 40px !important;
+    min-width: 40px !important;
     min-height: 40px !important;
     padding: 8px !important;
     margin: 0 !important;
   }
 
-  #geo-hamburger.geo-hamburger span {
+  #geo-hamburger.geo-hamburger span,
+  .geo-nav-cta .mobile-menu-toggle span,
+  .geo-nav-cta .nav-toggle span,
+  .geo-nav-cta .menu-toggle span,
+  .geo-nav-cta .hamburger span {
+    display: block !important;
     width: 22px !important;
     height: 2px !important;
+    margin: 3px 0 !important;
   }
 
   /* =========================
