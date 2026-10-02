@@ -489,14 +489,20 @@
 
 
 /* ================================================================
-   GeoEstate SAFE MOBILE CORRECTION
-   Based directly on the original GeoEstate2/geoestate-theme.css.
-   Does NOT replace or modify index.html.
+   GeoEstate FINAL MOBILE UI/UX CORRECTIONS
+   Based on the user's ORIGINAL GeoEstate2/geoestate-theme.css.
+   Consolidates:
+   - Mobile hamburger/drawer
+   - Mobile Leaflet map sizing
+   - Login password input touch/edit behavior
    ================================================================ */
 
-/* ---------------- MOBILE NAVIGATION ---------------- */
 @media (max-width: 768px) {
-  /* Main mobile hamburger already exists in index.html */
+
+  /* =========================
+     MOBILE HEADER / HAMBURGER
+     ========================= */
+
   #geo-hamburger {
     display: flex !important;
     align-items: center !important;
@@ -512,8 +518,8 @@
     background: transparent !important;
     color: inherit !important;
     cursor: pointer !important;
-    z-index: 3001 !important;
     position: relative !important;
+    z-index: 3001 !important;
     box-sizing: border-box !important;
   }
 
@@ -526,7 +532,6 @@
     background: currentColor !important;
   }
 
-  /* The mobile drawer already exists in index.html */
   #geo-mobile-nav {
     display: none !important;
     position: fixed !important;
@@ -561,8 +566,8 @@
     font-size: .9rem !important;
   }
 
-  #geo-mobile-nav > a:active,
-  #geo-mobile-nav > a:hover {
+  #geo-mobile-nav > a:hover,
+  #geo-mobile-nav > a:active {
     background: var(--surface-secondary, rgba(255,255,255,.08)) !important;
   }
 
@@ -575,11 +580,6 @@
     border-top: 1px solid var(--border-subtle, rgba(255,255,255,.1)) !important;
   }
 
-  .geo-mobile-nav-cta > * {
-    min-width: 0 !important;
-  }
-
-  /* Keep desktop portal hamburger separate from the main mobile nav */
   #portal-menu-btn {
     display: none !important;
   }
@@ -590,8 +590,8 @@
   }
 
   .geo-nav-inner {
-    min-width: 0 !important;
     width: 100% !important;
+    min-width: 0 !important;
   }
 
   .geo-nav-cta {
@@ -621,17 +621,19 @@
     padding: 4px !important;
   }
 
-  /* ---------------- MAP PAGE ---------------- */
+
+  /* =========================
+     MOBILE MAP
+     ========================= */
 
   /*
-   * Original markup:
-   * <div style="padding-top:var(--nav-height);display:flex;height:100vh;overflow:hidden;">
-   *   <div class="map-sidebar">...</div>
-   *   <div style="flex:1;position:relative"><div id="map"></div></div>
+   * The existing map page uses a horizontal flex container:
+   *   sidebar + map
    *
-   * On mobile the original horizontal flex layout lets the sidebar consume
-   * the viewport width and leaves the Leaflet map with no useful width.
+   * On phones the sidebar was consuming the viewport width and
+   * leaving Leaflet with little/no usable width. Stack them vertically.
    */
+
   #page-map > div:first-child {
     display: flex !important;
     flex-direction: column !important;
@@ -670,8 +672,8 @@
     position: relative !important;
     width: 100% !important;
     height: 100% !important;
-    min-height: 320px !important;
     min-width: 0 !important;
+    min-height: 320px !important;
     box-sizing: border-box !important;
   }
 
@@ -691,7 +693,10 @@
     z-index: 1000 !important;
   }
 
-  /* ---------------- AUTH MODAL / PASSWORD ---------------- */
+
+  /* =========================
+     LOGIN / PASSWORD INPUT
+     ========================= */
 
   #auth-modal {
     pointer-events: auto !important;
@@ -718,12 +723,14 @@
   #login-pass-field {
     position: relative !important;
     z-index: 2 !important;
+    display: block !important;
     pointer-events: auto !important;
     touch-action: manipulation !important;
     user-select: text !important;
     -webkit-user-select: text !important;
     -webkit-touch-callout: default !important;
     opacity: 1 !important;
+    cursor: text !important;
   }
 
   #login-pass-field {
@@ -746,10 +753,12 @@
     margin: 0 !important;
     pointer-events: auto !important;
     touch-action: manipulation !important;
+    cursor: pointer !important;
   }
 }
 
 @media (max-width: 480px) {
+
   #geo-mobile-nav {
     left: 8px !important;
     right: 8px !important;
