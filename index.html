@@ -64,7 +64,116 @@ YPE html>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="geoestate-theme.css?v=2">
+  <link rel="stylesheet" href="geoestate-theme.css?v=3">
+<style id="geoestate-final-responsive-fix">
+/* GeoEstate final mobile navigation + map fix. */
+@media (max-width: 768px) {
+  /* Main mobile hamburger: the existing markup already contains it. */
+  #geo-hamburger.geo-hamburger {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 6px !important;
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--text-primary) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 1101 !important;
+  }
+  #geo-hamburger.geo-hamburger span {
+    display: block !important;
+    width: 22px !important;
+    height: 2px !important;
+    margin: 0 !important;
+    background: currentColor !important;
+    border-radius: 2px !important;
+  }
+  /* Hide the separate desktop portals hamburger on phones. */
+  #portal-dropdown { display: none !important; }
+  #nav-auth-area { display: none !important; }
+  .geo-nav-cta { display: flex !important; align-items: center !important; margin-left: auto !important; gap: 6px !important; }
+  .geo-nav-cta .theme-toggle { display: flex !important; }
+
+  /* Map page: the original wrapper is a horizontal flex row. On phones it
+     must become a vertical layout or the map gets squeezed to zero width. */
+  #page-map > div:first-child {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: calc(100svh - var(--nav-height)) !important;
+    min-height: 0 !important;
+    margin-top: var(--nav-height) !important;
+    padding-top: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #page-map .map-sidebar {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 46svh !important;
+    max-height: 46svh !important;
+    min-height: 0 !important;
+    flex: 0 0 46svh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 20px 16px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08) !important;
+    z-index: 5 !important;
+  }
+
+  #page-map > div:first-child > div:last-child {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 54svh !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  #page-map #map {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    z-index: 1 !important;
+  }
+
+  #page-map .leaflet-container {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #page-map .map-sidebar {
+    height: 47svh !important;
+    max-height: 47svh !important;
+    flex-basis: 47svh !important;
+  }
+  #page-map > div:first-child > div:last-child {
+    height: 53svh !important;
+  }
+}
+</style>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2748,21 +2857,7 @@ function showPage(name) {
   const navEl = document.getElementById('nav-' + name);
   if (navEl) navEl.classList.add('active');
   window.scrollTo(0, 0);
-  if (name === 'map') {
-    initMap();
-    setTimeout(() => {
-      if (mapInstance) {
-        try { mapInstance.invalidateSize({ pan: false, animate: false }); }
-        catch (_) { mapInstance.invalidateSize(); }
-      }
-    }, 120);
-    setTimeout(() => {
-      if (mapInstance) {
-        try { mapInstance.invalidateSize({ pan: false, animate: false }); }
-        catch (_) { mapInstance.invalidateSize(); }
-      }
-    }, 500);
-  }
+  if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
   if (name === 'dispute') loadDisputePropertyOptions();
@@ -3222,32 +3317,9 @@ function initMap() {
     const el = document.getElementById('map');
     if (!el) { console.warn('initMap: #map container not found — page-map not in DOM yet, skipping init.'); return; }
     try {
-      mapInstance = L.map('map', {
-        zoomControl: true,
-        preferCanvas: false
-      }).setView([9.082, 8.6753], 6);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-        updateWhenIdle: false,
-        keepBuffer: 2
-      }).addTo(mapInstance);
-
-      // The mobile map page changes from a desktop row to a vertical layout.
-      // Recalculate the Leaflet viewport after the browser applies that layout.
-      const refreshMapSize = () => {
-        if (!mapInstance) return;
-        try { mapInstance.invalidateSize({ pan: false, animate: false }); }
-        catch (_) { mapInstance.invalidateSize(); }
-      };
-
-      requestAnimationFrame(() => {
-        refreshMapSize();
-        setTimeout(refreshMapSize, 120);
-        setTimeout(refreshMapSize, 400);
-        setTimeout(refreshMapSize, 900);
-      });
+      mapInstance = L.map('map').setView([9.082, 8.6753], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(mapInstance);
+      setTimeout(() => { mapInstance.invalidateSize(); }, 300);
     } catch (e) {
       console.warn('initMap failed:', e.message);
       return;
@@ -4918,16 +4990,6 @@ document.addEventListener('click', function (e) {
 
 </script>
 
-<script>
-/* Keep Leaflet correctly sized after device rotation / browser chrome changes. */
-window.addEventListener('resize', function () {
-  if (typeof mapInstance !== 'undefined' && mapInstance) {
-    try { mapInstance.invalidateSize({ pan: false, animate: false }); }
-    catch (_) { mapInstance.invalidateSize(); }
-  }
-});
-</script>
-
 
 <!-- Enquiry Modal -->
 <div id="enquiry-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center;padding:20px">
@@ -5953,6 +6015,5 @@ document.addEventListener('DOMContentLoaded', function() {
   populateLGA('lease-state', 'lease-lga');
 });
 </script>
-<!-- Mobile/map repair is handled by geoestate-theme.css and initMap() below. -->
 </body>
 </html>
