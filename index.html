@@ -64,7 +64,7 @@ YPE html>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="geoestate-theme.css?v=4">
+  <link rel="stylesheet" href="geoestate-theme.css?v=2">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -480,6 +480,80 @@ YPE html>
   /* ── Responsive ── */
   @media (max-width: 640px) {
     .form-grid, .form-grid-3 { grid-template-columns: 1fr !important; }
+  }
+</style>
+
+<style id="geoestate-auth-mobile-fix">
+  /* Targeted mobile auth fix. Does not alter the rest of the site. */
+  #auth-modal,
+  #auth-modal > div {
+    pointer-events: auto;
+  }
+
+  #auth-modal .geo-auth-password-wrap {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    isolation: isolate;
+  }
+
+  #auth-modal #login-pass-field {
+    position: relative !important;
+    z-index: 1 !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+    caret-color: var(--geo-green-600) !important;
+  }
+
+  #auth-modal .geo-password-toggle {
+    position: absolute !important;
+    top: 50% !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 3 !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: translateY(-50%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  @media (max-width: 768px) {
+    #auth-modal {
+      padding: 12px !important;
+      align-items: center !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #auth-modal > div {
+      max-height: calc(100dvh - 24px) !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #auth-login input,
+    #auth-register input,
+    #auth-forgot input,
+    #auth-otp input {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+      pointer-events: auto !important;
+    }
   }
 </style>
 </head>
@@ -2433,14 +2507,14 @@ document.addEventListener('click', function(e){
       </div>
       <div style="margin-bottom:8px">
         <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Password</label>
-        <div style="position:relative">
-          <input id="login-pass-field" class="auth-password-input" type="password" placeholder="••••••••" autocomplete="current-password" name="password"
-            style="width:100%;padding:10px 44px 10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.9rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
+        <div class="geo-auth-password-wrap">
+          <input id="login-pass-field" type="password" placeholder="••••••••" autocomplete="current-password" name="password"
+            style="width:100%;padding:10px 52px 10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.9rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
             onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
             onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
             onkeydown="if(event.key==='Enter')doLogin()">
-          <button type="button" class="auth-password-toggle" onclick="togglePassVis('login-pass-field',this)"
-            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.85rem;color:var(--text-muted)">👁</button>
+          <button type="button" class="geo-password-toggle" onclick="event.preventDefault();event.stopPropagation();togglePassVis('login-pass-field',this)"
+            aria-label="Show password" title="Show password">👁</button>
         </div>
       </div>
       <div style="text-align:right;margin-bottom:20px">
@@ -5907,43 +5981,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-/* GeoEstate mobile auth input fix */
+/* GeoEstate auth input guard: keep password fields editable on touch devices. */
 (function () {
-  function bindAuthInputFix() {
-    var field = document.getElementById('login-pass-field');
-    if (!field || field.dataset.mobileAuthFixed === '1') return;
-    field.dataset.mobileAuthFixed = '1';
-
-    field.disabled = false;
-    field.readOnly = false;
-    field.removeAttribute('disabled');
-    field.removeAttribute('readonly');
-    field.setAttribute('inputmode', 'text');
-    field.setAttribute('autocomplete', 'current-password');
-
-    ['pointerdown', 'touchstart', 'mousedown'].forEach(function (eventName) {
-      field.addEventListener(eventName, function (e) {
-        e.stopPropagation();
-        field.disabled = false;
-        field.readOnly = false;
-        try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
-      }, true);
-    });
-
-    field.addEventListener('click', function (e) {
-      e.stopPropagation();
+  function repairAuthInputs() {
+    var modal = document.getElementById('auth-modal');
+    if (!modal) return;
+    var fields = modal.querySelectorAll('input');
+    fields.forEach(function (field) {
       field.disabled = false;
       field.readOnly = false;
-      try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
-    }, true);
+      field.style.pointerEvents = 'auto';
+      field.style.touchAction = 'manipulation';
+      field.style.webkitUserSelect = 'text';
+      field.style.userSelect = 'text';
+    });
   }
-
-  document.addEventListener('DOMContentLoaded', bindAuthInputFix);
-  document.addEventListener('click', bindAuthInputFix, true);
-  document.addEventListener('touchstart', bindAuthInputFix, true);
-  setTimeout(bindAuthInputFix, 100);
-  setTimeout(bindAuthInputFix, 800);
+  document.addEventListener('click', repairAuthInputs, true);
+  document.addEventListener('touchstart', repairAuthInputs, {passive:true, capture:true});
+  document.addEventListener('DOMContentLoaded', repairAuthInputs);
 })();
 </script>
+<script src="geoestate-mobile-repair.js"></script>
 </body>
 </html>
