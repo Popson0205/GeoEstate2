@@ -1,0 +1,9 @@
+# Keep the nginx image small and stop private files being served publicly
+.git
+.gitignore
+.env*
+env.frontend
+*.md
+README.txt
+Dockerfile
+.dockerignore
