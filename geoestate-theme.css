@@ -1657,3 +1657,31 @@ select.geo-input option, select.geo-select option {
   display: flex !important; align-items: center !important; justify-content: center !important;
 }
 #auth-modal input.pw-input[id] { padding-right: 44px !important; }
+
+
+/* ================================================================
+   OTP single code box, verification banner (scoped fixes)
+   ================================================================ */
+#otp-inputs { display: block !important; }
+#otp-inputs .otp-box.otp-single {
+  width: 100% !important; max-width: 100% !important; height: 56px !important;
+  font-size: 1.5rem !important; padding: 0 0 0 .5em !important;
+}
+#otp-inputs .otp-box.otp-single::placeholder { letter-spacing: normal; font-size: .95rem; font-weight: 500; }
+
+/* Banner: compact one-line pill bar instead of stretched full-width buttons */
+#verify-banner.verify-banner {
+  padding: 8px 12px !important; line-height: 1.35;
+  display: none;
+}
+#verify-banner.verify-banner[style*="display: block"],
+#verify-banner.verify-banner[style*="display:block"] {
+  display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px;
+}
+#verify-banner.verify-banner button {
+  width: auto !important; min-height: 0 !important; flex: 0 0 auto;
+  padding: 5px 14px !important; margin: 0 !important; font-size: .8rem !important;
+}
+#verify-banner.verify-banner button[title="Dismiss"] { padding: 4px 8px !important; font-size: 1rem !important; }
+/* Redundant on the verification page itself */
+body.on-verify-page #verify-banner { display: none !important; }
