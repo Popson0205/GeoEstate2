@@ -735,8 +735,6 @@ document.addEventListener('click', function(e){
       <button class="btn btn-secondary" onclick="closeMobileNav();openAuthModal('login')">Sign In</button>
     </div>
     <a href="/owner-dashboard" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🏠 Owner Portal</a>
-    <a href="/sales" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">📊 Sales Portal</a>
-    <a href="/admin" class="btn btn-ghost" style="text-decoration:none;color:var(--text-muted);font-size:.85rem">🔐 Admin Portal</a>
   </div>
 </div>
 
@@ -4220,7 +4218,22 @@ let selectedRole    = 'owner';
 
 // ── Session ──────────────────────────────────────────────────────────────────
 function initAuth() {
-  const saved = localStorage.getItem('geo_session');
+  let saved = localStorage.getItem('geo_session');
+  if (!saved) {
+    // The Owner Dashboard has its own OTP login that only stores
+    // geo_owner_session. Share it, so coming back from the dashboard
+    // (e.g. phone Back button) doesn't look like being signed out.
+    try {
+      const os = JSON.parse(localStorage.getItem('geo_owner_session') || 'null');
+      const o = os && os.token && os.owner;
+      if (o && o.id && o.fname) {
+        const u = { id: o.id, fname: o.fname, lname: o.lname || '', email: o.email || '', phone: o.phone || '',
+                    role: o.role || 'owner', verified: !!(o.is_verified || o.verified), photo_url: o.photo_url || '' };
+        localStorage.setItem('geo_session', JSON.stringify(u));
+        saved = JSON.stringify(u);
+      }
+    } catch (e) {}
+  }
   if (!saved) return;
   try {
     currentUser = JSON.parse(saved);
@@ -4257,6 +4270,7 @@ function loginSuccess(user) {
 function logoutUser() {
   currentUser = null;
   localStorage.removeItem('geo_session');
+  try { if (window.GeoAPI && GeoAPI.clearOwnerSession) GeoAPI.clearOwnerSession(); } catch (e) {}
   renderNavAuth();
   const vBanner = document.getElementById('verify-banner');
   if (vBanner) vBanner.style.display = 'none';
