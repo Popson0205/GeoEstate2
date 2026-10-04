@@ -235,6 +235,9 @@
         body: hasBody ? JSON.stringify(opts.body) : undefined
       });
       if (!r.ok) {
+        if (r.status === 401) {   // token expired / invalid -> clear it and tell the page
+          try { clearOwnerSession(); localStorage.removeItem('geo_session'); window.dispatchEvent(new Event('geo-session-expired')); } catch (e3) {}
+        }
         // Try to surface the server error message
         try { const d = await r.json(); return { error: d.error || 'HTTP ' + r.status }; } catch(e2) {}
         return { error: 'HTTP ' + r.status };
@@ -255,6 +258,9 @@
         body: hasBody ? JSON.stringify(opts.body) : undefined
       });
       if (!r.ok) {
+        if (r.status === 401) {
+          try { clearPartnerSession(); window.dispatchEvent(new Event('geo-session-expired')); } catch (e3) {}
+        }
         try { const d = await r.json(); return { error: d.error || 'HTTP ' + r.status }; } catch(e2) {}
         return { error: 'HTTP ' + r.status };
       }

@@ -2555,7 +2555,7 @@ document.addEventListener('click', function(e){
         </div>
       </div>
       <div style="text-align:right;margin-bottom:20px">
-        <button type="button" class="auth-link-btn" onclick="switchAuthTab('forgot')" style="background:none;border:none;font-size:.78rem;color:var(--geo-green-600);cursor:pointer;font-family:var(--font-sans)">Forgot password?</button>
+        <button type="button" class="auth-link-btn" onclick="resetForgotFlow();var le=document.getElementById('login-email-field'),fe=document.getElementById('forgot-email');if(le&&fe&&le.value)fe.value=le.value;switchAuthTab('forgot')" style="background:none;border:none;font-size:.78rem;color:var(--geo-green-600);cursor:pointer;font-family:var(--font-sans)">Forgot password?</button>
       </div>
 
       <div id="login-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:14px;box-shadow:inset 0 0 0 1px #fca5a5"></div>
@@ -2687,21 +2687,30 @@ document.addEventListener('click', function(e){
 
     <!-- FORGOT PASSWORD TAB -->
     <div id="auth-forgot" style="display:none;padding:28px;text-align:center">
-      <div style="font-size:2rem;margin-bottom:12px">🔑</div>
+      <div style="font-size:2rem;margin-bottom:12px">&#128273;</div>
       <div style="font-weight:800;font-size:1.1rem;margin-bottom:6px">Reset Password</div>
-      <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:24px">Enter your email and we'll send a reset link</div>
-      <div style="text-align:left;margin-bottom:16px">
-        <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Email Address</label>
-        <input id="forgot-email" type="email" placeholder="your@email.com"
-          style="width:100%;padding:10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box"
-          onfocus="this.style.boxShadow='inset 0 0 0 2px var(--geo-green-400)'"
-          onblur="this.style.boxShadow='inset 0 0 0 1px var(--border-default)'"
-          onkeydown="if(event.key==='Enter')doForgot()">
-      </div>
-      <div id="forgot-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:12px;text-align:left;box-shadow:inset 0 0 0 1px #fca5a5"></div>
-      <div id="forgot-msg" style="display:none;background:#f0fdf4;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#166534;margin-bottom:12px;text-align:left;box-shadow:inset 0 0 0 1px #bbf7d0"></div>
-      <button onclick="doForgot()" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-bottom:14px">Send Reset Link →</button>
-      <button onclick="switchAuthTab('login')" style="background:none;border:none;color:var(--geo-green-600);font-weight:600;cursor:pointer;font-family:var(--font-sans);font-size:.82rem">← Back to Sign In</button>
+      <div id="forgot-sub" style="font-size:.85rem;color:var(--text-muted);margin-bottom:24px">Enter your email and we'll send you a 6-digit code.</div>
+      <form id="forgot-form" method="post" action="#" autocomplete="on" onsubmit="event.preventDefault();doForgot();return false;">
+        <div style="text-align:left;margin-bottom:16px">
+          <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Email Address</label>
+          <input id="forgot-email" type="email" name="email" autocomplete="username" placeholder="your@email.com" style="width:100%;padding:10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box">
+        </div>
+        <div id="forgot-step2" style="display:none;text-align:left">
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">6-digit code</label>
+            <input id="forgot-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="Enter code"
+              oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="width:100%;padding:10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box;text-align:center;font-size:1.2rem;font-weight:800;letter-spacing:.35em">
+          </div>
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:5px">New password</label>
+            <input id="forgot-newpass" type="password" name="new-password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" style="width:100%;padding:10px 14px;border:none;border-radius:9px;background:var(--surface-secondary);color:var(--text-primary);font-family:var(--font-sans);font-size:.88rem;outline:none;box-shadow:inset 0 0 0 1px var(--border-default);box-sizing:border-box">
+          </div>
+        </div>
+        <div id="forgot-error" style="display:none;background:#fef2f2;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#b91c1c;margin-bottom:12px;text-align:left;box-shadow:inset 0 0 0 1px #fca5a5"></div>
+        <div id="forgot-msg" style="display:none;background:#f0fdf4;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#166534;margin-bottom:12px;text-align:left;box-shadow:inset 0 0 0 1px #bbf7d0"></div>
+        <button type="submit" id="forgot-submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-bottom:14px">Send Code &#8594;</button>
+      </form>
+      <button type="button" class="auth-link-btn" onclick="resetForgotFlow();switchAuthTab('login')" style="background:none;border:none;color:var(--geo-green-600);font-weight:600;cursor:pointer;font-family:var(--font-sans);font-size:.82rem">&#8592; Back to Sign In</button>
     </div>
 
   </div>
@@ -3783,9 +3792,10 @@ async function submitVerification() {
     const id_doc_url = await geoUploadToSupabase(idocInput, 'geoestate-docs/registrations/id-docs');
     if (!id_doc_url) throw new Error('ID document upload failed — please try again.');
 
-    // 3. Build owner token — format: owner:<userId>:<timestamp>
-    //    requireOwner() on server validates this exact format
-    const ownerToken = 'owner:' + currentUser.id + ':' + Date.now();
+    // 3. Use the signed session token issued by the server at sign-in / registration
+    const _sess = (window.GeoAPI && GeoAPI.getOwnerSession && GeoAPI.getOwnerSession()) || null;
+    if (!_sess || !_sess.token) throw new Error('Your session has expired. Please sign out, sign in again, then resubmit.');
+    const ownerToken = _sess.token;
 
     // 4. POST to /owner/verify-identity
     showProg('Saving your information…');
@@ -4217,6 +4227,25 @@ let otpTimerInterval = null;
 let selectedRole    = 'owner';
 
 // ── Session ──────────────────────────────────────────────────────────────────
+// Sessions are now signed tokens (xxx.yyy.zzz). Any old-format session saved before
+// the security upgrade is discarded so the user simply signs in again.
+(function purgeLegacySession() {
+  try {
+    const os = JSON.parse(localStorage.getItem('geo_owner_session') || 'null');
+    if (os && os.token && String(os.token).split('.').length !== 3) {
+      localStorage.removeItem('geo_owner_session');
+      localStorage.removeItem('geo_session');
+    }
+  } catch (e) {}
+})();
+// Fired by geo-api.js when the server answers 401 (token expired / invalid).
+window.addEventListener('geo-session-expired', function () {
+  if (typeof currentUser === 'undefined' || !currentUser) return;
+  try { logoutUser(); } catch (e) {}
+  try { showAuthToast('Your session expired. Please sign in again.'); } catch (e) {}
+  try { openAuthModal('login'); } catch (e) {}
+});
+
 function initAuth() {
   let saved = localStorage.getItem('geo_session');
   if (!saved) {
@@ -4831,6 +4860,7 @@ async function verifyOTP() {
       phone:         pendingRegData.phone,
       role:          pendingRegData.role,
       pass:          pendingRegData.pass,       // already btoa'd
+      verifyToken:   otpData.verifyToken,       // proof the email OTP was passed (required by the server)
       registeredAt:  new Date().toISOString()
     };
 
@@ -4920,6 +4950,7 @@ async function doLogin() {
       // Identity verification is only required at registration.
       // The sticky verify-banner already nudges unverified users — no forced dialog needed.
     } else {
+      if (data.needsPassword) { const fe = document.getElementById('forgot-email'); if (fe) fe.value = email; }
       const noAccount = (data.error || '').toLowerCase().includes('no account');
       showErr(data.error || 'Login failed. Please try again.', noAccount);
     }
@@ -4931,44 +4962,81 @@ async function doLogin() {
 }
 
 // ── FORGOT PASSWORD ──────────────────────────────────────────────────────────
-async function doForgot() {
-  const emailEl  = document.getElementById('forgot-email');
-  const errEl    = document.getElementById('forgot-error');
-  const msgEl    = document.getElementById('forgot-msg');
-  const btn      = document.querySelector('#auth-forgot .btn');
+let _forgotStep = 'email';
+function resetForgotFlow() {
+  _forgotStep = 'email';
+  const g = id => document.getElementById(id);
+  if (g('forgot-step2')) g('forgot-step2').style.display = 'none';
+  if (g('forgot-email')) g('forgot-email').readOnly = false;
+  if (g('forgot-code')) g('forgot-code').value = '';
+  if (g('forgot-newpass')) g('forgot-newpass').value = '';
+  if (g('forgot-error')) g('forgot-error').style.display = 'none';
+  if (g('forgot-msg')) g('forgot-msg').style.display = 'none';
+  if (g('forgot-sub')) g('forgot-sub').textContent = "Enter your email and we'll send you a 6-digit code.";
+  if (g('forgot-submit')) { g('forgot-submit').disabled = false; g('forgot-submit').innerHTML = 'Send Code &#8594;'; }
+}
 
+// Step 1: email a 6-digit code.  Step 2: code + new password -> /user/reset-password.
+async function doForgot() {
+  const g = id => document.getElementById(id);
+  const emailEl = g('forgot-email'), errEl = g('forgot-error'), msgEl = g('forgot-msg'), btn = g('forgot-submit');
   const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
   if (errEl) errEl.style.display = 'none';
   if (msgEl) msgEl.style.display = 'none';
+  function showErr(m) { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } }
+  if (!email) return showErr('Please enter your email address.');
 
-  if (!email) {
-    if (errEl) { errEl.textContent = '❌ Please enter your email address.'; errEl.style.display = 'block'; }
+  if (_forgotStep === 'email') {
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+    try {
+      const res  = await fetch(GEO_API_BASE + '/send-otp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, purpose: 'reset' })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        _forgotStep = 'code';
+        if (g('forgot-step2')) g('forgot-step2').style.display = 'block';
+        if (emailEl) emailEl.readOnly = true;
+        if (g('forgot-sub')) g('forgot-sub').textContent = 'Enter the code we emailed you and choose a new password.';
+        if (msgEl) { msgEl.textContent = 'If an account exists for ' + email + ', a code is on its way. It expires in 10 minutes.'; msgEl.style.display = 'block'; }
+        if (g('forgot-code')) g('forgot-code').focus();
+      } else {
+        showErr(data.error || 'Could not send the code. Please try again.');
+      }
+    } catch (e) {
+      showErr('Could not reach server. Check your connection.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = _forgotStep === 'email' ? 'Send Code &#8594;' : 'Set New Password'; }
+    }
     return;
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-
+  const code = (g('forgot-code') || {}).value || '';
+  const pw   = (g('forgot-newpass') || {}).value || '';
+  if (!/^\d{6}$/.test(code.trim())) return showErr('Enter the 6-digit code from your email.');
+  if (pw.length < 8) return showErr('Password must be at least 8 characters.');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
   try {
-    // Reuse the OTP send endpoint — user can log in with OTP as a reset path
-    const res  = await fetch(GEO_API_BASE + '/send-otp', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, name: '' })
+    const res  = await fetch(GEO_API_BASE + '/user/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code: code.trim(), password: pw })
     });
     const data = await res.json();
-    if (data.success || data.sent) {
-      if (msgEl) {
-        msgEl.textContent = '✅ A one-time code was sent to ' + email + '. Use it to verify your account, then set a new password.';
-        msgEl.style.display = 'block';
-      }
+    if (res.ok && data.success) {
+      try { saveCredentialToBrowser(email, pw, ''); } catch (e) {}
+      resetForgotFlow();
+      switchAuthTab('login');
+      const le = g('login-email-field'); if (le) le.value = email;
+      const lp = g('login-pass-field'); if (lp) { lp.value = ''; lp.focus(); }
+      showAuthToast('Password updated. Please sign in.');
     } else {
-      const msg = data.error || 'Could not send reset email.';
-      if (errEl) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+      showErr(data.error || 'Could not reset password. Please try again.');
     }
   } catch (e) {
-    if (errEl) { errEl.textContent = '❌ Could not reach server. Check your connection.'; errEl.style.display = 'block'; }
+    showErr('Could not reach server. Check your connection.');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Send Reset Link →'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = _forgotStep === 'email' ? 'Send Code &#8594;' : 'Set New Password'; }
   }
 }
 
@@ -5631,7 +5699,7 @@ function confirmListingMapPick() {
 }
 </script>
 
-<script src="geo-api.js?v=4"></script>
+<script src="geo-api.js?v=5"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     loadLiveProperties();

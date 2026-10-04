@@ -1466,7 +1466,7 @@
 <div id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="geo-api.js?v=2"></script>
+<script src="geo-api.js?v=3"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // OWNER DASHBOARD — Main Script
@@ -3033,5 +3033,10 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
+<script>
+// Partner sessions are now signed tokens; drop any old-format one and handle expiry.
+try { var _ps = GeoAPI.getPartnerSession(); if (_ps && _ps.token && String(_ps.token).split('.').length !== 3) GeoAPI.clearPartnerSession(); } catch (e) {}
+window.addEventListener('geo-session-expired', function () { try { ownerLogout(); } catch (e) {} });
+</script>
 </body>
 </html>

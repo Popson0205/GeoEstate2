@@ -1491,7 +1491,7 @@
 <!-- Toast container -->
 <div id="toast"></div>
 
-<script src="geo-api.js?v=4"></script>
+<script src="geo-api.js?v=5"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // OWNER DASHBOARD — Main Script
@@ -3056,6 +3056,12 @@ async function submitAddProperty() {
 
 <script>
 // ---- Leave dashboard / shared session / phone Back button ----
+// Signed tokens look like xxx.yyy.zzz; discard any old-format session saved before the upgrade.
+try { var _s0 = GeoAPI.getOwnerSession(); if (_s0 && _s0.token && String(_s0.token).split('.').length !== 3) { GeoAPI.clearOwnerSession(); localStorage.removeItem('geo_session'); } } catch (e) {}
+window.addEventListener('geo-session-expired', function () {
+  try { ownerLogout(); } catch (e) {}
+  try { toast('Your session expired. Please sign in again.', 'error'); } catch (e) {}
+});
 function leaveDashboard() {
   try {
     var ref = document.referrer;
