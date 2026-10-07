@@ -273,6 +273,27 @@
   #admin-root .highlight-box{background:var(--a-green-bg);border-radius:8px;padding:12px 16px;font-size:.83rem;color:var(--a-green);box-shadow:inset 0 0 0 1px var(--a-green-l);margin-bottom:12px}
   #admin-root .warning-box{background:var(--a-amber-bg);border-radius:8px;padding:12px 16px;font-size:.83rem;color:#92400e;box-shadow:inset 0 0 0 1px #fcd34d;margin-bottom:12px}
 
+  /* REQUEST-INFO COMPOSER */
+  #admin-root .ri-label{font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--a-muted);margin:0 0 8px}
+  #admin-root .ri-sec{margin-bottom:18px}
+  #admin-root .ri-check{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:var(--a-input-bg);margin-bottom:6px;font-size:.84rem;color:var(--a-text);cursor:pointer;line-height:1.4}
+  #admin-root .ri-check input{margin-top:3px;accent-color:var(--a-green);flex-shrink:0}
+  #admin-root .ri-none{padding:10px 12px;border-radius:8px;background:var(--a-green-bg);color:var(--a-green);font-size:.84rem}
+  #admin-root .ri-input{width:100%;padding:10px 12px;border:none;border-radius:8px;background:var(--a-input-bg);color:var(--a-text);font-family:var(--a-font);font-size:.88rem;box-sizing:border-box;outline:none}
+  #admin-root textarea.ri-input{min-height:300px;line-height:1.55;resize:vertical}
+  #admin-root .ri-tabs{display:flex;gap:6px;margin-bottom:10px}
+  #admin-root .ri-tab{padding:6px 14px;border-radius:999px;border:none;background:var(--a-input-bg);color:var(--a-muted);font-weight:700;font-size:.8rem;cursor:pointer;font-family:var(--a-font)}
+  #admin-root .ri-tab.on{background:var(--a-green);color:#fff}
+  #admin-root .ri-hint{display:none;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--a-amber-bg);color:#92400e;font-size:.8rem;align-items:center;gap:10px;justify-content:space-between}
+  #admin-root .ri-link{padding:10px 12px;border-radius:8px;background:var(--a-input-bg);font-size:.8rem;color:var(--a-muted);margin-top:10px;line-height:1.5}
+  #admin-root .ri-err{display:none;margin-top:12px;padding:10px 12px;border-radius:8px;background:#fef2f2;color:#b91c1c;font-size:.83rem;box-shadow:inset 0 0 0 1px #fca5a5}
+  #admin-root .ri-mail{border-radius:12px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--a-border);background:#fff;color:#374151}
+  #admin-root .ri-mail-head{background:linear-gradient(135deg,#0d3d22,#1a6b3c);color:#fff;text-align:center;padding:16px;font-weight:800}
+  #admin-root .ri-mail-body{padding:20px 22px;font-size:.88rem;line-height:1.7}
+  #admin-root .ri-mail-subject{font-size:.76rem;color:#6b7280;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f3f4f6}
+  #admin-root .ri-mail-btn{display:inline-block;background:#1a6b3c;color:#fff;font-weight:700;padding:11px 26px;border-radius:9px}
+  #admin-root .ri-mail-foot{font-size:.74rem;color:#9ca3af;text-align:center;line-height:1.5}
+
   /* TEAM GRID */
   #admin-root .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;padding:0;width:100%}
   #admin-root .team-card{background:var(--a-card);border-radius:12px;padding:20px 16px;text-align:center;box-shadow:var(--a-shadow);cursor:pointer;transition:box-shadow .2s}
@@ -857,6 +878,51 @@
     </div>
     <div class="modal-body" id="modal-id-body"></div>
     <div class="modal-footer" id="modal-id-footer"></div>
+  </div>
+</div>
+
+<!-- Request Info composer -->
+<div class="modal-overlay" id="modal-reqinfo" style="z-index:320">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Request More Information</div>
+        <div style="font-size:.78rem;color:var(--adm-text-subtle);margin-top:2px" id="ri-sub"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-reqinfo')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="ri-sec">
+        <div class="ri-label">To</div>
+        <div class="ri-input" id="ri-to" style="cursor:default"></div>
+      </div>
+      <div class="ri-sec">
+        <div class="ri-label">Missing items detected automatically</div>
+        <div id="ri-detected"></div>
+      </div>
+      <div class="ri-sec">
+        <div class="ri-label">Other problems you spotted (tick any that apply)</div>
+        <div id="ri-extras"></div>
+        <textarea class="ri-input" id="ri-note" style="min-height:64px;margin-top:6px" placeholder="Optional: add your own note to the customer..." oninput="riRegen()"></textarea>
+      </div>
+      <div class="ri-sec">
+        <div class="ri-label">Email</div>
+        <input class="ri-input" id="ri-subject" style="margin-bottom:10px" placeholder="Subject" oninput="riPreview()">
+        <div class="ri-tabs">
+          <button type="button" class="ri-tab on" id="ri-tab-edit" onclick="riTab('edit')">Edit</button>
+          <button type="button" class="ri-tab" id="ri-tab-preview" onclick="riTab('preview')">Preview</button>
+        </div>
+        <div class="ri-hint" id="ri-dirty-hint"><span>You edited the message, so ticking items won't overwrite it.</span><button type="button" class="btn btn-sm btn-ghost" onclick="riRegen(true)">Regenerate from checklist</button></div>
+        <div id="ri-pane-edit"><textarea class="ri-input" id="ri-message" oninput="riMarkDirty()"></textarea></div>
+        <div id="ri-pane-preview" style="display:none"></div>
+        <div class="ri-link">&#128279; A <strong>Verify Your Identity</strong> button linking to <span id="ri-link-url"></span> is added to the bottom of the email automatically. The customer is asked to sign in first, then lands on the upload page.</div>
+      </div>
+      <div class="ri-err" id="ri-err"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reqinfo')">Cancel</button>
+      <button class="btn btn-info btn-lg" id="ri-send" style="flex:1;justify-content:center" onclick="sendRequestInfo()">Send to customer</button>
+    </div>
   </div>
 </div>
 
@@ -1522,7 +1588,7 @@ function openIdModal(idx){
       <div class="panel-section-title">Reviewer Notes</div>
       <textarea class="notes-area" id="notes-${idx}" placeholder="Add notes...">${s.notes}</textarea>
     </div>
-    ${s.notes&&s.status==='info'?`<div class="warning-box">⚠️ Info requested: ${s.notes}</div>`:''}
+    ${s.status==='info'?`<div class="warning-box" style="white-space:pre-wrap"><strong>Info requested from the customer</strong>\n${riEsc(s.info_request_message||s.notes||'')}</div>`:''}
     ${s.notes&&s.status==='rejected'?`<div style="background:var(--adm-red-bg);border-radius:8px;padding:12px 16px;font-size:.83rem;color:#7f1d1d;box-shadow:inset 0 0 0 1px #fca5a5">❌ Rejection reason: ${s.notes}</div>`:''}
   `;
   document.getElementById('modal-id-footer').innerHTML=`
@@ -2003,7 +2069,140 @@ function rejectId(idx){
   addSyncLog('Identity rejected: '+submissions[idx].name);
   fetch(GEO_API+'/admin/registration/'+submissions[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'rejected',reviewer:'Idris@GeoEstate',notes:submissions[idx].notes||''})}).catch(()=>{});
 }
-function requestInfo(idx){saveNotes(idx);submissions[idx].status='info';submissions[idx].reviewer='Idris@GeoEstate';saveState();updateBadges();renderIdQueue();renderUrgent();closeModal('modal-id');adminToast('Info requested from '+submissions[idx].name,'info');}
+function requestInfo(idx){ openRequestInfo(idx); }
+
+// ===== REQUEST INFO COMPOSER =====
+// Detects what the customer is missing, drafts the email, lets the admin proof-read and
+// edit it, then the server emails it (with a "Verify Your Identity" button) and flags the
+// registration as "info requested".
+const RI_LINK = 'https://geoestate.com.ng/?page=verify';
+const RI_EXTRAS = [
+  { key:'selfie_unclear', label:'Selfie is unclear or the face is not fully visible',
+    text:'Your selfie is unclear. Please retake it in good light with your full face visible (no hat or sunglasses).' },
+  { key:'id_unclear', label:'ID photo is blurry, cropped or unreadable',
+    text:'The photo of your ID is blurry or cropped. Please upload a sharp photo or scan that shows all four corners and all the text clearly.' },
+  { key:'id_expired', label:'ID document has expired',
+    text:'The ID you uploaded has expired. Please upload a valid, unexpired government-issued ID.' },
+  { key:'name_mismatch', label:"Name on the ID doesn't match the account name",
+    text:"The name on your ID does not match the name on your GeoEstate account. Please upload an ID in the same name, or contact us to correct your account name." },
+  { key:'nin_mismatch', label:"NIN doesn't match the ID document",
+    text:'The NIN you entered does not match your ID document. Please re-enter it carefully.' }
+];
+let RI = null;
+function riEsc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function riDetectMissing(s){
+  if (Array.isArray(s.missing)) return s.missing;            // computed by the server
+  // Fallback for an older API that doesn't send `missing`
+  const blank = v => { const t=String(v==null?'':v).trim(); return !t||t==='\u2014'||t==='-'||/^pending upload$/i.test(t)||/^[*\-]+$/.test(t); };
+  const out = []; const add = (key,label) => out.push({key,label});
+  const docPart = String(s.doc||'').split('|').slice(1).join('|');
+  if (blank(s.photo_url)) add('selfie','Live selfie photo');
+  if (blank(s.id_doc_url) && blank(docPart)) add('id_doc','Government-issued ID document (a clear photo or scan)');
+  if (String(s.nin||'').replace(/\D/g,'').length !== 11) add('nin','Your 11-digit NIN');
+  [['dob','Date of birth'],['gender','Gender'],['occupation','Occupation'],['state','State of residence'],
+   ['lga','Local Government Area (LGA)'],['address','Residential address'],
+   ['nextOfKin','Next of kin - full name'],['nextOfKinRel','Next of kin - relationship']]
+    .forEach(([k,l]) => { if (blank(s[k])) add(k,l); });
+  if (String(s.nextOfKinPhone||'').replace(/\D/g,'').length < 10) add('next_of_kin_phone','Next of kin - phone number');
+  return out;
+}
+function openRequestInfo(idx){
+  const s = submissions[idx]; if (!s) return;
+  saveNotes(idx);
+  if (!s.email || s.email === '\u2014') { adminToast('This customer has no email address on file','error'); return; }
+  const missing = riDetectMissing(s);
+  RI = { idx, id: s.id, dirty: false };
+  document.getElementById('ri-sub').textContent = (s.name||'') + '  \u00b7  ' + s.id;
+  document.getElementById('ri-to').textContent = (s.name||'Customer') + '  <' + s.email + '>';
+  document.getElementById('ri-link-url').textContent = RI_LINK;
+  document.getElementById('ri-detected').innerHTML = missing.length
+    ? missing.map(m=>`<label class="ri-check"><input type="checkbox" checked data-label="${riEsc(m.label)}" onchange="riRegen()"><span>${riEsc(m.label)}</span></label>`).join('')
+    : '<div class="ri-none">&#10003; Every required item is on file. Tick a problem below or add your own note.</div>';
+  document.getElementById('ri-extras').innerHTML = RI_EXTRAS.map(x=>
+    `<label class="ri-check"><input type="checkbox" data-text="${riEsc(x.text)}" onchange="riRegen()"><span>${riEsc(x.label)}</span></label>`).join('');
+  document.getElementById('ri-note').value = '';
+  document.getElementById('ri-subject').value = 'Action needed: complete your GeoEstate identity verification';
+  document.getElementById('ri-err').style.display = 'none';
+  const btn = document.getElementById('ri-send'); btn.disabled = false; btn.textContent = 'Send to customer';
+  riRegen(true);
+  riTab('edit');
+  openModal('modal-reqinfo');
+}
+function riCompose(){
+  const s = submissions[RI.idx];
+  const first = (s.fname || String(s.name||'').split(' ')[0] || 'there').trim();
+  const items  = [...document.querySelectorAll('#ri-detected input:checked')].map(i=>i.dataset.label);
+  const extras = [...document.querySelectorAll('#ri-extras input:checked')].map(i=>i.dataset.text);
+  const note   = (document.getElementById('ri-note').value||'').trim();
+  const L = [];
+  L.push('Hi ' + first + ',', '');
+  L.push('Thank you for registering with GeoEstate. We have reviewed your identity verification and need a little more from you before we can approve your account.', '');
+  if (items.length)  { L.push('Please provide the following:'); items.forEach((t,i)=>L.push('  ' + (i+1) + '. ' + t)); L.push(''); }
+  if (extras.length) { L.push('Please also correct the following:'); extras.forEach(t=>L.push('  - ' + t)); L.push(''); }
+  if (note)          { L.push('A note from our team:', note, ''); }
+  L.push('How to complete this:');
+  L.push('  1. Tap the "Verify Your Identity" button below and sign in to your GeoEstate account.');
+  L.push('  2. Add the items above. Everything you already submitted is saved, so you only need to provide what is missing.');
+  L.push('  3. Tap Submit. We will review it again within 24 hours and let you know the result.', '');
+  L.push('Need help? Contact us at admin@geoestate.com.ng.', '');
+  L.push('Warm regards,', 'GeoEstate Verification Team');
+  return L.join('\n');
+}
+function riRegen(force){
+  if (!RI) return;
+  const hint = document.getElementById('ri-dirty-hint');
+  if (RI.dirty && !force) { hint.style.display = 'flex'; return; }   // never overwrite the admin's edits silently
+  document.getElementById('ri-message').value = riCompose();
+  RI.dirty = false; hint.style.display = 'none';
+  riPreview();
+}
+function riMarkDirty(){ if (RI) { RI.dirty = true; riPreview(); } }
+function riTab(t){
+  const edit = t === 'edit';
+  document.getElementById('ri-pane-edit').style.display = edit ? 'block' : 'none';
+  document.getElementById('ri-pane-preview').style.display = edit ? 'none' : 'block';
+  document.getElementById('ri-tab-edit').classList.toggle('on', edit);
+  document.getElementById('ri-tab-preview').classList.toggle('on', !edit);
+  if (!edit) riPreview();
+}
+function riPreview(){
+  const pane = document.getElementById('ri-pane-preview'); if (!pane || !RI) return;
+  const msg = document.getElementById('ri-message').value;
+  const subj = document.getElementById('ri-subject').value;
+  pane.innerHTML = `<div class="ri-mail"><div class="ri-mail-head">GeoEstate</div><div class="ri-mail-body">
+    <div class="ri-mail-subject"><strong>Subject:</strong> ${riEsc(subj)}</div>
+    ${riEsc(msg).replace(/\n/g,'<br>')}
+    <div style="text-align:center;margin:22px 0 10px"><span class="ri-mail-btn">Verify Your Identity &rarr;</span></div>
+    <div class="ri-mail-foot">You'll be asked to sign in first.<br>${riEsc(RI_LINK)}</div></div></div>`;
+}
+function riErr(msg){ const e = document.getElementById('ri-err'); e.textContent = msg; e.style.display = 'block'; }
+async function sendRequestInfo(){
+  if (!RI) return;
+  const s = submissions[RI.idx];
+  const subject = document.getElementById('ri-subject').value.trim();
+  const message = document.getElementById('ri-message').value.trim();
+  document.getElementById('ri-err').style.display = 'none';
+  if (!subject) return riErr('Please add an email subject.');
+  if (message.length < 20) return riErr('Please write a message (at least 20 characters).');
+  const btn = document.getElementById('ri-send');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    const res = await fetch(GEO_API + '/admin/registration/' + encodeURIComponent(RI.id) + '/request-info', {
+      method: 'POST', headers: geoHeaders(),
+      body: JSON.stringify({ subject, message, reviewer: 'Idris@GeoEstate' })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok || !data.success) throw new Error(data.error || ('Request failed (HTTP ' + res.status + ')'));
+    s.status = 'info'; s.reviewer = 'Idris@GeoEstate'; s.info_request_message = message;
+    saveState(); updateBadges(); renderIdQueue(); renderUrgent();
+    closeModal('modal-reqinfo'); closeModal('modal-id');
+    adminToast('Request emailed to ' + s.email, 'success');
+    addSyncLog('Info requested and emailed: ' + s.name);
+  } catch (e) {
+    riErr(e.message || 'Could not send. Please try again.');
+    btn.disabled = false; btn.textContent = 'Send to customer';
+  }
+}
 function approveProp(idx){const el=document.getElementById('prop-notes-'+idx);if(el) adminProperties[idx].notes=el.value;adminProperties[idx].status='live';fetch(GEO_API+'/admin/property/'+adminProperties[idx].id,{method:'PATCH',headers:geoHeaders(),body:JSON.stringify({status:'live',notes:adminProperties[idx].notes||''})}).catch(()=>{});saveState();updateBadges();renderPropQueue();closeModal('modal-prop');adminToast(adminProperties[idx].title+' is now live ✓','success');addSyncLog('Property approved: '+adminProperties[idx].title);}
 
 function saveSiteVisit(idx){

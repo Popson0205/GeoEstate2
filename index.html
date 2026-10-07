@@ -1460,6 +1460,13 @@ document.addEventListener('click', function(e){
       </div>
     </div>
 
+    <!-- Shown when GeoEstate has asked for more information -->
+    <div id="verify-info-banner" style="display:none;margin-bottom:var(--space-4);padding:16px 18px;border-radius:12px;background:#fffbeb;box-shadow:inset 0 0 0 1px #fcd34d;color:#92400e">
+      <div style="font-weight:800;margin-bottom:6px">&#9888;&#65039; Action needed on your verification</div>
+      <div id="verify-info-msg" style="font-size:.85rem;line-height:1.65;white-space:pre-wrap"></div>
+      <div id="verify-info-missing" style="margin-top:10px;font-size:.84rem"></div>
+    </div>
+
     <!-- Verification form -->
     <div id="verify-form-wrap">
 
@@ -2864,6 +2871,7 @@ function showPage(name) {
   if (name === 'map')    initMap();
   if (name === 'detail') { if (window._currentProp) initDetailMap(window._currentProp.lat, window._currentProp.lng, window._currentProp.title, window._currentProp.location); }
   if (name === 'profile') populateProfilePage();
+  if (name === 'verify') loadVerificationStatus();
   if (name === 'dispute') loadDisputePropertyOptions();
 }
 
@@ -2885,6 +2893,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!validPages.includes(target)) return;
   setTimeout(function () {
     if (target === 'verify' && !currentUser) {
+      window._afterLoginPage = 'verify';   // land on Verify Identity right after signing in
       openAuthModal('login');
       return;
     }
@@ -3716,6 +3725,72 @@ function previewUpload(input, previewId) {
   }
 }
 // ── IDENTITY VERIFICATION ────────────────────────────────────────────────────
+// ---- Verify Identity: what does GeoEstate still need from me? -----------------
+// Fills the "Action needed" banner (when we asked for more info) and works out what is
+// already on file, so a customer only re-submits what is missing.
+window._verifOnFile = null;
+const VI_FIELD_MAP = {
+  dob: 'vi-dob', gender: 'vi-gender', occupation: 'vi-occupation', state: 'vi-state', lga: 'vi-lga',
+  address: 'vi-address', nin: 'vi-nin', next_of_kin: 'vi-kin-name', next_of_kin_rel: 'vi-kin-rel',
+  next_of_kin_phone: 'vi-kin-phone', selfie: 'vi-selfie-label', id_doc: 'vi-idoc-label'
+};
+async function loadVerificationStatus() {
+  const banner = document.getElementById('verify-info-banner');
+  const formWrap = document.getElementById('verify-form-wrap');
+  const doneEl = document.getElementById('verify-already-done');
+  try {
+    const sess = (window.GeoAPI && GeoAPI.getOwnerSession && GeoAPI.getOwnerSession()) || null;
+    if (!currentUser || !sess || !sess.token) return;
+    const r = await fetch(GEO_API_BASE + '/owner/verification-status', { headers: { Authorization: 'Bearer ' + sess.token } });
+    if (r.status === 401) { window.dispatchEvent(new Event('geo-session-expired')); return; }
+    const d = await r.json();
+    if (!d || !d.success) return;
+
+    // reset anything from a previous visit
+    document.querySelectorAll('.vi-hint').forEach(e => e.remove());
+    Object.values(VI_FIELD_MAP).forEach(id => { const el = document.getElementById(id); if (el) el.style.outline = ''; });
+
+    if (d.isVerified) {                                  // nothing left to do
+      if (formWrap) formWrap.style.display = 'none';
+      if (doneEl) doneEl.style.display = 'block';
+      if (banner) banner.style.display = 'none';
+      return;
+    }
+    window._verifOnFile = d.onFile || null;
+    const asked = d.status === 'info';
+    const missingKeys = new Set((d.missing || []).map(m => m.key));
+
+    if (banner) {
+      if (asked) {
+        document.getElementById('verify-info-msg').textContent = d.message || 'We need a few more details to verify your identity.';
+        const list = document.getElementById('verify-info-missing');
+        list.innerHTML = (d.missing && d.missing.length)
+          ? '<strong>Still needed:</strong><ul style="margin:6px 0 0 18px;padding:0">' +
+            d.missing.map(m => '<li>' + String(m.label).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) + '</li>').join('') + '</ul>'
+          : '';
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    // Mark what is already on file (leave blank to keep) and highlight what is still missing.
+    const anythingOnFile = Object.values(d.onFile || {}).some(Boolean);
+    Object.entries(VI_FIELD_MAP).forEach(([key, id]) => {
+      const el = document.getElementById(id); if (!el) return;
+      if (missingKeys.has(key)) {
+        if (asked) { el.style.outline = '2px solid #ef4444'; el.style.outlineOffset = '1px'; }
+      } else if (anythingOnFile && d.onFile && d.onFile[key]) {
+        const hint = document.createElement('div');
+        hint.className = 'vi-hint';
+        hint.style.cssText = 'font-size:.74rem;color:var(--geo-green-600);margin-top:4px;font-weight:600';
+        hint.textContent = '\u2713 Already on file - leave blank to keep it';
+        el.insertAdjacentElement('afterend', hint);
+      }
+    });
+  } catch (e) { /* the form still works without it */ }
+}
+
 async function submitVerification() {
   // Must be logged in
   if (!currentUser || !currentUser.id) {
@@ -3758,20 +3833,22 @@ async function submitVerification() {
   const idocInput   = document.getElementById('vi-idoc');
 
   // Validate
-  if (!dob)                              return showErr('Please enter your date of birth.');
-  if (!gender)                           return showErr('Please select your gender.');
-  if (!occ)                              return showErr('Please enter your occupation.');
-  if (!state)                            return showErr('Please select your state.');
-  if (!lga)                              return showErr('Please enter your LGA.');
-  if (!address)                          return showErr('Please enter your residential address.');
-  if (!nin || nin.length < 11)           return showErr('Please enter your valid 11-digit NIN.');
-  if (!kinName)                          return showErr('Please enter your next of kin name.');
-  if (!kinRel)                           return showErr('Please select your next of kin relationship.');
-  if (!kinPhone || kinPhone.length < 10) return showErr('Please enter a valid next of kin phone number.');
-  if (!selfieInput || !selfieInput.files || !selfieInput.files[0])
-    return showErr('Please upload your selfie photo.');
-  if (!idocInput || !idocInput.files || !idocInput.files[0])
-    return showErr('Please upload your government ID document.');
+  // Anything already on file (see loadVerificationStatus) can be left blank - the server keeps it.
+  const onFile = window._verifOnFile || {};
+  if (!dob && !onFile.dob)                return showErr('Please enter your date of birth.');
+  if (!gender && !onFile.gender)          return showErr('Please select your gender.');
+  if (!occ && !onFile.occupation)         return showErr('Please enter your occupation.');
+  if (!state && !onFile.state)            return showErr('Please select your state.');
+  if (!lga && !onFile.lga)                return showErr('Please enter your LGA.');
+  if (!address && !onFile.address)        return showErr('Please enter your residential address.');
+  if (nin ? nin.length < 11 : !onFile.nin) return showErr('Please enter your valid 11-digit NIN.');
+  if (!kinName && !onFile.next_of_kin)    return showErr('Please enter your next of kin name.');
+  if (!kinRel && !onFile.next_of_kin_rel) return showErr('Please select your next of kin relationship.');
+  if (kinPhone ? kinPhone.length < 10 : !onFile.next_of_kin_phone) return showErr('Please enter a valid next of kin phone number.');
+  const hasSelfieFile = !!(selfieInput && selfieInput.files && selfieInput.files[0]);
+  const hasIdocFile   = !!(idocInput && idocInput.files && idocInput.files[0]);
+  if (!hasSelfieFile && !onFile.selfie)   return showErr('Please upload your selfie photo.');
+  if (!hasIdocFile && !onFile.id_doc)     return showErr('Please upload your government ID document.');
   if (!agreed)
     return showErr('Please agree to the consent statement.');
 
@@ -3783,14 +3860,20 @@ async function submitVerification() {
     // a "documents live in the DB but nothing shows in admin" case could
     // happen without the person even realizing their upload silently failed.
     showProg('Uploading selfie…');
-    const selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
-    if (!selfie_url) throw new Error('Selfie upload failed — please try again.');
+    let selfie_url = '';
+    if (hasSelfieFile) {
+      selfie_url = await geoUploadToSupabase(selfieInput, 'geoestate-docs/registrations/selfies');
+      if (!selfie_url) throw new Error('Selfie upload failed - please try again.');
+    }
 
     // 2. Upload ID document — same: a failure here must stop submission,
     // not silently continue with an empty id_doc_url.
     showProg('Uploading ID document…');
-    const id_doc_url = await geoUploadToSupabase(idocInput, 'geoestate-docs/registrations/id-docs');
-    if (!id_doc_url) throw new Error('ID document upload failed — please try again.');
+    let id_doc_url = '';
+    if (hasIdocFile) {
+      id_doc_url = await geoUploadToSupabase(idocInput, 'geoestate-docs/registrations/id-docs');
+      if (!id_doc_url) throw new Error('ID document upload failed - please try again.');
+    }
 
     // 3. Use the signed session token issued by the server at sign-in / registration
     const _sess = (window.GeoAPI && GeoAPI.getOwnerSession && GeoAPI.getOwnerSession()) || null;
@@ -4286,6 +4369,11 @@ setInterval(() => { if (currentUser) loadNotificationsFromAPI(); }, 30000);
 function loginSuccess(user) {
   if (user && !user.avatar && user.photo_url) user.avatar = user.photo_url;
   currentUser = user;
+  // Came from an emailed "Verify Your Identity" link? Go straight there once the sign-in modal closes.
+  if (window._afterLoginPage) {
+    const _pg = window._afterLoginPage; window._afterLoginPage = null;
+    setTimeout(function () { try { closeAuthModal(); } catch (e) {} showPage(_pg); }, 450);
+  }
   localStorage.setItem('geo_session', JSON.stringify(user));
   renderNavAuth();
   loadNotificationsFromAPI();
