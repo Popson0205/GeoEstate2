@@ -1303,7 +1303,7 @@ let tenancies = []; // loaded from Supabase DB on init
 const activityFeed = [
   {dot:'green', text:'<strong>GeoEstate Platform launched</strong> — identity queue open, ready for first submissions', time:'Today'},
   {dot:'blue',  text:'<strong>Neon database connected</strong> — all data persisted to cloud', time:'Today'},
-  {dot:'blue',  text:'<strong>Email OTP active</strong> — noreply@geoestate.com.ng verified and sending', time:'Today'},
+  {dot:'blue',  text:'<strong>Email OTP active</strong>  verification emails are sent by the server', time:'Today'},
 ];
 
 const chartData = [{day:'Mon',val:0},{day:'Tue',val:0},{day:'Wed',val:0},{day:'Thu',val:0},{day:'Fri',val:0},{day:'Sat',val:0},{day:'Sun',val:0}];
@@ -2111,7 +2111,7 @@ function openRequestInfo(idx){
   saveNotes(idx);
   if (!s.email || s.email === '\u2014') { adminToast('This customer has no email address on file','error'); return; }
   const missing = riDetectMissing(s);
-  RI = { idx, id: s.id, dirty: false };
+  RI = { idx, id: s.id, dirty: false, nothingSubmitted: missing.length >= 12 };
   document.getElementById('ri-sub').textContent = (s.name||'') + '  \u00b7  ' + s.id;
   document.getElementById('ri-to').textContent = (s.name||'Customer') + '  <' + s.email + '>';
   document.getElementById('ri-link-url').textContent = RI_LINK;
@@ -2136,15 +2136,16 @@ function riCompose(){
   const note   = (document.getElementById('ri-note').value||'').trim();
   const L = [];
   L.push('Hi ' + first + ',', '');
-  L.push('Thank you for registering with GeoEstate. We have reviewed your identity verification and need a little more from you before we can approve your account.', '');
-  if (items.length)  { L.push('Please provide the following:'); items.forEach((t,i)=>L.push('  ' + (i+1) + '. ' + t)); L.push(''); }
+  if (RI.nothingSubmitted) L.push('Thank you for registering with GeoEstate. We noticed you have not completed your identity verification yet. Verifying your identity unlocks full access - contacting owners, making offers and listing properties.', '');
+  else L.push('Thank you for registering with GeoEstate. We have reviewed your identity verification and need a little more from you before we can approve your account.', '');
+  if (items.length)  { L.push(RI.nothingSubmitted ? 'To complete it, please provide:' : 'Please provide the following:'); items.forEach((t,i)=>L.push('  ' + (i+1) + '. ' + t)); L.push(''); }
   if (extras.length) { L.push('Please also correct the following:'); extras.forEach(t=>L.push('  - ' + t)); L.push(''); }
   if (note)          { L.push('A note from our team:', note, ''); }
   L.push('How to complete this:');
   L.push('  1. Tap the "Verify Your Identity" button below and sign in to your GeoEstate account.');
   L.push('  2. Add the items above. Everything you already submitted is saved, so you only need to provide what is missing.');
   L.push('  3. Tap Submit. We will review it again within 24 hours and let you know the result.', '');
-  L.push('Need help? Contact us at admin@geoestate.com.ng.', '');
+  L.push('Need help? Reply to this email or contact us at geoestate.ng@gmail.com.', '');
   L.push('Warm regards,', 'GeoEstate Verification Team');
   return L.join('\n');
 }
@@ -2171,7 +2172,7 @@ function riPreview(){
   const subj = document.getElementById('ri-subject').value;
   pane.innerHTML = `<div class="ri-mail"><div class="ri-mail-head">GeoEstate</div><div class="ri-mail-body">
     <div class="ri-mail-subject"><strong>Subject:</strong> ${riEsc(subj)}</div>
-    ${riEsc(msg).replace(/\n/g,'<br>')}
+    ${riEsc(msg).split('\n').map(l=>l.replace(/^( +)/,m=>'&nbsp;'.repeat(m.length))).join('<br>')}
     <div style="text-align:center;margin:22px 0 10px"><span class="ri-mail-btn">Verify Your Identity &rarr;</span></div>
     <div class="ri-mail-foot">You'll be asked to sign in first.<br>${riEsc(RI_LINK)}</div></div></div>`;
 }
